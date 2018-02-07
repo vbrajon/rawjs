@@ -1,9 +1,11 @@
 const xtend = () => {
   const ctx = typeof global === 'object' && global.global === global && global || this
-  for (const primitive in xtend) {
-    for (const name in xtend[primitive]) {
-      Object.defineProperty(ctx[primitive].prototype, name, {
-        value: function() { return xtend[primitive][name](this, ...arguments) }
+  for (const primitive in { Object: true, Array: true }) {
+    for (const fname in xtend[primitive]) {
+      Object.defineProperty(ctx[primitive].prototype, fname, {
+        value: function() {
+          return xtend[primitive][fname](this, ...xtend.wrap(arguments, fname))
+        }
       })
     }
   }
@@ -21,16 +23,40 @@ xtend.Object = {
     acc[k] = o[k]
     return acc
   }, {}),
-  find: (o, fn) => Object.keys(o).find(k => fn(o[k], k)),
+  find: (o, fn) => Object.keys(o).find((k, i) => fn(o[k], k, i, o)),
 }
 
 xtend.Array = {
+  // maximum call stack when calling Object.map > calling Array.map > calling Object.map ...
+  // map: [].map,
+  // reduce: [].reduce,
+  // filter: [].filter,
+  // find: [].find,
+  // groupBy
+  // sortBy
   first: a => a[0],
   last: a => a.slice(-1)[0],
+  // flatten
+  // unique
+  // intersect
+  // zip
+  // average
+  // max
+  // median
+  // min
+  // sum
 }
 
-// const { version } = require('./package.json')
-// xtend.version = version
+const { version } = require('./package.json')
+xtend.version = version
+
+xtend.wrap = (args, fname) => {
+  if (['map', 'filter', 'find'].includes(fname)) {
+    const arg0 = args[0]
+    args[0] = arg0 ? typeof arg0 === 'function' ? args[0] : x => x[arg0] : x => x
+  }
+  return args
+}
 
 // export default xtend
 module.exports = xtend
