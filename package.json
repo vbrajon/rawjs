@@ -1,0 +1,10 @@
+{
+  "name": "xtendjs",
+  "version": "1.0.0",
+  "scripts": {
+    "test": "tape test.js"
+  },
+  "devDependencies": {
+    "tape": "^4.8.0"
+  }
+}
