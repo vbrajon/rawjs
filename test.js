@@ -1,13 +1,17 @@
 const test = require('tape')
 const xtend = require('./xtend')
-xtend()
 
 test('it extends primitive prototypes', t => {
+  xtend()
   const obj = {}
   const arr = []
   t.equal(arr.map, Array.prototype.map)
   t.equal(obj.map, Object.prototype.map)
   t.equal(typeof obj.map, 'function')
+  t.equal(typeof obj.extendkey, 'undefined')
+  xtend.Object.extendkey = o => o
+  xtend()
+  t.equal(typeof obj.extendkey, 'function')
   t.end()
 })
 
@@ -36,12 +40,8 @@ test('it works with shorthand', t => {
   t.same(arr.map(), arr) // clone
   t.same(arr.filter('c'), [{ b: 3, c: 4}])
   t.same([null, 'a', undefined].filter(), ['a'])
-  // t.same(obj.find(v => v.same([3, 4])), 'b')
-  // t.same(obj.find([1, 2]), 'a')
+  t.same(obj.find(v => v.same([3, 4])), 'b')
+  t.same(obj.find([1, 2]), 'a')
   // t.same(obj.find([3, 4]), obj.find(v => v === [3, 4]))
-  t.end()
-})
-
-test('it can be extended', t => {
   t.end()
 })
