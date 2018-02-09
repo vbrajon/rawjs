@@ -4,7 +4,7 @@ const xtend = () => {
     for (const fname in xtend[primitive]) {
       Object.defineProperty(ctx[primitive].prototype, fname, {
         value: function() {
-          return xtend[primitive][fname](this, ...xtend.wrap(arguments, fname))
+          return xtend[primitive][fname](this, ...xtend.wrap(arguments, primitive, fname))
         }
       })
     }
@@ -26,14 +26,17 @@ xtend.Object = {
   find: (o, fn) => Object.keys(o).find((k, i) => fn(o[k], k, i, o)),
 }
 
+const _map = [].map
+const _reduce = [].reduce
+const _filter = [].filter
+const _find = [].find
 xtend.Array = {
-  // maximum call stack when calling Object.map > calling Array.map > calling Object.map ...
-  // map: [].map,
-  // reduce: [].reduce,
-  // filter: [].filter,
-  // find: [].find,
-  // groupBy
-  // sortBy
+  map: (a, fn) => _map.bind(a)(fn),
+  reduce: (a, fn, base) => _reduce.bind(a)(fn, base),
+  filter: (a, fn) => _filter.bind(a)(fn),
+  find: (a, fn) => _find.bind(a)(fn),
+  // groupBy: a => a.reduce(),
+  // sortBy: a => a.map(x => x).
   first: a => a[0],
   last: a => a.slice(-1)[0],
   // flatten
@@ -50,10 +53,11 @@ xtend.Array = {
 const { version } = require('./package.json')
 xtend.version = version
 
-xtend.wrap = (args, fname) => {
-  if (['map', 'filter', 'find'].includes(fname)) {
+xtend.wrap = (args, primitive, fname) => {
+  if (['map', 'filter'].includes(fname)) {
+    if (args[0] == undefined) return [x => x]
     const arg0 = args[0]
-    args[0] = arg0 ? typeof arg0 === 'function' ? args[0] : x => x[arg0] : x => x
+    args[0] = typeof arg0 === 'function' ? args[0] : x => x[arg0]
   }
   return args
 }
