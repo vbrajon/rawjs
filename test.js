@@ -33,15 +33,25 @@ test('it extends first, last on array', t => {
 
 test('it works with shorthand', t => {
   const obj = { a: [1, 2], b: [3, 4] }
-  const arr = [{ a: 1, b: 2}, { b: 3, c: 4}]
-  t.same(obj.map('length'), obj.map(x => x.length))
-  t.same(obj.map(1), obj.map(x => x[1]))
   t.same(obj.map(), obj.map(x => x)) // clone
+  t.same(obj.map(1), obj.map(x => x[1]))
+  t.same(obj.map('length'), obj.map(x => x.length))
+  t.same(obj.filter(), obj.map(x => x))
+  t.same(obj.find([3, 4]), 'b')
+  t.same(obj.find(v => v.same([3, 4])), 'b')
+  t.same(obj.reduce(1, []), [2, 4])
+  t.same(obj.reduce(v => v[1], []), obj.reduce((acc, v, k) => { acc.push(v[1]);return acc }, []))
+  t.same(obj.reduce((v, k) => ({ [v[0]]: k }), []), [{ 1: 'a' }, { 3: 'b' }])
+
+  const arr = [{ a: 1, b: 2}, { b: 3, c: 4}]
   t.same(arr.map(), arr) // clone
   t.same(arr.filter('c'), [{ b: 3, c: 4}])
   t.same([null, 'a', undefined].filter(), ['a'])
-  t.same(obj.find(v => v.same([3, 4])), 'b')
-  t.same(obj.find([1, 2]), 'a')
-  // t.same(obj.find([3, 4]), obj.find(v => v === [3, 4]))
+  t.end()
+})
+
+test('it exposes xtend.same(a, b) or [].same(b) or ({}).same(b)', t => {
+  t.true(xtend.same({ a: { b: [1, 2, new Date('2018-01-01')] } }, { a: { b: [1, 2, new Date('2018-01-01')] } }))
+  t.true([{ a: 1 }].same([{ a: 1 }]))
   t.end()
 })

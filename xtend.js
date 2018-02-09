@@ -104,11 +104,25 @@ xtend.wrap = (args, primitive, fname) => {
   const arg0 = args[0]
   if (['map', 'filter'].includes(fname)) {
     if (arg0 == undefined) return [x => x]
-    args[0] = typeof arg0 === 'function' ? args[0] : x => x[arg0]
+    if (typeof arg0 !== 'function') args[0] = x => x[arg0]
   }
   if (['find'].includes(fname)) {
     if (arg0 == undefined) return [x => x]
-    args[0] = typeof arg0 === 'function' ? args[0] : x => x.same ? x.same(arg0) : x === arg0
+    if (typeof arg0 !== 'function') args[0] = x => x.same ? x.same(arg0) : x === arg0
+  }
+  // TODO: rework this, simplify
+  if (primitive === 'Object' && ['reduce'].includes(fname)) {
+    let fn = arg0
+    if (fn == undefined) fn = x => x
+    if (typeof fn !== 'function') fn = x => x[arg0]
+    if (Array.isArray(args[1]) && fn.length < 3) {
+      args[0] = (acc, v, k) => {
+        acc.push(fn(v, k))
+        return acc
+      }
+    } else {
+      args[0] = fn
+    }
   }
   return args
 }
