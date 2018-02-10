@@ -1,17 +1,20 @@
 const test = require('tape')
 const xtend = require('./xtend')
 
-test('it extends primitive prototypes', t => {
+test('it extends primitive prototypes and global ctx', t => {
+  t.false(typeof same === 'function')
+  t.false(typeof ({}).map === 'function')
   xtend()
-  const obj = {}
-  const arr = []
-  t.equal(arr.map, Array.prototype.map)
-  t.equal(obj.map, Object.prototype.map)
-  t.equal(typeof obj.map, 'function')
-  t.equal(typeof obj.extendkey, 'undefined')
-  xtend.Object.extendkey = o => o
+  t.true(typeof ({}).map === 'function')
+  t.true(typeof same === 'function')
+  t.end()
+})
+
+test('it can be called a second time and support custom function', t => {
+  xtend.Object.custom_extend = x => x
+  t.false(typeof ({}).custom_extend === 'function')
   xtend()
-  t.equal(typeof obj.extendkey, 'function')
+  t.true(typeof ({}).custom_extend === 'function')
   t.end()
 })
 
@@ -50,8 +53,8 @@ test('it works with shorthand', t => {
   t.end()
 })
 
-test('it exposes xtend.same(a, b) or [].same(b) or ({}).same(b)', t => {
-  t.true(xtend.same({ a: { b: [1, 2, new Date('2018-01-01')] } }, { a: { b: [1, 2, new Date('2018-01-01')] } }))
+test('it exposes same(a, b) or [].same(b) or ({}).same(b)', t => {
+  t.true(same({ a: { b: [1, 2, new Date('2018-01-01')] } }, { a: { b: [1, 2, new Date('2018-01-01')] } }))
   t.true([{ a: 1 }].same([{ a: 1 }]))
   t.end()
 })
