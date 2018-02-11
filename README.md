@@ -2,10 +2,12 @@
 > Utility Library to extend javascript primitives, simpler than and inpired by [sugarjs](https://sugarjs.com/) and [lodash](https://lodash.com/)
 
 ### WIP
-- String, Number, Function, Date utilities
-- Ability to extend wrapping
+
+- String, Number, Function, Date, DOM utilities
 - Documentation
 - unpkg.com
+- shorthand dot notation 'a.b.c'
+- Advanced: Ability to extend wrapping
 - optional: prettier, eslint, git-hooks, benchmark in browsers, .circleci, .github, git-bot
 
 ### Usage

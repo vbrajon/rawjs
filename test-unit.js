@@ -2,26 +2,25 @@ const test = require('tape')
 const xtend = require('./xtend')
 
 test('it extends primitive prototypes and global ctx', t => {
+  t.equal(xtend.version.slice(0, 1), '1')
   t.false(typeof same === 'function')
   t.false(typeof ({}).map === 'function')
   t.false(typeof ({}).keys === 'function')
+  t.false(typeof ({}).custom_extend === 'function')
   delete xtend.Object.keys // function will not be extended
+  xtend.Object.custom_extend = x => x // custom function, also work with
   xtend()
   t.true(typeof ({}).map === 'function')
   t.true(typeof same === 'function')
   t.false(typeof ({}).keys === 'function')
-  t.end()
-})
-
-test('it can be called a second time and support custom function', t => {
-  xtend.Object.custom_extend = x => x
-  t.false(typeof ({}).custom_extend === 'function')
-  xtend()
   t.true(typeof ({}).custom_extend === 'function')
+  xtend.Object.custom_extend_second_call = x => x
+  xtend()
+  t.true(typeof ({}).custom_extend_second_call === 'function')
   t.end()
 })
 
-test('it extends map, reduce, filter, find on object', t => {
+test('it extends Object # map, reduce, filter, find', t => {
   const obj = { a: 1, b: 2 }
   t.same(obj.map(v => v * 2), { a: 2, b: 4 })
   t.same(obj.reduce((acc, v, k, i) => { acc.push(k + v * 2 + i);return acc }, []), ['a20', 'b41'])
@@ -30,7 +29,7 @@ test('it extends map, reduce, filter, find on object', t => {
   t.end()
 })
 
-test('it extends groupBy, sortBy, flatten, unique on array', t => {
+test('it extends Array # groupBy, sortBy, flatten, unique', t => {
   const arr = [[1], [2, 3], [[4]]]
   t.same(arr.groupBy('length'), { 1: [[1], [[4]]], 2: [[2, 3]] })
   t.same(arr.sortBy('length'), [[1], [[4]], [2, 3]])
@@ -40,6 +39,16 @@ test('it extends groupBy, sortBy, flatten, unique on array', t => {
   t.same([1, 1, 2, 2, 3].unique(), [1, 2, 3])
   t.same(arr.first(), [1])
   t.same(arr.last(), [[4]])
+  t.end()
+})
+
+test('it extends String # format, capitalize, titleize', t => {
+  t.equal('{}{}{}'.format('a', 'b'), 'ab{}')
+  t.equal('{1}{2}{0}{1}'.format('a', 'b'), 'b{2}ab')
+  t.equal('{k2}{k2}{k3}'.format({ k1: 'a', k2: 'b' }), 'bb{k3}')
+  t.equal('{1}{0}{}{1}'.format('a', 'b'), 'baab')
+  t.equal('i-AM_The, OnE: And oNLy.'.capitalize(), 'I-am_the, one: and only.')
+  t.equal('i-AM_The, OnE: And oNLy.'.titleize(), 'I Am The One And Only')
   t.end()
 })
 
