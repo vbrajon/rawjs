@@ -1,22 +1,21 @@
 const test = require('tape')
 const xtend = require('./xtend')
 
-test('it extends primitive prototypes and global ctx', t => {
+test('it extends primitive prototypes and context', t => {
   t.equal(xtend.version.slice(0, 1), '1')
-  t.false(typeof same === 'function')
+  t.true(typeof same === 'function') // now directly extend with is/same fns
+
   t.false(typeof ({}).map === 'function')
-  t.false(typeof ({}).keys === 'function')
-  t.false(typeof ({}).custom_extend === 'function')
-  delete xtend.Object.keys // function will not be extended
-  xtend.Object.custom_extend = x => x // custom function, also work with
   xtend()
   t.true(typeof ({}).map === 'function')
-  t.true(typeof same === 'function')
-  t.false(typeof ({}).keys === 'function')
-  t.true(typeof ({}).custom_extend === 'function')
-  xtend.Object.custom_extend_second_call = x => x
+
+  xtend.Object.custom = x => x
+  t.false(typeof ({}).custom === 'function')
   xtend()
-  t.true(typeof ({}).custom_extend_second_call === 'function')
+  t.true(typeof ({}).custom === 'function')
+  delete Object.prototype.custom
+  t.false(typeof ({}).custom === 'function')
+
   t.end()
 })
 
@@ -30,15 +29,19 @@ test('it extends Object # map, reduce, filter, find', t => {
 })
 
 test('it extends Array # groupBy, sortBy, flatten, unique', t => {
-  const arr = [[1], [2, 3], [[4]]]
-  t.same(arr.groupBy('length'), { 1: [[1], [[4]]], 2: [[2, 3]] })
-  t.same(arr.sortBy('length'), [[1], [[4]], [2, 3]])
-  t.same(arr.sortBy((a, b) => a.length > b.length), [[1], [[4]], [2, 3]])
-  t.same(arr.flatten(), [1, 2, 3, 4])
-  t.same(arr.flatten(1), [1, 2, 3, [4]])
+  const arr = [[[4]], [2, 3], [1]]
+  t.same(arr.groupBy('length'), { 1: [[[4]], [1]], 2: [[2, 3]] })
+  t.same(arr.sortBy('length'), [[[4]], [1], [2, 3]])
+  t.same(arr.sortBy(v => v.length), [[[4]], [1], [2, 3]])
+  t.same(arr.sortBy((a, b) => a.length > b.length ? 1 : -1), [[[4]], [1], [2, 3]])
+  t.same(arr.sortBy(0), [[1], [2, 3], [[4]]])
+  t.same(arr.flatten(), [4, 2, 3, 1])
+  t.same(arr.flatten(1), [[4], 2, 3, 1])
   t.same([1, 1, 2, 2, 3].unique(), [1, 2, 3])
-  t.same(arr.first(), [1])
-  t.same(arr.last(), [[4]])
+  t.same(arr.first(), [[4]])
+  t.same(arr.last(), [1])
+  t.same([{ lastname: 'John', age: 24 }, { lastname: 'Jane', age: 34 }, { lastname: 'John', age: 20 }].sortBy(['-lastname', 'age']), [{ lastname: 'John', age: 20 }, { lastname: 'John', age: 24 }, { lastname: 'Jane', age: 34 }])
+  t.same([['John', 24], ['Jane', 34], ['John', 20]].sortBy(['-0', '1']), [['John', 20], ['John', 24], ['Jane', 34]])
   t.end()
 })
 
@@ -57,11 +60,8 @@ test('it works with shorthand', t => {
   t.same(obj.map(), obj.map(x => x)) // clone
   t.same(obj.map(1), obj.map(x => x[1]))
   t.same(obj.map('length'), obj.map(x => x.length))
-  t.same(obj.filter(), obj.map(x => x))
+  t.same(obj.filter(), obj.filter(x => x))
   t.same(obj.find([3, 4]), 'b')
-  t.same(obj.find(v => v.same([3, 4])), 'b')
-  t.same(obj.reduce(1, []), [2, 4])
-  t.same(obj.reduce((_, v, k) => ({ [v[0]]: k }), []), [{ 1: 'a' }, { 3: 'b' }])
 
   const arr = [{ a: 1, b: 2}, { b: 3, c: 4}]
   t.same(arr.map(), arr) // clone
@@ -72,48 +72,61 @@ test('it works with shorthand', t => {
 
 test('it exposes same(a, b) or [].same(b) or ({}).same(b)', t => {
   t.true(same({ a: { b: [1, 2, new Date('2018-01-01')] } }, { a: { b: [1, 2, new Date('2018-01-01')] } }))
-  t.true([[{ a: 1 }]].same([[{ a: 1 }]]))
-  t.true(({ a: [[1]] }).same({ a: [[1]] }))
-  t.false([{}, null].same([{}]))
   t.end()
 })
 
 test('it exposes is(a, b) or is(a) === "type"', t => {
-  // is(a) === 'type'
-  t.true(is(null) === 'null')
-  t.true(is(undefined) === 'undefined')
-  t.true(is(true) === 'boolean')
-  t.true(is(.1) === 'number')
-  t.true(is('0') === 'string')
-  t.true(is({}) === 'object')
-  t.true(is([]) === 'array')
-  t.true(is(x => x) === 'function')
-  t.true(is(Object) === 'object')
-  t.true(is(Array) === 'array')
-  t.true(is(Function) === 'function')
-  t.true(is(Date) === 'date')
-  t.true(is(RegExp) === 'regexp')
-  t.true(is(/regx/) === 'regexp')
-  t.true(is(new Date()) === 'date')
-
-  // is(a, b)
-  t.true(is({}, Object))
+  // is(a, b) > preferred syntax
+  t.true(is(null, null))
+  t.true(is(undefined, undefined))
+  t.true(is(NaN, NaN))
+  t.true(is(Infinity, Infinity))
+  t.true(is(Boolean, false))
+  t.true(is(Number, 1))
+  t.true(is(String, ''))
+  t.true(is(Object, {}))
+  t.true(is(Array, []))
+  t.true(is(RegExp, /regex/))
+  t.true(is(Function, x => x))
+  t.true(is(Date, new Date()))
+  t.true(is('a', 'b'))
   t.true(is([1], [2]))
-  t.true(is(/regx/, RegExp))
-  t.true(is(/regx/, /a/))
-  t.true(is(x => x, Function))
+  t.true(is(/regex/, /o/))
+  t.true(is(x => x, function() {}))
 
-  // NOTE: is(a, b) will compare the type of both operands
-  // Prefer Constructor instead of string, wanted edge cases
-  t.false(is({}, 'object'))
-  t.false(is(Date, 'date'))
-  t.false(is('date', new Date()))
-  t.true(is('aze', 'string'))
+  // NOTE: is(a, b) compare the type of both operands
+  t.true(is(true, false)) // Both Booleans
+  t.false(is(Number, NaN)) // Both Numbers according to JS
+  t.false(is(Number, Infinity)) // Attempt to replace isNaN / isFinite
+  // Prefer Constructor instead of string, the following edge cases are intended
+  t.false(is(null, 'null'))
+  t.false(is(Object, 'object'))
+  t.false(is(Function, 'function'))
+  t.true(is(String, 'string'))
+  t.true(is(Function, class A {}))
+  t.true(is(Object, new (class A {})()))
 
-  // FIXME: unwanted edge cases, should be true
-  t.false(is(function() {}) === 'function')
-  t.false(is(function bliblablu() {}) === 'function')
-  t.false(is(x => x, function() {}))
+  // is(a) === 'type'
+  t.equal(is(null), 'null')
+  t.equal(is(undefined), 'undefined')
+  t.equal(is(true), 'boolean')
+  t.equal(is(.1), 'number')
+  t.equal(is(NaN), 'nan')
+  t.equal(is(Infinity), 'infinity')
+  t.equal(is('0'), 'string')
+  t.equal(is({}), 'object')
+  t.equal(is([]), 'array')
+  t.equal(is(x => x), 'function')
+  t.equal(is(Boolean), 'boolean')
+  t.equal(is(Number), 'number')
+  t.equal(is(String), 'string')
+  t.equal(is(Object), 'object')
+  t.equal(is(Array), 'array')
+  t.equal(is(Function), 'function')
+  t.equal(is(Date), 'date')
+  t.equal(is(RegExp), 'regexp')
+  t.equal(is(/regx/), 'regexp')
+  t.equal(is(new Date()), 'date')
 
   t.end()
 })

@@ -1,17 +1,9 @@
 const xtend = () => {
-  const ctx = typeof global === 'object' && global.global === global && global || this
-  ctx.is = is
-  ctx.same = same
-
-  for (const primitive in xtend) {
-    if (primitive === primitive.toLowerCase()) return
-    for (const fname in xtend[primitive]) {
-      Object.defineProperty(ctx[primitive].prototype, fname, {
-        configurable: true,
-        value: function() {
-          return xtend[primitive][fname](this, ...xtend.wrap(arguments, primitive, fname))
-        },
-      })
+  for (const primitive of [Boolean, Number, String, Object, Array, Date, RegExp]) {
+    for (const fname in xtend[primitive.name]) {
+      primitive.prototype[fname] = function() {
+        return xtend[primitive.name][fname](this, ...xtend.wrap(arguments, fname, primitive))
+      }
     }
   }
 }
@@ -30,7 +22,6 @@ xtend.Object = {
     return acc
   }, {}),
   find: (o, fn) => Object.keys(o).find((k, i) => fn(o[k], k, i, o)),
-  same,
 }
 
 const _map = [].map
@@ -42,9 +33,8 @@ xtend.Array = {
   reduce: (a, fn, base) => _reduce.bind(a)(fn, base),
   filter: (a, fn) => _filter.bind(a)(fn),
   find: (a, fn) => _find.bind(a)(fn),
-  same,
-  groupBy,
   sortBy,
+  groupBy,
   flatten,
   unique,
   first: a => a[0],
@@ -60,46 +50,41 @@ xtend.String = {
   titleize,
 }
 
-const { version } = require('./package.json')
-xtend.version = version
-
 // Wrapping function to provide shorthands
-xtend.wrap = (args, primitive, fname) => {
+xtend.wrap = (args, fname, primitive) => {
+  if (args.length === 0) { // If no arguments, use default arguments
+    if (['map', 'filter', 'find', 'sortBy'].includes(fname)) return [x => x]
+    return []
+  }
+
   const arg0 = args[0]
-  // Accessor shorthand
-  if (['map', 'filter'].includes(fname)) {
-    if (arg0 == undefined) return [x => x]
+  if (['map', 'filter'].includes(fname)) { // Accessor shorthand
     if (typeof arg0 !== 'function') args[0] = x => x[arg0]
   }
-  // Same shorthand
-  if (['find'].includes(fname)) {
-    if (arg0 == undefined) return [x => x]
-    if (typeof arg0 !== 'function') args[0] = x => x.same ? x.same(arg0) : x === arg0
+  if (['find'].includes(fname)) { // Same shorthand
+    if (typeof arg0 !== 'function') args[0] = x => same(x, arg0)
   }
-  // Reduce shorthand
-  if (['reduce'].includes(fname) && Array.isArray(args[1])) {
-    if (args[0] == undefined) args[0] = (acc, v, k) => { acc.push(v);return acc }
-    if (typeof args[0] !== 'function') args[0] = (acc, v, k) => { acc.push(v[arg0]);return acc }
-
-    // NOTE: Convention: if function 1st argument is _ then wrap
-    const underscore = fn => fn.toString().replace(/((\/\/.*$)|(\/\*[\s\S]*?\*\/)|(\s))/mg,'').match(/[^\(]*\(\s*([^\)]*)\)/m)[1].split(',')[0] === '_'
-    if (typeof args[0] === 'function' && underscore(args[0])) args[0] = (acc, v, k) => { acc.push(arg0(null, v, k));return acc }
-  }
-  // Sort shorthand
-  if (['sortBy'].includes(fname)) {
-    if (arg0 == undefined) return
-    if (typeof arg0 !== 'function') args[0] = (a, b) => a[arg0] > b[arg0]
-    // if (Array.isArray(arg0)) args[0] = x => x[arg0]
+  if (['sortBy'].includes(fname)) { // Sort shorthand
+    const directed_sort = p => (a, b) => {
+      if (!/^-/.test(p)) return a[p] === b[p] ? 0 : a[p] > b[p] ? 1 : -1
+      p = p.slice(1)
+      return a[p] === b[p] ? 0 : a[p] > b[p] ? -1 : 1
+    }
+    const multi_sort = p => (a, b) => {
+      if (!Array.isArray(p)) return directed_sort(p)(a, b)
+      for (k of p) if (z = directed_sort(k)(a, b)) return z
+    }
+    if (typeof arg0 !== 'function') args[0] = multi_sort(arg0)
+    if (typeof arg0 === 'function' && arg0.length === 1) args[0] = (a, b) => arg0(a) > arg0(b) ? 1 : -1
   }
   return args
 }
 
-module.exports = xtend
-// ES6: export default xtend
-
 function is(a, b) {
-  if (b) return is(a) === is(b)
-  if (a && a.prototype) return a.name.toLowerCase()
+  if (arguments.length > 1) return is(a) === is(b)
+  if (a === Infinity) return 'infinity'
+  if (typeof a === 'number' && isNaN(a)) return 'nan'
+  if ([Boolean, Number, String, Object, Array, Date, RegExp].includes(a)) return a.name.toLowerCase()
   return Object.prototype.toString.call(a).slice(8, -1).toLowerCase()
 }
 
@@ -181,4 +166,12 @@ function capitalize(str, lower = true) {
 
 function titleize(str) {
   return words(str.toLowerCase()).map(capitalize).join(' ')
+}
+
+// node
+if (typeof global === 'object' && global.global === global) {
+  global.is = is
+  global.same = same
+  xtend.version = require('./package.json').version
+  module.exports = xtend
 }
