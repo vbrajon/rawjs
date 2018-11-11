@@ -7,7 +7,8 @@
   "scripts": {
     "test": "npm run test:unit && npm run test:perf",
     "test:unit": "tape test-unit.js",
-    "test:perf": "node test-perf.js"
+    "test:perf": "node test-perf.js",
+    "test:watch": "fswatch . | xargs -I{} time tape test-unit.js | faucet"
   },
   "devDependencies": {
     "benchmark": "^2.1.4",

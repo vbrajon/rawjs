@@ -1,9 +1,9 @@
 const test = require('tape')
 const xtend = require('./xtend')
 
-test('it extends primitive prototypes and context', t => {
+test('it extends primitive prototypes', t => {
   t.equal(xtend.version.slice(0, 1), '1')
-  t.true(typeof same === 'function') // now directly extend with is/same fns
+  t.true(typeof same === 'function') // directly extend context with is/same
 
   t.false(typeof ({}).map === 'function')
   xtend()
@@ -33,7 +33,7 @@ test('it extends Array # groupBy, sortBy, flatten, unique', t => {
   t.same(arr.groupBy('length'), { 1: [[[4]], [1]], 2: [[2, 3]] })
   t.same(arr.sortBy('length'), [[[4]], [1], [2, 3]])
   t.same(arr.sortBy(v => v.length), [[[4]], [1], [2, 3]])
-  t.same(arr.sortBy((a, b) => a.length > b.length ? 1 : -1), [[[4]], [1], [2, 3]])
+  t.same(arr.sortBy((a, b) => a.length === b.length ? 0 : a.length > b.length ? 1 : -1), [[[4]], [1], [2, 3]])
   t.same(arr.sortBy(0), [[1], [2, 3], [[4]]])
   t.same(arr.flatten(), [4, 2, 3, 1])
   t.same(arr.flatten(1), [[4], 2, 3, 1])
@@ -45,13 +45,20 @@ test('it extends Array # groupBy, sortBy, flatten, unique', t => {
   t.end()
 })
 
-test('it extends String # format, capitalize, titleize', t => {
+test('it extends String # format, join', t => {
   t.equal('{}{}{}'.format('a', 'b'), 'ab{}')
   t.equal('{1}{2}{0}{1}'.format('a', 'b'), 'b{2}ab')
   t.equal('{k2}{k2}{k3}'.format({ k1: 'a', k2: 'b' }), 'bb{k3}')
   t.equal('{1}{0}{}{1}'.format('a', 'b'), 'baab')
-  t.equal('i-AM_The, OnE: And oNLy.'.capitalize(), 'I-am_the, one: and only.')
-  t.equal('i-AM_The, OnE: And oNLy.'.titleize(), 'I Am The One And Only')
+  const str = 'i amThe,\t1:\nAnd_L?on*e%ly.'
+  t.same(str.words(), ['i', 'am', 'The', '1', 'And', 'Lonely'])
+  t.same(str.words(false), ['i', 'am', 'The,', '1:', 'And', 'L?on*e%ly.'])
+  t.equal(str.words().map('lower.capitalize').join(''), 'IAmThe1AndLonely')
+  t.equal(str.join().capitalize(), 'I am the 1 and lonely') // Human
+  t.equal(str.join('-'), 'i-am-the-1-and-lonely') // kebab case | list case | dash
+  t.equal(str.join('_'), 'i_am_the_1_and_lonely') // snake case | underscore
+  t.equal(str.join('', 'lower.capitalize'), 'IAmThe1AndLonely') // pascal case
+  t.equal(str.join('', 'lower.capitalize').replace(/./, c => c.toLowerCase()), 'iAmThe1AndLonely') // camel case
   t.end()
 })
 
@@ -67,6 +74,8 @@ test('it works with shorthand', t => {
   t.same(arr.map(), arr) // clone
   t.same(arr.filter('c'), [{ b: 3, c: 4}])
   t.same([null, 'a', undefined].filter(), ['a'])
+  t.same([{ a: { b: 'one' }}, { a: { b: 'two' }}].map('a.b'), ['one', 'two'])
+  t.same([{ a: { b: 'one' }}, { a: { b: 'two' }}].map('a.b.lower.capitalize'), ['One', 'Two'])
   t.end()
 })
 

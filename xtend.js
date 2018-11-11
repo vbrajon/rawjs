@@ -1,6 +1,7 @@
 const xtend = () => {
-  for (const primitive of [Boolean, Number, String, Object, Array, Date, RegExp]) {
+  for (const primitive of [Boolean, Number, String, Object, Array, Date, RegExp, Function]) {
     for (const fname in xtend[primitive.name]) {
+      if (primitive.prototype[fname]) xtend[primitive.name]['_' + fname] = primitive.prototype[fname]
       primitive.prototype[fname] = function() {
         return xtend[primitive.name][fname](this, ...xtend.wrap(arguments, fname, primitive))
       }
@@ -33,21 +34,49 @@ xtend.Array = {
   reduce: (a, fn, base) => _reduce.bind(a)(fn, base),
   filter: (a, fn) => _filter.bind(a)(fn),
   find: (a, fn) => _find.bind(a)(fn),
-  sortBy,
-  groupBy,
-  flatten,
-  unique,
-  first: a => a[0],
-  last: a => a.slice(-1)[0],
-  min,
-  max,
-  sum,
+
+  sortBy: (arr, fn) => arr.slice().sort(fn),
+  groupBy: (arr, fn) => {
+    return arr.map(fn).reduce((acc, val, i) => {
+      acc[val] = acc[val] || []
+      acc[val].push(arr[i])
+      return acc
+    }, {})
+  },
+  flatten: (arr, depth = Infinity) => depth !== 1
+    ? arr.reduce((a, v) => a.concat(Array.isArray(v) ? xtend.Array.flatten(v, depth - 1) : v), [])
+    : arr.reduce((a, v) => a.concat(v), []),
+  unique: arr => [...new Set(arr)],
+  first: arr => arr[0],
+  last: arr => arr.slice(-1)[0],
+  min: (arr, n = 1) => arr.slice().sort((a, b) => a - b).slice(0, n),
+  max: (arr, n = 1) => arr.slice().sort((a, b) => b - a).slice(0, n),
+  sum: arr => arr.reduce((acc, val) => acc + val, 0),
 }
 
 xtend.String = {
-  format,
-  capitalize,
-  titleize,
+  format: (str, ...args) => {
+    args.map((arg, i) => {
+      if (typeof arg === 'object') return arg.map((v, k) => {
+        const name_re = new RegExp('\\{' + k + '\\}', 'g')
+        str = str.replace(name_re, v)
+      })
+      const null_re = /\{\}/
+      const position_re = new RegExp('\\{' + i + '\\}', 'g')
+      str = str.replace(null_re, arg)
+      str = str.replace(position_re, arg)
+    })
+    return str
+  },
+  lower: str => str.toLowerCase(),
+  upper: str => str.toUpperCase(),
+  capitalize: str => str.replace(/./, c => c.toUpperCase()),
+  words: (str, clean = /[^a-z0-9-_\s]+/gi) => str
+    .replace(clean, '')
+    .replace(/([a-z\d])([A-Z])/g,'$1 $2')
+    .split(/[-_\s]/)
+    .filter(Boolean),
+  join: (str, sep = ' ', fn = 'lower', clean) => str.words(clean).map(fn).join(sep),
 }
 
 // Wrapping function to provide shorthands
@@ -58,8 +87,8 @@ xtend.wrap = (args, fname, primitive) => {
   }
 
   const arg0 = args[0]
-  if (['map', 'filter'].includes(fname)) { // Accessor shorthand
-    if (typeof arg0 !== 'function') args[0] = x => x[arg0]
+  if (['map', 'filter'].includes(fname)) { // Dot Accessor shorthand (property or function)
+    if (typeof arg0 !== 'function') args[0] = x => ('' + arg0).split('.').reduce((x, p) => typeof x[p] === 'function' ? x[p]() : x[p], x)
   }
   if (['find'].includes(fname)) { // Same shorthand
     if (typeof arg0 !== 'function') args[0] = x => same(x, arg0)
@@ -75,7 +104,7 @@ xtend.wrap = (args, fname, primitive) => {
       for (k of p) if (z = directed_sort(k)(a, b)) return z
     }
     if (typeof arg0 !== 'function') args[0] = multi_sort(arg0)
-    if (typeof arg0 === 'function' && arg0.length === 1) args[0] = (a, b) => arg0(a) > arg0(b) ? 1 : -1
+    if (typeof arg0 === 'function' && arg0.length === 1) args[0] = (a, b) => arg0(a) === arg0(b) ? 0 : arg0(a) > arg0(b) ? 1 : -1
   }
   return args
 }
@@ -100,78 +129,10 @@ function same(a, b) {
   return keys.every(k => same(a[k], b[k]))
 }
 
-// https://30secondsofcode.org/#groupby > FIX use .push instead of .concat
-function groupBy(arr, fn) {
-  return arr.map(fn).reduce((acc, val, i) => {
-    acc[val] = acc[val] || []
-    acc[val].push(arr[i])
-    return acc
-  }, {})
-}
-
-// Non-Destructive sort
-function sortBy(arr, fn) {
-  return arr.slice().sort(fn)
-}
-
-// https://30secondsofcode.org/#flatten > default Infinity
-function flatten(arr, depth = Infinity) {
-  return depth !== 1
-    ? arr.reduce((a, v) => a.concat(Array.isArray(v) ? flatten(v, depth - 1) : v), [])
-    : arr.reduce((a, v) => a.concat(v), [])
-}
-
-// https://30secondsofcode.org/#unique
-function unique(arr) {
-  return [...new Set(arr)]
-}
-
-// https://30secondsofcode.org/#minn
-function min(arr, n = 1) {
-  return arr.slice().sort((a, b) => a - b).slice(0, n)
-}
-
-// https://30secondsofcode.org/#maxn
-function max(arr, n = 1) {
-  return arr.slice().sort((a, b) => b - a).slice(0, n)
-}
-
-// https://30secondsofcode.org/#sum
-function sum(arr) {
-  return arr.reduce((acc, val) => acc + val, 0)
-}
-
-function format(str, ...args) {
-  args.map((arg, i) => {
-    if (typeof arg === 'object') return arg.map((v, k) => {
-      const name_re = new RegExp('\\{' + k + '\\}', 'g')
-      str = str.replace(name_re, v)
-    })
-    const null_re = /\{\}/
-    const position_re = new RegExp('\\{' + i + '\\}', 'g')
-    str = str.replace(null_re, arg)
-    str = str.replace(position_re, arg)
-  })
-  return str
-}
-
-// https://30secondsofcode.org/#words > remove "-" from default pattern
-function words(str, pattern = /[^a-zA-Z]+/) {
-  return str.split(pattern).filter(Boolean)
-}
-
-function capitalize(str, lower = true) {
-  return (lower ? str.toLowerCase() : str).replace(/./, char => char.toUpperCase())
-}
-
-function titleize(str) {
-  return words(str.toLowerCase()).map(capitalize).join(' ')
-}
-
-// node
 if (typeof global === 'object' && global.global === global) {
-  global.is = is
-  global.same = same
+  global.window = global
+  window.is = is
+  window.same = same
   xtend.version = require('./package.json').version
   module.exports = xtend
 }

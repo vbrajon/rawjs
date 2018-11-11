@@ -1,29 +1,31 @@
 # xtendjs
-> Utility Library to extend javascript primitives, simpler than and inpired by [sugarjs](https://sugarjs.com/) and [lodash](https://lodash.com/)
+> Utility Library to extend javascript primitives, simpler than and inspired by [sugarjs](https://sugarjs.com/) and [lodash](https://lodash.com/)
 
 ### WIP
 
-- String, Number, Function, Date, DOM utilities
+- String, Number, Date, RegExp, Function, DOM (if in browser)
 - Documentation
 - unpkg.com
-- shorthand dot notation 'a.b.c'
 - Advanced: Ability to extend wrapping
 - optional: prettier, eslint, git-hooks, benchmark in browsers, .circleci, .github, git-bot
 
 ### Usage
 - Browser `<script src="https://unpkg.com/xtend"></script>` then `xtend()`
-- Node `npm install --save xtendjs` then `const xtend = require('xtendjs')` and `xtend()`
+- Node `npm i xtendjs` then `require('xtendjs')()`
 
 ### Concept
 - Extends Object with `map`, `reduce`, `filter`, `find` and `keys`, `values`, `assign`
 - Extends Array, String, Number, Function, Date, and global context with utilities
-- Provides a way to add custom funtions or remove unwanted functions before extending
-- Provides shorthands and ability to add more
+- Provides a way to add/remove custom functions/shorthands
 - Short Codebase, single file, no dependencies
 - Simple functions, inspired by https://30secondsofcode.org
 
+### Contribute
+- See .github issues template or contribution template
+- run test with `npm run test` or `npm run test:watch`, consider using `tap-spec` formatter instead of `faucet`.
+
 ### Why ?
-Iterating over object as easily as array was crucial for me for quick prototyping or data manipulation or developer onboarding.
+Iterating over object as easily as array was crucial for me to prototype, manipulate data and onboard developers.
 
 It is probably evil to override Object.prototype or global context but it was also making me start quicker new ideas.
 
