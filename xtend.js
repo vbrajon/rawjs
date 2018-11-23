@@ -1,10 +1,12 @@
 const xtend = () => {
   for (const primitive of [Boolean, Number, String, Object, Array, Date, RegExp, Function]) {
     for (const fname in xtend[primitive.name]) {
-      if (primitive.prototype[fname]) xtend[primitive.name]['_' + fname] = primitive.prototype[fname]
-      primitive.prototype[fname] = function() {
-        return xtend[primitive.name][fname](this, ...xtend.wrap(arguments, fname, primitive))
-      }
+      Object.defineProperty(primitive.prototype, fname, {
+        enumerable: false,
+        value: function() {
+          return xtend[primitive.name][fname](this, ...xtend.wrap(arguments, fname, primitive))
+        }
+      })
     }
   }
 }
@@ -25,15 +27,15 @@ xtend.Object = {
   find: (o, fn) => Object.keys(o).find((k, i) => fn(o[k], k, i, o)),
 }
 
-const _map = [].map
-const _reduce = [].reduce
-const _filter = [].filter
-const _find = [].find
+Array._map = [].map
+Array._reduce = [].reduce
+Array._filter = [].filter
+Array._find = [].find
 xtend.Array = {
-  map: (a, fn) => _map.bind(a)(fn),
-  reduce: (a, fn, base) => _reduce.bind(a)(fn, base),
-  filter: (a, fn) => _filter.bind(a)(fn),
-  find: (a, fn) => _find.bind(a)(fn),
+  map: (a, fn) => Array._map.bind(a)(fn),
+  reduce: (a, fn, base) => Array._reduce.bind(a)(fn, base),
+  filter: (a, fn) => Array._filter.bind(a)(fn),
+  find: (a, fn) => Array._find.bind(a)(fn),
 
   sortBy: (arr, fn) => arr.slice().sort(fn),
   groupBy: (arr, fn) => {
@@ -71,7 +73,8 @@ xtend.String = {
   lower: str => str.toLowerCase(),
   upper: str => str.toUpperCase(),
   capitalize: str => str.replace(/./, c => c.toUpperCase()),
-  words: (str, clean = /[^a-z0-9-_\s]+/gi) => str
+  words: (str, clean = /[^a-z0-9-_\s]+/gi, normalize = true) => str
+    .normalize(normalize ? 'NFKD' : false)
     .replace(clean, '')
     .replace(/([a-z\d])([A-Z])/g,'$1 $2')
     .split(/[-_\s]/)

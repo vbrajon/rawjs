@@ -1,6 +1,12 @@
 const test = require('tape')
 const xtend = require('./xtend')
 
+test('it works without extending', t => {
+  t.same(xtend.Array.flatten([[[4]], [2, 3], [1]]), [4, 2, 3, 1]) // recursive
+  t.same(xtend.Array.flatten([[[4]], [2, 3], [1]], 1), [[4], 2, 3, 1]) // with argument
+  t.end()
+})
+
 test('it extends primitive prototypes', t => {
   t.equal(xtend.version.slice(0, 1), '1')
   t.true(typeof same === 'function') // directly extend context with is/same
