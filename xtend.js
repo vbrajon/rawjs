@@ -3,8 +3,10 @@ const xtend = () => {
     for (const fname in xtend[primitive.name]) {
       Object.defineProperty(primitive.prototype, fname, {
         enumerable: false,
+        configurable: true,
+        writable: true,
         value: function() {
-          return xtend[primitive.name][fname](this, ...xtend.wrap(arguments, fname, primitive))
+          return xtend[primitive.name][fname](this, ...xtend.wrap(arguments, fname))
         }
       })
     }
@@ -14,6 +16,7 @@ const xtend = () => {
 xtend.Object = {
   keys: Object.keys,
   values: Object.values,
+  entries: Object.entries,
   assign: Object.assign,
   map: (o, fn) => Object.keys(o).reduce((acc, k, i) => {
     acc[k] = fn(o[k], k, i, o)
@@ -31,23 +34,20 @@ Array._map = [].map
 Array._reduce = [].reduce
 Array._filter = [].filter
 Array._find = [].find
+Array._flat = [].flat
+Array._sort = [].sort
 xtend.Array = {
   map: (a, fn) => Array._map.bind(a)(fn),
   reduce: (a, fn, base) => Array._reduce.bind(a)(fn, base),
   filter: (a, fn) => Array._filter.bind(a)(fn),
   find: (a, fn) => Array._find.bind(a)(fn),
-
-  sortBy: (arr, fn) => arr.slice().sort(fn),
-  groupBy: (arr, fn) => {
-    return arr.map(fn).reduce((acc, val, i) => {
+  flat: (a, fn) => Array._flat.bind(a)(fn),
+  sort: (a, fn) => Array._sort.bind(a.slice())(fn),
+  group: (arr, fn) => arr.map(fn).reduce((acc, val, i) => {
       acc[val] = acc[val] || []
       acc[val].push(arr[i])
       return acc
-    }, {})
-  },
-  flatten: (arr, depth = Infinity) => depth !== 1
-    ? arr.reduce((a, v) => a.concat(Array.isArray(v) ? xtend.Array.flatten(v, depth - 1) : v), [])
-    : arr.reduce((a, v) => a.concat(v), []),
+    }, {}),
   unique: arr => [...new Set(arr)],
   first: arr => arr[0],
   last: arr => arr.slice(-1)[0],
@@ -83,20 +83,27 @@ xtend.String = {
 }
 
 // Wrapping function to provide shorthands
-xtend.wrap = (args, fname, primitive) => {
+xtend.wrap = (args, fname) => {
   if (args.length === 0) { // If no arguments, use default arguments
-    if (['map', 'filter', 'find', 'sortBy'].includes(fname)) return [x => x]
+    if (['map', 'filter', 'find'].includes(fname)) return [x => x]
+    if (['sort'].includes(fname)) return [(a, b) => a === b ? 0 : a > b ? 1 : -1]
     return []
   }
 
   const arg0 = args[0]
   if (['map', 'filter'].includes(fname)) { // Dot Accessor shorthand (property or function)
-    if (typeof arg0 !== 'function') args[0] = x => ('' + arg0).split('.').reduce((x, p) => typeof x[p] === 'function' ? x[p]() : x[p], x)
+    if (typeof arg0 !== 'function') args[0] = x => ('' + arg0).split('.').reduce((x, p) => {
+      try {
+        return typeof x[p] === 'function' ? x[p]() : x[p]
+      } catch(e) {
+        return null
+      }
+    }, x)
   }
   if (['find'].includes(fname)) { // Same shorthand
     if (typeof arg0 !== 'function') args[0] = x => same(x, arg0)
   }
-  if (['sortBy'].includes(fname)) { // Sort shorthand
+  if (['sort'].includes(fname)) { // Sort shorthand
     const directed_sort = p => (a, b) => {
       if (!/^-/.test(p)) return a[p] === b[p] ? 0 : a[p] > b[p] ? 1 : -1
       p = p.slice(1)

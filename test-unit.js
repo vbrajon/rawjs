@@ -2,8 +2,8 @@ const test = require('tape')
 const xtend = require('./xtend')
 
 test('it works without extending', t => {
-  t.same(xtend.Array.flatten([[[4]], [2, 3], [1]]), [4, 2, 3, 1]) // recursive
-  t.same(xtend.Array.flatten([[[4]], [2, 3], [1]], 1), [[4], 2, 3, 1]) // with argument
+  t.same(xtend.Array.flat([[[4]], [2, 3], [1]]), [[4], 2, 3, 1]) // recursive
+  t.same(xtend.Array.flat([[[4]], [2, 3], [1]], Infinity), [4, 2, 3, 1]) // with argument
   t.end()
 })
 
@@ -21,6 +21,9 @@ test('it extends primitive prototypes', t => {
   t.true(typeof ({}).custom === 'function')
   delete Object.prototype.custom
   t.false(typeof ({}).custom === 'function')
+  Object.prototype.custom = x => 1
+  t.true(typeof ({}).custom === 'function')
+  // t.true(typeof ''.map === 'undefined')
 
   t.end()
 })
@@ -34,20 +37,28 @@ test('it extends Object # map, reduce, filter, find', t => {
   t.end()
 })
 
-test('it extends Array # groupBy, sortBy, flatten, unique', t => {
+test('it extends Array # group, sort, flat, unique', t => {
   const arr = [[[4]], [2, 3], [1]]
-  t.same(arr.groupBy('length'), { 1: [[[4]], [1]], 2: [[2, 3]] })
-  t.same(arr.sortBy('length'), [[[4]], [1], [2, 3]])
-  t.same(arr.sortBy(v => v.length), [[[4]], [1], [2, 3]])
-  t.same(arr.sortBy((a, b) => a.length === b.length ? 0 : a.length > b.length ? 1 : -1), [[[4]], [1], [2, 3]])
-  t.same(arr.sortBy(0), [[1], [2, 3], [[4]]])
-  t.same(arr.flatten(), [4, 2, 3, 1])
-  t.same(arr.flatten(1), [[4], 2, 3, 1])
+  t.same(arr.group('length'), { 1: [[[4]], [1]], 2: [[2, 3]] })
+  // arr.sort() without arguments not working
+  t.same(arr.sort(), [ [ 1 ], [ 2, 3 ], [ [ 4 ] ] ])
+  t.same(arr.sort('length'), [[[4]], [1], [2, 3]])
+  t.same(arr.sort(v => v.length), [[[4]], [1], [2, 3]])
+  t.same(arr.sort((a, b) => a.length === b.length ? 0 : a.length > b.length ? 1 : -1), [[[4]], [1], [2, 3]])
+  t.same(arr.sort(0), [[1], [2, 3], [[4]]])
+  t.same(arr.flat(Infinity), [4, 2, 3, 1])
+  t.same(arr.flat(1), [[4], 2, 3, 1])
   t.same([1, 1, 2, 2, 3].unique(), [1, 2, 3])
   t.same(arr.first(), [[4]])
   t.same(arr.last(), [1])
-  t.same([{ lastname: 'John', age: 24 }, { lastname: 'Jane', age: 34 }, { lastname: 'John', age: 20 }].sortBy(['-lastname', 'age']), [{ lastname: 'John', age: 20 }, { lastname: 'John', age: 24 }, { lastname: 'Jane', age: 34 }])
-  t.same([['John', 24], ['Jane', 34], ['John', 20]].sortBy(['-0', '1']), [['John', 20], ['John', 24], ['Jane', 34]])
+  const list = [{ lastname: 'John', age: 24 }, { lastname: 'Jane', age: 34 }, { lastname: 'John', age: 20 }]
+  const tupple = [['John', 24], ['Jane', 34], ['John', 20]]
+  t.same(list.sort(['-lastname', 'age']), [{ lastname: 'John', age: 20 }, { lastname: 'John', age: 24 }, { lastname: 'Jane', age: 34 }])
+  t.same(tupple.sort(['-0', '1']), [['John', 20], ['John', 24], ['Jane', 34]])
+  t.same([1, 0, undefined, null, 2].filter(), [1, 2])
+  t.same(list.filter({ lastname: 'John' }), {})
+  // t.same(list.filter({ lastname: ['John', 'Jane'] }), list)
+  t.same(list.filter({ age: '>28' }), {})
   t.end()
 })
 

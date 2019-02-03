@@ -1,11 +1,16 @@
 #!/usr/bin/env node
 
-// USAGE: echo "1 2 3" | x ".split(/ +/).map(d => +d).sum()"
+// USAGE: echo 1 2 3 | x ".split(/ +/).map(d => +d).sum()"
 require('./xtend')()
-process.stdin.on('readable', () => {
-  let chunk
-  while (null !== (chunk = process.stdin.read())) {
-    let x = ('' + chunk).slice(0, -1)
-    console.log(eval('x' + (process.argv[2] || '')))
-  }
+if (process.argv.length <= 2) return process.stdin.pipe(process.stdout)
+let x = ''
+const stdin = process.stdin
+const stdout = process.stdout
+stdin.setEncoding('utf8')
+stdin.on('data', chunk => x += chunk)
+stdin.on('end', () => {
+  x = x.slice(0, -1)
+  try { x = JSON.parse(x) } catch(e) { x = '`' + x + '`' }
+  let expr = 'x' + process.argv.slice(2).join('')
+  console.log(eval(expr))
 })
