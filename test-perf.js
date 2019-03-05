@@ -7,32 +7,40 @@ const xtend = require('./xtend')
 const n = 10000
 const a = []
 const o = {}
-for(let i = 0; i < n; ++i) {
+for (let i = 0; i < n; ++i) {
   a[i] = Math.random() * 2 - 1
   o[String.fromCodePoint(i)] = Math.random() * 2 - 1
 }
 
-;['map', 'reduce', 'filter', 'find'].map(fname => {
+const fnames = ['map', 'reduce', 'filter', 'find']
+const libnames = ['xtend', 'sugar', 'lodash']
+fnames.map(fname => {
   const suite = new Benchmark.Suite('#' + fname)
-  ;['xtend', 'sugar', 'lodash'].map(libname => {
+  libnames.map(libname => {
     // Arguments
     const map_fn = v => v
-    const reduce_fn = (acc, v, k) =>  { acc.push(v);return acc }
-    const args = ({
+    const reduce_fn = (acc, v, k) => {
+      acc.push(v)
+      return acc
+    }
+    const args = {
       map: [o, map_fn],
       reduce: [o, reduce_fn, []],
       filter: [o, map_fn],
       find: [o, map_fn],
-    })[fname]
-    const libfn = ({
+    }[fname]
+    const libfn = {
       lodash: _,
       sugar: Sugar.Object,
       xtend: xtend.Object,
-    })[libname][fname]
+    }[libname][fname]
 
     // Input & Output for the current Test Run
     const stringify = arg => {
-      const type = Object.prototype.toString.call(arg).slice(8, -1).toLowerCase()
+      const type = Object.prototype.toString
+        .call(arg)
+        .slice(8, -1)
+        .toLowerCase()
       if (type === 'function') return arg.toString()
       if (type === 'array') return '[ ' + stringify(arg[0]) + ' <' + arg.length + '> ]'
       if (type === 'object') return '{ ' + Object.keys(arg)[0] + ': ' + stringify(Object.values(arg)[0]) + ' <' + Object.keys(arg).length + '> }'
@@ -54,39 +62,36 @@ for(let i = 0; i < n; ++i) {
 })
 
 function logResults(e) {
-  var t = e.target;
+  var t = e.target
 
-  if(t.failure) {
-    console.error(padl(10, t.name) + 'FAILED: ' + e.target.failure);
+  if (t.failure) {
+    console.error(padl(10, t.name) + 'FAILED: ' + e.target.failure)
   } else {
-    var result = padl(10, t.name)
-      + padr(13, t.hz.toFixed(2) + ' op/s')
-      + ' \xb1' + padr(7, t.stats.rme.toFixed(2) + '%')
-      + padr(15, ' (' + t.stats.sample.length + ' samples)');
+    var result = padl(10, t.name) + padr(13, t.hz.toFixed(2) + ' op/s') + ' \xb1' + padr(7, t.stats.rme.toFixed(2) + '%') + padr(15, ' (' + t.stats.sample.length + ' samples)')
 
-    console.log(result);
+    console.log(result)
   }
 }
 
 function logStart() {
-  console.log(this.name);
-  console.log('-----------------------------------------------');
+  console.log(this.name)
+  console.log('-----------------------------------------------')
 }
 
 function logComplete() {
-  console.log('-----------------------------------------------');
+  console.log('-----------------------------------------------')
 }
 
 function padl(n, s) {
-  while(s.length < n) {
-    s += ' ';
+  while (s.length < n) {
+    s += ' '
   }
-  return s;
+  return s
 }
 
 function padr(n, s) {
   while (s.length < n) {
-    s = ' ' + s;
+    s = ' ' + s
   }
-  return s;
+  return s
 }
