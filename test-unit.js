@@ -3,9 +3,7 @@ const xtend = require('./xtend')
 
 test('it works without extending', t => {
   t.equal(xtend.version.slice(0, 1), '1')
-  t.true(same({ a: 1 }, { a: 1 })) // directly extend context with is & same
-  t.same(xtend.Array.flat([[[4]], [2, 3], [1]]), [[4], 2, 3, 1]) // recursive
-  t.same(xtend.Array.flat([[[4]], [2, 3], [1]], Infinity), [4, 2, 3, 1]) // with argument
+  t.same(xtend.Object.map({ a: 1, b: 2 }, (v, k) => k + v), { a: 'a1', b: 'b2' })
   t.end()
 })
 
@@ -25,7 +23,7 @@ test('it extends primitive prototypes', t => {
   t.end()
 })
 
-test('it extends Object # map, reduce, filter, find', t => {
+test('it extends Object # map, reduce, filter, find, keys, values, entries, assign', t => {
   const obj = { a: 1, b: 2 }
   t.same(obj.map(v => v * 2), { a: 2, b: 4 })
   t.same(
@@ -40,7 +38,7 @@ test('it extends Object # map, reduce, filter, find', t => {
   t.end()
 })
 
-test('it extends Array # group, sort, flat, unique', t => {
+test('it extends Array # group, sort, unique, first, last, min, max, sum, average, median', t => {
   const arr = [[[4]], [2, 3], [1]]
   t.same(arr.group('length'), { 1: [[[4]], [1]], 2: [[2, 3]] })
   t.same(arr.sort(), [[1], [2, 3], [[4]]])
@@ -48,8 +46,6 @@ test('it extends Array # group, sort, flat, unique', t => {
   t.same(arr.sort(v => v.length), [[[4]], [1], [2, 3]])
   t.same(arr.sort((a, b) => (a.length === b.length ? 0 : a.length > b.length ? 1 : -1)), [[[4]], [1], [2, 3]])
   t.same(arr.sort(0), [[1], [2, 3], [[4]]])
-  t.same(arr.flat(Infinity), [4, 2, 3, 1])
-  t.same(arr.flat(1), [[4], 2, 3, 1])
   t.same([1, 1, 2, 2, 3].unique(), [1, 2, 3])
   t.same(arr.first(), [[4]])
   t.same(arr.last(), [1])
@@ -64,30 +60,7 @@ test('it extends Array # group, sort, flat, unique', t => {
   t.end()
 })
 
-test('it extends String # format, join', t => {
-  t.equal('{}{}{}'.format('a', 'b'), 'ab{}')
-  t.equal('{1}{2}{0}{1}'.format('a', 'b'), 'b{2}ab')
-  t.equal('{k2}{k2}{k3}'.format({ k1: 'a', k2: 'b' }), 'bb{k3}')
-  t.equal('{1}{0}{}{1}'.format('a', 'b'), 'baab')
-  const str = 'i amThe,\t1:\nAnd_L?on*e%ly.'
-  t.same(str.words(), ['i', 'am', 'The', '1', 'And', 'Lonely'])
-  t.same(str.words(false), ['i', 'am', 'The,', '1:', 'And', 'L?on*e%ly.'])
-  t.equal(
-    str
-      .words()
-      .map('lower.capitalize')
-      .join(''),
-    'IAmThe1AndLonely',
-  )
-  t.equal(str.join().capitalize(), 'I am the 1 and lonely') // Human
-  t.equal(str.join('-'), 'i-am-the-1-and-lonely') // kebab case | list case | dash
-  t.equal(str.join('_'), 'i_am_the_1_and_lonely') // snake case | underscore
-  t.equal(str.join('', 'lower.capitalize'), 'IAmThe1AndLonely') // pascal case
-  t.equal(str.join('', 'lower.capitalize').replace(/./, c => c.toLowerCase()), 'iAmThe1AndLonely') // camel case
-  t.end()
-})
-
-test('it extends Function # debounce, throttle', t => {
+test('it extends Function # debounce, throttle, delay, every, cancel, memoize, partial', t => {
   t.plan(3)
   const debounce = (() => t.true(true)).debounce(50)
   const throttle = (() => t.true(true)).throttle(50)
@@ -102,6 +75,26 @@ test('it extends Function # debounce, throttle', t => {
   setTimeout(t.end, 200)
 })
 
+test('it extends String # format, words, join, lower, upper, capitalize', t => {
+  t.equal('{}{}{}'.format('a', 'b'), 'ab{}')
+  t.equal('{1}{2}{0}{1}'.format('a', 'b'), 'b{2}ab')
+  t.equal('{k2}{k2}{k3}'.format({ k1: 'a', k2: 'b' }), 'bb{k3}')
+  t.equal('{1}{0}{}{1}'.format('a', 'b'), 'baab')
+  const str = 'i am: The\t1\nAND,_L?on*e%ly.'
+  t.same(str.words(), ['i', 'am', 'The', '1', 'AND', 'Lonely'])
+  t.same(str.words(false), ['i', 'am:', 'The', '1', 'AND,', 'L?on*e%ly.'])
+  // t.equal(str.join('title'), 'I am: the 1 and Lonely.') // Title
+  t.equal(str.join('human'), 'I am the 1 and lonely') // Human
+  t.equal(str.join('-'), 'i-am-the-1-and-lonely') // kebab case | list case | dash
+  t.equal(str.join('_'), 'i_am_the_1_and_lonely') // snake case | underscore
+  t.equal(str.join('camel'), 'iAmThe1AndLonely') // camel case
+  t.equal(str.join('pascal'), 'IAmThe1AndLonely') // pascal case
+  t.end()
+})
+
+test('it extends Number # format, [math], duration', t => {})
+test('it extends Date # format, locale, add, sub, iso, relative', t => {})
+
 test('it works with shorthand', t => {
   const obj = { a: [1, 2], b: [3, 4] }
   t.same(obj.map(), obj.map(x => x)) // clone
@@ -111,60 +104,10 @@ test('it works with shorthand', t => {
   t.same(obj.find([3, 4]), 'b')
 
   const arr = [{ a: 1, b: 2 }, { b: 3, c: 4 }]
-  t.same(arr.map(), arr) // clone
+  t.same(arr.map(), arr.slice()) // clone
   t.same(arr.filter('c'), [{ b: 3, c: 4 }])
   t.same([null, 'a', undefined].filter(), ['a'])
   t.same([{ a: { b: 'one' } }, { a: { b: 'two' } }].map('a.b'), ['one', 'two'])
   t.same([{ a: { b: 'one' } }, { a: { b: 'two' } }].map('a.b.lower.capitalize'), ['One', 'Two'])
-  t.end()
-})
-
-test('it exposes is(a, b) and same(a, b)', t => {
-  t.true(same({ a: { b: [1, 2, new Date('2018-01-01')] } }, { a: { b: [1, 2, new Date('2018-01-01')] } }))
-  // Preferred syntax > is(a, b) where 'a' is a Constructor
-  t.true(is(null, null))
-  t.true(is(undefined, undefined))
-  t.true(is(NaN, NaN))
-  t.true(is(Infinity, Infinity))
-  t.true(is(Boolean, false))
-  t.true(is(Number, 1))
-  t.true(is(String, ''))
-  t.true(is(Object, {}))
-  t.true(is(Array, []))
-  t.true(is(RegExp, /regex/))
-  t.true(is(Function, x => x))
-  t.true(is(Date, new Date()))
-  // Edge cases: only native Primitives are compared
-  t.true(is(Function, class A {}))
-  t.true(is(Object, new class A {}()))
-  // Deprecated syntax > is(a, b) where 'a' and 'b' are both values
-  t.true(is(true, false)) // Both Booleans
-  t.true(is(x => x, function() {}))
-  t.true(is([1], [2]))
-  t.true(is('a', 'b'))
-  t.true(is(/regex/, /o/))
-  t.false(is(Number, NaN)) // Both Numbers according to JS
-  t.false(is(Number, Infinity)) // Attempt to replace isNaN / isFinite
-  // Alternative syntax > is(a) === 'type'
-  t.true(is(null) === 'null')
-  t.true(is(undefined) === 'undefined')
-  t.true(is(true) === 'boolean')
-  t.true(is(0.1) === 'number')
-  t.true(is(NaN) === 'nan')
-  t.true(is(Infinity) === 'infinity')
-  t.true(is('0') === 'string')
-  t.true(is({}) === 'object')
-  t.true(is([]) === 'array')
-  t.true(is(x => x) === 'function')
-  t.true(is(Boolean) === 'boolean')
-  t.true(is(Number) === 'number')
-  t.true(is(String) === 'string')
-  t.true(is(Object) === 'object')
-  t.true(is(Array) === 'array')
-  t.true(is(Function) === 'function')
-  t.true(is(Date) === 'date')
-  t.true(is(RegExp) === 'regexp')
-  t.true(is(/regx/) === 'regexp')
-  t.true(is(new Date()) === 'date')
   t.end()
 })

@@ -1,37 +1,44 @@
 # xtendjs
 > Utility Library to extend javascript primitives, simpler than and inspired by [sugarjs](https://sugarjs.com/) and [lodash](https://lodash.com/)
 
-### WIP
-
-- String, Number, Date, RegExp, Function, DOM (if in browser)
-- Documentation
-- unpkg.com
-- Advanced: Ability to extend wrapping
-- optional: prettier, eslint, git-hooks, benchmark in browsers, .circleci, .github, git-bot
+### API - Roadmap
+- [x] Object # map, reduce, filter, find, keys, values, entries, assign
+- [-] Array # group, sort, unique, first, last, min, max, sum, average, median
+- [-] Function # debounce, throttle, delay, every, cancel, memoize, partial
+- [x] String # format, words, join, lower, upper, capitalize
+- [ ] Number # format, [math], duration
+- [ ] Date # format, locale, add, sub, iso, relative
+- [?] RegExp # escape
+- [?] Browser # DOM $, $$ / same, is
+- [ ] Add/Remove function/shorthand
+- [ ] Documentation
+- [x] Unit Tests
+- [x] Performance Benchmarks
+- [ ] Typescript
+- [x] Prettier
+- [x] CLI
+- [ ] .circleci
+- [ ] .github # OR contribute directly via https://xtendjs.com
 
 ### Usage
-- Browser `<script src="https://unpkg.com/xtend"></script>` then `xtend()`
+- Browser `<script src="https://xtendjs.com/xtend.js"></script>` then `xtend()`
 - Node `npm i xtendjs` then `require('xtendjs')()`
+- CLI `npm i -g xtendjs` then `echo [1, 2] | x '.sum()'`
 
 ### Concept
-- Extends Object with `map`, `reduce`, `filter`, `find` and `keys`, `values`, `assign`
-- Extends Array, String, Number, Function, Date, and global context with utilities
+- Extends Object with `map`, `reduce`, `filter`, `find` and `keys`, `values`, `entries`, `assign`
+- Extends Array, Function, String, Number, Date
 - Provides a way to add/remove custom functions/shorthands
-- Short Codebase, single file, no dependencies
-- Simple functions, inspired by https://30secondsofcode.org
-
-### Contribute
-- See .github issues template or contribution template
-- run test with `npm run test` or `npm run test:watch`, consider using `tap-spec` formatter instead of `faucet`.
+- Short Codebase, single file, no dependencies, simple functions
 
 ### Why ?
 Iterating over object as easily as array was crucial for me to prototype, manipulate data and onboard developers.
 
-It is probably evil to override Object.prototype or global context but it was also making me start quicker new ideas.
+It is evil to override Object.prototype or global context but it was also making me start quicker new ideas.
 
-If you control your environment and don't have (or few) dependencies, then using `xtend` will probably help you.
+If you control your environment and have few dependencies, then using `xtend` will probably help you.
 
-I enjoyed using Sugar but decided to replace it by something simpler to minimise API overhead.
+I enjoyed using Sugar but decided to replace it by something simpler to minimise the API overhead.
 
 Sugar Issues:
 - Too many functions

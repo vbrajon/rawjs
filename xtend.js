@@ -12,6 +12,7 @@ const xtend = () => {
     }
   }
 }
+xtend.version = '1.1.1'
 
 xtend.Object = {
   keys: Object.keys,
@@ -38,35 +39,25 @@ Array._map = [].map
 Array._reduce = [].reduce
 Array._filter = [].filter
 Array._find = [].find
-Array._flat = [].flat
 Array._sort = [].sort
 xtend.Array = {
   map: (arr, fn) => Array._map.bind(arr)(fn),
   reduce: (arr, fn, base) => Array._reduce.bind(arr)(fn, base),
   filter: (arr, fn) => Array._filter.bind(arr)(fn),
   find: (arr, fn) => Array._find.bind(arr)(fn),
-  flat: (arr, fn) => Array._flat.bind(arr)(fn),
   sort: (arr, fn) => Array._sort.bind(arr.slice())(fn),
   group: (arr, fn) =>
-    arr.map(fn).reduce((acc, val, i) => {
-      acc[val] = acc[val] || []
-      acc[val].push(arr[i])
+    arr.map(fn).reduce((acc, v, i) => {
+      acc[v] = acc[v] || []
+      acc[v].push(arr[i])
       return acc
     }, {}),
   unique: arr => [...new Set(arr)],
   first: arr => arr[0],
   last: arr => arr.slice(-1)[0],
-  min: (arr, n = 1) =>
-    arr
-      .slice()
-      .sort((a, b) => a - b)
-      .slice(0, n),
-  max: (arr, n = 1) =>
-    arr
-      .slice()
-      .sort((a, b) => b - a)
-      .slice(0, n),
-  sum: arr => arr.reduce((acc, val) => acc + val, 0),
+  min: arr => arr.slice().sort((a, b) => a - b)[0],
+  max: arr => arr.slice().sort((a, b) => b - a)[0],
+  sum: arr => arr.reduce((acc, v) => acc + v, 0),
 }
 
 xtend.String = {
@@ -94,11 +85,15 @@ xtend.String = {
       .replace(/([a-z\d])([A-Z])/g, '$1 $2')
       .split(/[-_\s]/)
       .filter(Boolean),
-  join: (str, sep = ' ', fn = 'lower', clean) =>
-    str
-      .words(clean)
-      .map(fn)
-      .join(sep),
+  join: (str, sep = ' ') => {
+    if (sep === 'human') return str.words().join(' ').lower().capitalize()
+    if (sep === 'title') return str.words().map('lower.capitalize').join(' ')
+    if (sep === 'camel') return str.words().map('lower.capitalize').join('').replace(/./, c => c.toLowerCase())
+    if (sep === 'pascal') return str.words().map('lower.capitalize').join('')
+    if (['-', 'dash', 'list', 'kebab'].includes(sep)) return str.lower().words().join('-')
+    if (['_', 'underscore', 'snake'].includes(sep)) return str.lower().words().join('_')
+    str.words().join(sep)
+  },
 }
 
 xtend.Function = {
@@ -115,13 +110,24 @@ xtend.Function = {
       if (flag) return
       fn.apply(this, arguments)
       flag = true
-      setTimeout(() => flag = false, ms)
+      setTimeout(() => (flag = false), ms)
     }
   },
 }
 
 // Wrapping function to provide shorthands
 xtend.wrap = (args, fname) => {
+  function same(a, b) {
+    if (a === b) return true
+    if (a instanceof Date && b instanceof Date) return a.getTime() === b.getTime()
+    if (!a || !b || (typeof a != 'object' && typeof b !== 'object')) return a === b
+    if (a === null || a === undefined || b === null || b === undefined) return false
+    if (a.prototype !== b.prototype) return false
+    let keys = Object.keys(a)
+    if (keys.length !== Object.keys(b).length) return false
+    return keys.every(k => same(a[k], b[k]))
+  }
+
   // If no arguments, use default arguments
   if (args.length === 0) {
     if (['map', 'filter', 'find'].includes(fname)) return [x => x]
@@ -163,32 +169,4 @@ xtend.wrap = (args, fname) => {
   return args
 }
 
-function is(a, b) {
-  if (arguments.length > 1) return is(a) === is(b)
-  if (a === Infinity) return 'infinity'
-  if (typeof a === 'number' && isNaN(a)) return 'nan'
-  if ([Boolean, Number, String, Object, Array, Date, RegExp].includes(a)) return a.name.toLowerCase()
-  return Object.prototype.toString
-    .call(a)
-    .slice(8, -1)
-    .toLowerCase()
-}
-
-function same(a, b) {
-  if (a === b) return true
-  if (a instanceof Date && b instanceof Date) return a.getTime() === b.getTime()
-  if (!a || !b || (typeof a != 'object' && typeof b !== 'object')) return a === b
-  if (a === null || a === undefined || b === null || b === undefined) return false
-  if (a.prototype !== b.prototype) return false
-  let keys = Object.keys(a)
-  if (keys.length !== Object.keys(b).length) return false
-  return keys.every(k => same(a[k], b[k]))
-}
-
-if (typeof global === 'object' && global.global === global) {
-  global.window = global
-  window.is = is
-  window.same = same
-  xtend.version = require('./package.json').version
-  module.exports = xtend
-}
+if (typeof global === 'object' && global.global === global) module.exports = xtend

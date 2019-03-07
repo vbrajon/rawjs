@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// USAGE: echo 1 2 3 | x ".split(/ +/).map(d => +d).sum()"
+// USAGE: echo '{"range":[1, 2]}' | x '.range.sum()'
 require('./xtend')()
 if (process.argv.length <= 2) return process.stdin.pipe(process.stdout)
 let x = ''
