@@ -3,7 +3,7 @@ const xtend = require('./xtend')
 
 test('it works without extending', t => {
   t.equal(xtend.version.slice(0, 1), '1')
-  t.same(xtend.Object.map({ a: 1, b: 2 }, (v, k) => k + v), { a: 'a1', b: 'b2' })
+  t.same(xtend.Object.map({ a: 1, b: 2 }, (v, k) => k + v), { a: 'a1', b: 'b2' })
   t.end()
 })
 
@@ -57,22 +57,30 @@ test('it extends Array # group, sort, unique, first, last, min, max, sum, averag
   t.same(list.filter({ lastname: 'John' }), {})
   // t.same(list.filter({ lastname: ['John', 'Jane'] }), list)
   t.same(list.filter({ age: '>28' }), {})
+  t.equal([4, 25, 1].first(), 4)
+  t.equal([4, 25, 1].last(), 1)
+  t.equal([4, 25, 1].min(), 1)
+  t.equal([4, 25, 1].max(), 25)
+  t.equal([4, 25, 1].median(), 4)
+  t.equal([4, 25, 1].average(), 10)
   t.end()
 })
 
 test('it extends Function # debounce, throttle, delay, every, cancel, memoize, partial', t => {
-  t.plan(3)
-  const debounce = (() => t.true(true)).debounce(50)
-  const throttle = (() => t.true(true)).throttle(50)
-  Array(15)
-    .fill(0)
-    .map((_, i) =>
-      setTimeout(() => {
-        debounce()
-        throttle()
-      }, i * 5),
-    )
-  setTimeout(t.end, 200)
+  t.plan(6)
+  const fn = () => t.true(true)
+  const debounce = fn.debounce(50) // called at the end (1 time)
+  const throttle = fn.throttle(50) // called every 50ms (3 times)
+  const memoize = fn.memoize() // called once, then return the cached result
+  t.true.partial(true)() // called immediately
+  const loop = () => {
+    memoize()
+    debounce()
+    throttle()
+  }
+  loop.every(5)
+  loop.cancel.bind(loop).delay(150)
+  t.end.delay(200)
 })
 
 test('it extends String # format, words, join, lower, upper, capitalize', t => {
@@ -92,8 +100,8 @@ test('it extends String # format, words, join, lower, upper, capitalize', t => {
   t.end()
 })
 
-test('it extends Number # format, [math], duration', t => {})
-test('it extends Date # format, locale, add, sub, iso, relative', t => {})
+// test('it extends Number # format, [math], duration', t => {})
+// test('it extends Date # format, locale, add, sub, iso, relative', t => {})
 
 test('it works with shorthand', t => {
   const obj = { a: [1, 2], b: [3, 4] }

@@ -58,6 +58,56 @@ xtend.Array = {
   min: arr => arr.slice().sort((a, b) => a - b)[0],
   max: arr => arr.slice().sort((a, b) => b - a)[0],
   sum: arr => arr.reduce((acc, v) => acc + v, 0),
+  median: arr => {
+    const mid = Math.floor(arr.length / 2)
+    const nums = [...arr].sort((a, b) => a - b)
+    return arr.length % 2 ? nums[mid] : (nums[mid - 1] + nums[mid]) / 2
+  },
+  average: arr => arr.reduce((acc, v) => acc + v, 0) / arr.length,
+}
+
+xtend.Function = {
+  delay: (fn, ms = 0) => {
+    fn.timeout = setTimeout(fn, ms)
+    return fn
+  },
+  every: (fn, ms = 0) => {
+    fn.timeout = setInterval(fn, ms)
+    return fn
+  },
+  cancel: (fn, ms = 0) => {
+    fn.timeout = clearTimeout(fn.timeout)
+    return fn
+  },
+  debounce: (fn, ms = 0) => {
+    return function() {
+      clearTimeout(this.timeout)
+      this.timeout = setTimeout(() => fn.apply(this, arguments), ms)
+    }
+  },
+  throttle: (fn, ms = 0) => {
+    return function() {
+      if (this.throttle) return
+      this.throttle = true
+      setTimeout(() => delete this.throttle, ms)
+      fn.apply(this, arguments)
+    }
+  },
+  memoize: fn => {
+    fn.cache = {}
+    return function() {
+      const hash = JSON.stringify(arguments)
+      if (!fn.cache[hash]) fn.cache[hash] = fn(this, arguments) || 'null-memoize'
+      return fn.cache[hash] === 'null-memoize' ? null : fn.cache[hash]
+    }
+  },
+  partial: (fn, ...args) => {
+    return function() {
+      arguments = Array.from(arguments)
+      args = args.map((a, i) => (a === null ? arguments.shift() : a)).concat(arguments)
+      return fn.apply(this, args)
+    }
+  },
 }
 
 xtend.String = {
@@ -93,25 +143,6 @@ xtend.String = {
     if (['-', 'dash', 'list', 'kebab'].includes(sep)) return str.lower().words().join('-')
     if (['_', 'underscore', 'snake'].includes(sep)) return str.lower().words().join('_')
     str.words().join(sep)
-  },
-}
-
-xtend.Function = {
-  debounce: (fn, ms = 0) => {
-    let timeout
-    return function(...args) {
-      clearTimeout(timeout)
-      timeout = setTimeout(() => fn.apply(this, args), ms)
-    }
-  },
-  throttle: (fn, ms = 0) => {
-    let flag
-    return function() {
-      if (flag) return
-      fn.apply(this, arguments)
-      flag = true
-      setTimeout(() => (flag = false), ms)
-    }
   },
 }
 
