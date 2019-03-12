@@ -9,19 +9,20 @@ Simpler than and inspired by [sugarjs](https://sugarjs.com/) and [lodash](https:
 - [x] Array # group, sort, unique, first, last, min, max, sum, median, average
 - [x] Function # debounce, throttle, delay, every, cancel, memoize, partial
 - [x] String # format, words, join, lower, upper, capitalize
-- [ ] Number # format, [math], duration
-- [ ] Date # format, locale, add, sub, iso, relative
-- [?] RegExp # escape
-- [?] Browser # DOM $, $\$ / same, is
-- [ ] Add/Remove function/shorthand
-- [ ] Documentation
+- [x] Number # format, [math], duration
+- [x] Date # format, plus, minus, start, end, relative
+- [x] Add/Remove functions
+- [ ] Add/Remove shorthands
 - [x] Unit Tests
 - [x] Performance Benchmarks
+- [ ] Documentation
 - [ ] Typescript
 - [x] Prettier
 - [x] CLI
 - [ ] .circleci
 - [ ] .github # OR contribute directly via https://xtendjs.com
+- [ ] RegExp # escape
+- [ ] Browser # DOM $, $\$ / same, is
 
 ### Usage
 

@@ -67,20 +67,20 @@ test('it extends Array # group, sort, unique, first, last, min, max, sum, averag
 })
 
 test('it extends Function # debounce, throttle, delay, every, cancel, memoize, partial', t => {
-  t.plan(6)
-  const fn = () => t.true(true)
-  const debounce = fn.debounce(50) // called at the end (1 time)
-  const throttle = fn.throttle(50) // called every 50ms (3 times)
-  const memoize = fn.memoize() // called once, then return the cached result
-  t.true.partial(true)() // called immediately
+  t.plan(5)
+  const start = Date.now()
+  const fn = name => t.true(true, `Function ${name} ran after ${Date.now() - start}ms`)
+  const debounce = fn.partial('debounce').debounce(20) // called at the end (1 time)
+  const throttle = fn.partial('throttle').throttle(20) // called every 50ms (3 times)
+  const memoize = fn.partial('memoize').memoize() // called once, then return the cached result
   const loop = () => {
-    memoize()
     debounce()
     throttle()
+    memoize()
   }
   loop.every(5)
-  loop.cancel.bind(loop).delay(150)
-  t.end.delay(200)
+  loop.cancel.bind(loop).delay(70)
+  t.end.delay(100)
 })
 
 test('it extends String # format, words, join, lower, upper, capitalize', t => {
@@ -100,8 +100,34 @@ test('it extends String # format, words, join, lower, upper, capitalize', t => {
   t.end()
 })
 
-// test('it extends Number # format, [math], duration', t => {})
-// test('it extends Date # format, locale, add, sub, iso, relative', t => {})
+test('it extends Number # format, [math], duration', t => {
+  t.equal((1000.0001).format(), '1,000.0001')
+  t.equal((1000.0001).format(' ', ','), '1 000,0001')
+  t.equal((3.1415).floor(), 3)
+  t.equal(Math.PI.cos(), -1)
+  t.equal((3).pow(2), 9)
+  // t.equal((3666000).duration(), '1 hour')
+  t.end()
+})
+
+test('it extends Date # format, plus, minus, start, end, relative', t => {
+  const d = new Date('2019-03-11 00:10')
+  t.equal(d.format(),'2019-03-11')
+  t.equal(d.format('Dday, M+YY'), '11day, 3+19') // comma are accepted if followed by a space
+  t.equal(d.format('DD/MM/YYYY'), '11/03/2019')
+  t.equal(d.format('day,month,year'), 'March 11, 2019')
+  t.equal(d.format('day,month,year', 'fr'), '11 mars 2019')
+  t.equal(d.format('weekd,day,mon'), 'Mon, Mar 11')
+  t.equal(d.format('day,weekday,hour,minute,second'), '11 Monday, 12:10:00 AM')
+  t.equal(d.format('weekday,weekd,month,mon'), 'Monday (month: March)') // long format if both are specified
+  t.equal(d.plus('day').format(), '2019-03-12')
+  t.equal(d.minus('1 month, 2 days').format(), '2019-02-09')
+  t.equal(d.plus('4 month').minus('3 days').format(), '2019-07-08')
+  t.equal(d.start('month').toISOString(), '2019-02-28T23:00:00.000Z')
+  t.equal(d.end('month').toISOString(), '2019-03-31T21:59:59.000Z')
+  // t.equal(new Date().plus('14 days').relative(), '2 weeks from now')
+  t.end()
+})
 
 test('it works with shorthand', t => {
   const obj = { a: [1, 2], b: [3, 4] }

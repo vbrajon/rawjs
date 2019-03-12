@@ -146,6 +146,77 @@ xtend.String = {
   },
 }
 
+xtend.Number = Object.getOwnPropertyNames(Math).reduce((acc, k) => {
+  if (typeof Math[k] === 'function') acc[k] = Math[k]
+  return acc
+}, {})
+xtend.Number.format = (num, sep1 = ',', sep2 = '.') => {
+  const [int, dec] = ('' + num).split('.')
+  return [int.slice(0, int.length % 3)].concat(int.slice(int.length % 3).match(/.../g)).join(sep1) + (dec ? sep2 + dec : '')
+}
+
+xtend.Date = {
+  format: (date, fmt = 'YYYY-MM-DD', lang = 'en') => {
+    const intl = option => date.toLocaleDateString(lang, option)
+    if (/,[^ ]/.test(fmt)) {
+      const parts = fmt.split(',')
+      const options = {}
+      if (parts.includes('second')) options.second = '2-digit'
+      if (parts.includes('minute')) options.minute = '2-digit'
+      if (parts.includes('hour')) options.hour = '2-digit'
+      if (parts.includes('weekd')) options.weekday = 'short'
+      if (parts.includes('weekday')) options.weekday = 'long'
+      if (parts.includes('day')) options.day = 'numeric'
+      if (parts.includes('mon')) options.month = 'short'
+      if (parts.includes('month')) options.month = 'long'
+      if (parts.includes('year')) options.year = 'numeric'
+      return intl(options)
+    }
+    const pad = (int, length) =>
+      length === 1
+        ? int
+        : Array(length)
+            .fill(0)
+            .concat(int)
+            .join('')
+            .slice(-length)
+    return fmt
+      .replace(/s+/g, m => pad(date.getSeconds(), m.length))
+      .replace(/m+/g, m => pad(date.getMonth(), m.length))
+      .replace(/h+/g, m => pad(date.getHours(), m.length))
+      .replace(/D+/g, m => pad(date.getDate(), m.length))
+      .replace(/M+/g, m => pad(date.getMonth() + 1, m.length))
+      .replace(/Y+/g, m => pad(date.getFullYear(), m.length))
+  },
+  modify: (date, str, sign) => {
+    const d = new Date(date)
+    const names = ['Seconds', 'Minutes', 'Hours', 'Date', 'Month', 'FullYear']
+    let fn = x => x
+    if (sign === '+') fn = (n, i) => d['set' + names[i]](d['get' + names[i]]() + n)
+    if (sign === '-') fn = (n, i) => d['set' + names[i]](d['get' + names[i]]() - n)
+    if (sign === '<') fn = (n, i) => names.slice(0, i).map(name => d['set' + name](name === 'Date' ? 1 : 0))
+    if (sign === '>') {
+      const last = { Seconds: 59, Minutes: 59, Hours: 23, Date: new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(), Month: 12 }
+      fn = (n, i) => names.slice(0, i).map(name => d['set' + name](last[name]))
+    }
+    str.split(',').forEach(part =>
+      part
+        .trim()
+        .replace(/^(\d*)\s*seconds?$/, (m, n) => fn(+n || 1, 0))
+        .replace(/^(\d*)\s*minutes?$/, (m, n) => fn(+n || 1, 1))
+        .replace(/^(\d*)\s*hours?$/, (m, n) => fn(+n || 1, 2))
+        .replace(/^(\d*)\s*days?$/, (m, n) => fn(+n || 1, 3))
+        .replace(/^(\d*)\s*months?$/, (m, n) => fn(+n || 1, 4))
+        .replace(/^(\d*)\s*years?$/, (m, n) => fn(+n || 1, 5)),
+    )
+    return d
+  },
+  plus: (date, str) => date.modify(str, '+'),
+  minus: (date, str) => date.modify(str, '-'),
+  start: (date, str) => date.modify(str, '<'),
+  end: (date, str) => date.modify(str, '>'),
+}
+
 // Wrapping function to provide shorthands
 xtend.wrap = (args, fname) => {
   function same(a, b) {
