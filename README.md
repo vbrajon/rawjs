@@ -1,28 +1,60 @@
 # XtendJS
 
 Utility Library to extend javascript primitives.  
-Simpler than and inspired by [sugarjs](https://sugarjs.com/) and [lodash](https://lodash.com/).
+Simpler than and inspired by lodash or sugar.
 
 ### API - Roadmap
 
-- [x] Object # map, reduce, filter, find, keys, values, entries, assign
-- [x] Array # group, sort, unique, first, last, min, max, sum, median, average
+- [x] Object # map, reduce, filter, find
+- [x] Array # sort, group, unique, first, last, min, max, sum, median, average
 - [x] Function # debounce, throttle, delay, every, cancel, memoize, partial
 - [x] String # format, words, join, lower, upper, capitalize
 - [x] Number # format, [math], duration
 - [x] Date # format, plus, minus, start, end, relative
-- [x] Add/Remove functions
-- [ ] Add/Remove shorthands
+- [ ] RegExp # format, escape
+- [x] Prettier
+- [ ] Typescript
 - [x] Unit Tests
 - [x] Performance Benchmarks
-- [ ] Documentation
-- [ ] Typescript
-- [x] Prettier
+- [ ] Documentation # use, api (try, test, source), examples, why, comparison, compatibility
 - [x] CLI
+- [ ] Browser # DOM $, $\$ / same, is
 - [ ] .circleci
 - [ ] .github # OR contribute directly via https://xtendjs.com
-- [ ] RegExp # escape
-- [ ] Browser # DOM $, $\$ / same, is
+
+### Docs
+
+To remove a function:
+```js
+delete Object.map
+delete Object.prototype.map
+```
+
+To add a shorthands:
+```js
+xtend._wrap = xtend.wrap
+xtend.wrap = (args, primitive, fname, ctx) => {
+  if (fname === 'map') return [x => 42]
+  return xtend._wrap(args, primitive, fname, ctx)
+}
+```
+
+Immutability everywhere
+
+Example using an external lib using .keys > .raw('k', 'v', 'e', {}) instead of keys, values, entries, assign
+
+You may want to add even more shorthands to Object such as:
+```js
+Object.prototype.keys = Object.keys
+Object.prototype.values = Object.values
+```
+
+Sort is extensively used in internally so you may want to deactivate shorthand and immutability for this function.
+
+```js
+delete Array.sort
+xtend()
+```
 
 ### Usage
 
