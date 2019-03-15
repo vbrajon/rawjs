@@ -1,9 +1,9 @@
 {
-  "name": "xtendjs",
-  "version": "1.1.0",
-  "main": "xtend.js",
+  "name": "rawjs",
+  "version": "1.1.1",
+  "main": "raw.js",
   "bin": {
-    "x": "cli.js"
+    "raw": "cli.js"
   },
   "scripts": {
     "test": "npm run test:unit && npm run test:perf",
@@ -13,8 +13,8 @@
   },
   "devDependencies": {
     "benchmark": "^2.1.4",
-    "lodash": "^4.17.5",
-    "sugar": "^2.0.4",
-    "tape": "^4.8.0"
+    "lodash": "^4.17.11",
+    "sugar": "^2.0.6",
+    "tape": "^4.10.1"
   }
 }

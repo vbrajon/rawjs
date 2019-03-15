@@ -2,7 +2,7 @@ const Benchmark = require('benchmark')
 
 const _ = require('lodash')
 const Sugar = require('Sugar')
-const xtend = require('./xtend')
+const raw = require('./raw')
 
 const n = 10000
 const a = []
@@ -13,7 +13,7 @@ for (let i = 0; i < n; ++i) {
 }
 
 const fnames = ['map', 'reduce', 'filter', 'find']
-const libnames = ['xtend', 'sugar', 'lodash']
+const libnames = ['raw', 'sugar', 'lodash']
 fnames.map(fname => {
   const suite = new Benchmark.Suite('#' + fname)
   libnames.map(libname => {
@@ -32,7 +32,7 @@ fnames.map(fname => {
     const libfn = {
       lodash: _,
       sugar: Sugar.Object,
-      xtend: xtend.Object,
+      raw: Object,
     }[libname][fname]
 
     // Input & Output for the current Test Run

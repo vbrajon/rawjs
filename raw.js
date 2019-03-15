@@ -1,4 +1,4 @@
-const xtend = () => {
+const raw = () => {
   for (const primitive of [Object, Array, Function, String, Number, Boolean, Date, RegExp]) {
     for (const fname in primitive) {
       Object.defineProperty(primitive.prototype, fname, {
@@ -6,14 +6,14 @@ const xtend = () => {
         configurable: true,
         writable: true,
         value: function() {
-          return primitive[fname](this, ...xtend.wrap(arguments, primitive, fname, this))
+          return primitive[fname](this, ...raw.wrap(arguments, primitive, fname, this))
         },
       })
     }
   }
 }
-xtend.version = '1.1.1'
-xtend.wrap = (args, primitive, fname, ctx) => {
+raw.version = '1.1.1'
+raw.wrap = (args, primitive, fname, ctx) => {
   if (args.length === 0) {
     if (['map', 'filter', 'find'].includes(fname)) return [x => x]
     return []
@@ -249,4 +249,4 @@ Date.minus = (date, str) => date.modify(str, '-')
 Date.start = (date, str) => date.modify(str, '<')
 Date.end = (date, str) => date.modify(str, '>')
 
-if (typeof global === 'object' && global.global === global) module.exports = xtend
+if (typeof global === 'object' && global.global === global) module.exports = raw

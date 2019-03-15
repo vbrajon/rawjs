@@ -1,8 +1,8 @@
 const test = require('tape')
-const xtend = require('./xtend')
+const raw = require('./raw')
 
 test('it works without extending', t => {
-  t.equal(xtend.version.slice(0, 1), '1')
+  t.equal(raw.version.slice(0, 1), '1')
   t.same(Object.map({ a: 1, b: 2 }, (v, k) => k + v), { a: 'a1', b: 'b2' })
   t.end()
 })
@@ -11,7 +11,7 @@ test('it extends primitive prototypes', t => {
   Object.custom = x => 1
   t.equal(typeof {}.custom, 'undefined')
   t.equal(typeof {}.map, 'undefined')
-  xtend()
+  raw()
   t.equal(typeof {}.custom, 'function')
   t.equal(typeof {}.map, 'function')
   delete Object.prototype.custom

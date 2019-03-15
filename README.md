@@ -1,4 +1,4 @@
-# XtendJS
+# RawJS
 
 Utility Library to extend javascript primitives.  
 Simpler than and inspired by lodash or sugar.
@@ -32,10 +32,10 @@ delete Object.prototype.map
 
 To add a shorthands:
 ```js
-xtend._wrap = xtend.wrap
-xtend.wrap = (args, primitive, fname, ctx) => {
+raw._wrap = raw.wrap
+raw.wrap = (args, primitive, fname, ctx) => {
   if (fname === 'map') return [x => 42]
-  return xtend._wrap(args, primitive, fname, ctx)
+  return raw._wrap(args, primitive, fname, ctx)
 }
 ```
 
@@ -52,15 +52,14 @@ Object.prototype.values = Object.values
 Sort is extensively used in internally so you may want to deactivate shorthand and immutability for this function.
 
 ```js
-delete Array.sort
-xtend()
+Array.prototype.sort = Array.prototype._sort
 ```
 
 ### Usage
 
-- Browser `<script src="https://xtendjs.com/xtend.js"></script>` then `xtend()`
-- Node `npm i xtendjs` then `require('xtendjs')()`
-- CLI `npm i -g xtendjs` then `echo [1, 2] | x '.sum()'`
+- Browser `<script src="https://rawjs.com/raw.js"></script>` then `raw()`
+- Node `npm i rawjs` then `require('rawjs')()`
+- CLI `npm i -g rawjs` then `echo [1, 2] | x '.sum()'`
 
 ### Concept
 
