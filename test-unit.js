@@ -1,5 +1,5 @@
-const test = require('tape')
-const raw = require('./raw')
+import test from 'tape'
+import raw from './raw'
 
 test('it works without extending', t => {
   t.equal(raw.version.slice(0, 1), '1')
@@ -35,15 +35,11 @@ test('it extends Object # map, reduce, filter, find, keys, values, entries, assi
   t.end()
 })
 
-test('it extends Array # group, sort, unique, first, last, min, max, sum, average, median', t => {
+test('it extends Array # group, sort, unique, min, max, sum, average, median', t => {
   const arr = [[[4]], [2, 3], [1]]
   t.same(arr.sort(), [[1], [2, 3], [[4]]])
   t.same(arr.sort((a, b) => (a.length === b.length ? 0 : a.length > b.length ? 1 : -1)), [[[4]], [1], [2, 3]])
   t.same([1, 1, 2, 2, 3].unique(), [1, 2, 3])
-  t.same(arr.first(), [[4]])
-  t.same(arr.last(), [1])
-  t.equal([4, 25, 1].first(), 4)
-  t.equal([4, 25, 1].last(), 1)
   t.equal([4, 25, 1].min(), 1)
   t.equal([4, 25, 1].max(), 25)
   t.equal([4, 25, 1].median(), 4)
@@ -56,23 +52,26 @@ test('it extends Function # debounce, throttle, delay, every, cancel, memoize, p
   const start = Date.now()
   const fn = name => t.true(true, `Function ${name} ran after ${Date.now() - start}ms`)
   const debounce = fn.partial('debounce').debounce(20) // called at the end (1 time)
-  const throttle = fn.partial('throttle').throttle(20) // called every 50ms (3 times)
+  const throttle = fn.partial('throttle').throttle(20) // called every 20ms (3 times)
   const memoize = fn.partial('memoize').memoize() // called once, then return the cached result
   const loop = () => {
+    // for i in {1..100};do silent node -r esm test-unit.js;echo $?;done
+    // console.log(`Loop ran after ${Date.now() - start}ms`)
     debounce()
     throttle()
     memoize()
   }
   loop.every(5)
-  loop.cancel.bind(loop).delay(70)
+  loop.cancel.bind(loop).delay(55)
   t.end.delay(100)
 })
 
 test('it extends String # format, words, join, lower, upper, capitalize', t => {
   t.equal('{}{}{}'.format('a', 'b'), 'ab{}')
   t.equal('{1}{2}{0}{1}'.format('a', 'b'), 'b{2}ab')
-  t.equal('{k2}{k2}{k3}'.format({ k1: 'a', k2: 'b' }), 'bb{k3}')
+  t.equal('{k2}{k2}{k3}'.format({ k1: 'a', k2: x => 'b' }), 'bb{k3}')
   t.equal('{1}{0}{}{1}'.format('a', 'b'), 'baab')
+  t.equal('66 pears x 3 apples'.format({ [/\d+/]: x => x * 2 }), '132 pears x 6 apples')
   const str = 'i am: The\t1\nAND,_L?on*e%ly.'
   t.same(str.words(), ['i', 'am', 'The', '1', 'AND', 'Lonely'])
   t.same(str.words(false), ['i', 'am:', 'The', '1', 'AND,', 'L?on*e%ly.'])
@@ -117,6 +116,13 @@ test('it extends Date # format, plus, minus, start, end, relative', t => {
     '2019-07-07T22:10:00.000Z',
   )
   // t.equal(new Date().plus('14 days').relative(), '2 weeks from now')
+  t.end()
+})
+
+test('it extends RegExp # escape, plus, minus', t => {
+  t.same(/(parenthesis)/.escape().source, '\\(parenthesis\\)')
+  t.same(/insensitive/.plus('i').flags, 'i')
+  t.same(/sensitive/i.minus('i').flags, '')
   t.end()
 })
 

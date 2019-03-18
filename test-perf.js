@@ -1,8 +1,7 @@
-const Benchmark = require('benchmark')
-
-const _ = require('lodash')
-const Sugar = require('Sugar')
-const raw = require('./raw')
+import Benchmark from 'benchmark'
+import _ from 'lodash'
+import Sugar from 'Sugar'
+import raw from './raw'
 
 const n = 10000
 const a = []

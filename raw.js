@@ -57,7 +57,10 @@ raw.wrap = (args, primitive, fname, ctx) => {
   function multi_sort(p) {
     if (!Array.isArray(p)) return directed_sort(p)
     return (a, b) => {
-      for (k of p) if ((z = directed_sort(k)(a, b))) return z
+      for (const k of p) {
+        const z = directed_sort(k)(a, b)
+        if (z) return z
+      }
     }
   }
 }
@@ -87,7 +90,6 @@ Array.reduce = (arr, fn, base) => arr._reduce(fn, base)
 Array.filter = (arr, fn) => arr._filter(fn)
 Array.find = (arr, fn) => arr._find(fn)
 Array.sort = (arr, fn) => arr.slice()._sort(fn)
-
 Array.group = (arr, fn) =>
   arr.map(fn).reduce((acc, v, i) => {
     acc[v] = acc[v] || []
@@ -95,8 +97,6 @@ Array.group = (arr, fn) =>
     return acc
   }, {})
 Array.unique = arr => [...new Set(arr)]
-Array.first = arr => arr[0]
-Array.last = arr => arr.slice(-1)[0]
 Array.min = arr => arr.slice().sort((a, b) => a - b)[0]
 Array.max = arr => arr.slice().sort((a, b) => b - a)[0]
 Array.sum = arr => arr.reduce((acc, v) => acc + v, 0)
@@ -111,7 +111,8 @@ Function.delay = (fn, ms = 0) => {
   fn.timeout = setTimeout(fn, ms)
   return fn
 }
-Function.every = (fn, ms = 0) => {
+Function.every = (fn, ms = 0, immediate = true) => {
+  if (immediate) fn()
   fn.timeout = setInterval(fn, ms)
   return fn
 }
@@ -119,42 +120,35 @@ Function.cancel = (fn, ms = 0) => {
   fn.timeout = clearTimeout(fn.timeout)
   return fn
 }
-Function.debounce = (fn, ms = 0) =>
-  function() {
-    clearTimeout(this.timeout)
-    this.timeout = setTimeout(() => fn.apply(this, arguments), ms)
-  }
-Function.throttle = (fn, ms = 0) =>
-  function() {
-    if (this.throttle) return
-    this.throttle = true
-    setTimeout(() => delete this.throttle, ms)
-    fn.apply(this, arguments)
-  }
+Function.debounce = (fn, ms = 0) => (...args) => {
+  clearTimeout(fn.timeout)
+  fn.timeout = setTimeout(() => fn(...args), ms)
+}
+Function.throttle = (fn, ms = 0) => (...args) => {
+  if (fn.flag) return
+  fn.flag = true
+  setTimeout(() => delete fn.flag, ms)
+  fn(...args)
+}
 Function.memoize = fn => {
   fn.cache = {}
   return function() {
     const hash = JSON.stringify(arguments)
-    if (!fn.cache[hash]) fn.cache[hash] = fn(this, arguments) || 'null-memoize'
+    if (!fn.cache[hash]) fn.cache[hash] = fn(arguments) || 'null-memoize'
     return fn.cache[hash] === 'null-memoize' ? null : fn.cache[hash]
   }
 }
-Function.partial = (fn, ...args) =>
-  function() {
-    arguments = Array.from(arguments)
-    args = args.map((a, i) => (a === null ? arguments.shift() : a)).concat(arguments)
-    return fn(...args)
-  }
+Function.partial = (fn, ...outer) => (...inner) => fn(...outer.map((a, i) => (a === null ? inner.shift() : a)).concat(inner))
 
 String.format = (str, ...args) => {
   args.map((arg, i) => {
     if (typeof arg === 'object')
       return arg.map((v, k) => {
-        const name_re = new RegExp('\\{' + k + '\\}', 'g')
+        const name_re = /^\/.*\/$/.test(k) ? RegExp(k.slice(1, -1), 'g') : RegExp('\\{' + k + '\\}', 'g')
         str = str.replace(name_re, v)
       })
     const null_re = /\{\}/
-    const position_re = new RegExp('\\{' + i + '\\}', 'g')
+    const position_re = RegExp('\\{' + i + '\\}', 'g')
     str = str.replace(null_re, arg)
     str = str.replace(position_re, arg)
   })
@@ -249,4 +243,8 @@ Date.minus = (date, str) => date.modify(str, '-')
 Date.start = (date, str) => date.modify(str, '<')
 Date.end = (date, str) => date.modify(str, '>')
 
-if (typeof global === 'object' && global.global === global) module.exports = raw
+RegExp.escape = r => RegExp(r.source.replace(/([\\/'*+?|()[\]{}.^$-])/g, '\\$1'), r.flags)
+RegExp.plus = (r, f) => RegExp(r.source, r.flags.replace(f, '') + f)
+RegExp.minus = (r, f) => RegExp(r.source, r.flags.replace(f, ''))
+
+export default raw
