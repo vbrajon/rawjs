@@ -191,7 +191,7 @@ Date.format = (date, fmt = 'YYYY-MM-DD', lang = 'en') => {
     if (parts.includes('second')) options.second = '2-digit'
     if (parts.includes('minute')) options.minute = '2-digit'
     if (parts.includes('hour')) options.hour = '2-digit'
-    if (parts.includes('weekd')) options.weekday = 'short'
+    if (parts.includes('wday')) options.weekday = 'short'
     if (parts.includes('weekday')) options.weekday = 'long'
     if (parts.includes('day')) options.day = 'numeric'
     if (parts.includes('mon')) options.month = 'short'
@@ -236,6 +236,7 @@ Date.modify = (date, str, sign) => {
       .replace(/^(\d*)\s*months?$/, (m, n) => fn(+n || 1, 4))
       .replace(/^(\d*)\s*years?$/, (m, n) => fn(+n || 1, 5)),
   )
+  d.setMilliseconds(0)
   return d
 }
 Date.plus = (date, str) => date.modify(str, '+')
