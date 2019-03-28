@@ -9,35 +9,42 @@ Utility library to extend javascript primitives.
 
 ## Concepts
 - Extends Object with `map`, `reduce`, `filter`, `find`
+  ```js
+  import raw from 'raw' // Once imported, you have access to the primitive APIs
+  Object.filter({ k1: 1, k2: 2 }, v => v > 1)
+  raw() // but objects are not extended until you call the raw() function
+  ({ k1: 1, k2: 2 }).filter(v => v > 1)
+  ```
 - Extends Array, Function, String, Number, Date, RegExp
-```js
-import raw from 'raw'
-// Once imported, you have access to the primitive APIs
-// but objects are not extended until you call the raw() function
-Object.find({ k1: 1, k2: 2 }, v => v === 2) // 'k2'
-raw()
-({ k1: 1, k2: 2 }).map(v => v * 2) // { k1: 2, k2: 4 }
-[2, 3, 5, 8, 11].sum() // 29
-'Python call this {}'.format('f-string') // 'Python call this f-string'
-```
+  ```js
+  [2, 3, 5, 8, 11].sum()
+  (() => console.log('Oh yeah')).every(1000)
+  'Python calls this {}'.format('f-string')
+  1002.3004.format('fr')
+  new Date().end('month')
+  /be-LESS-insensitive/i.minus('i')
+  ```
 - Immutability
-```js
-const a = [5, 3, 11, 8, 2]
-const b = a.sort() // every functions are immutable, even the overridden ones
-console.log(a, b) // [5, 3, 11, 8, 2], [2, 3, 5, 8, 11]
-```
+  ```js
+  const a = [5, 3, 11, 8, 2]
+  const b = a.sort() // every functions are immutable, even sort (overridden)
+  console.log(a, b) // [5, 3, 11, 8, 2], [2, 3, 5, 8, 11]
+  ```
 - Chaining
-```js
-new Date().plus('4 months').minus('3 days').format('year,month,day', 'fr')
-```
+  ```js
+  new Date()
+    .plus('4 months')
+    .minus('3 days')
+    .format('year,month,day', 'fr')
+  ```
 - Extensibility
-```js
-Number.chaos = num => num * Math.random() // add a function to a primitive
-raw() // extend prototypes
-(3).chaos() // between 0 and 3
-delete Object.chaos // remove a function from a primitive
-delete Object.prototype.chaos // remove an extension from a primitive
-```
+  ```js
+  Number.chaos = num => num * Math.random() // add a function to a primitive
+  raw() // extend prototypes
+  (3).chaos() // between 0 and 3
+  delete Number.chaos // remove a function from a primitive
+  delete Number.prototype.chaos // remove an extension from a primitive
+  ```
 - Short Codebase, single file, simple functions, no dependencies
   - [~250 loc](https://github.com/vbrajon/rawjs/blob/master/raw.js)
   - [~100 tests](https://github.com/vbrajon/rawjs/blob/master/test-unit.js)
@@ -58,6 +65,9 @@ delete Object.prototype.chaos // remove an extension from a primitive
 ```
 
 ```js
+document.title = 'RawJS'
+document.querySelector('[rel=icon]').href = 'https://vbrajon.github.io/rawjs/r.png'
+
 import('https://vbrajon.github.io/rawjs/raw.js')
 .then(m => window.raw = m.default)
 .then(() => raw())

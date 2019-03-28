@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // USAGE: echo '{"range":[1, 2]}' | raw '.range.sum()'
-require('./raw')()
+import raw from './raw'
 let x = ''
 const stdin = process.stdin
 const stdout = process.stdout

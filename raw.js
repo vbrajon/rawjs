@@ -100,12 +100,12 @@ Array.unique = arr => [...new Set(arr)]
 Array.min = arr => arr.slice().sort((a, b) => a - b)[0]
 Array.max = arr => arr.slice().sort((a, b) => b - a)[0]
 Array.sum = arr => arr.reduce((acc, v) => acc + v, 0)
+Array.average = arr => arr.reduce((acc, v) => acc + v, 0) / arr.length
 Array.median = arr => {
   const mid = Math.floor(arr.length / 2)
   const nums = [...arr].sort((a, b) => a - b)
   return arr.length % 2 ? nums[mid] : (nums[mid - 1] + nums[mid]) / 2
 }
-Array.average = arr => arr.reduce((acc, v) => acc + v, 0) / arr.length
 
 Function.delay = (fn, ms = 0) => {
   fn.timeout = setTimeout(fn, ms)
@@ -178,10 +178,7 @@ String.join = (str, sep = ' ') => {
 Object.getOwnPropertyNames(Math)
   .filter(k => typeof Math[k] === 'function')
   .forEach(k => (Number[k] = Math[k]))
-Number.format = (num, sep1 = ',', sep2 = '.') => {
-  const [int, dec] = ('' + num).split('.')
-  return [int.slice(0, int.length % 3)].concat(int.slice(int.length % 3).match(/.../g)).join(sep1) + (dec ? sep2 + dec : '')
-}
+Number.format = (num, lang = 'en') => new Intl.NumberFormat(lang).format(num)
 
 Date.format = (date, fmt = 'YYYY-MM-DD', lang = 'en') => {
   const intl = option => date.toLocaleDateString(lang, option)
