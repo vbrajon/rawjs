@@ -22,6 +22,7 @@ raw.wrap = (args, primitive, fname, ctx) => {
   let a0 = args[0]
   if (['map', 'filter'].includes(fname) && typeof a0 === 'number') return [x => x[a0]]
   if (['map', 'filter'].includes(fname) && typeof a0 === 'string') return [x => access(x, a0)]
+  if (['filter', 'find'].includes(fname) && a0 instanceof RegExp) return [x => a0.test(x)]
   if (fname === 'find' && typeof a0 !== 'function') return [x => same(x, a0)]
   if (fname === 'sort' && typeof a0 !== 'function') return [multi_sort(a0)]
   if (fname === 'sort' && typeof a0 === 'function' && a0.length === 1) return [(a, b) => (a0(a) === a0(b) ? 0 : a0(a) > a0(b) ? 1 : -1)]
@@ -85,11 +86,13 @@ Array.prototype._reduce = [].reduce
 Array.prototype._filter = [].filter
 Array.prototype._find = [].find
 Array.prototype._sort = [].sort
+Array.prototype._reverse = [].reverse
 Array.map = (arr, fn) => arr._map(fn)
 Array.reduce = (arr, fn, base) => arr._reduce(fn, base)
 Array.filter = (arr, fn) => arr._filter(fn)
 Array.find = (arr, fn) => arr._find(fn)
 Array.sort = (arr, fn) => arr.slice()._sort(fn)
+Array.reverse = (arr, fn) => arr.slice()._reverse(fn)
 Array.group = (arr, fn) =>
   arr.map(fn).reduce((acc, v, i) => {
     acc[v] = acc[v] || []

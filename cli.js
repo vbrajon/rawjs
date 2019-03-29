@@ -1,7 +1,8 @@
-#!/usr/bin/env node
+#!/usr/bin/env node -r esm
 
 // USAGE: echo '{"range":[1, 2]}' | raw '.range.sum()'
 import raw from './raw'
+raw()
 let x = ''
 const stdin = process.stdin
 const stdout = process.stdout

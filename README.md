@@ -24,6 +24,11 @@ Utility library to extend javascript primitives.
   new Date().end('month')
   /be-LESS-insensitive/i.minus('i')
   ```
+- Shorthand
+  ```js
+  [0, 1, 2, null].filter() // [1, 2]
+  [{ name: 'John' }, { name: 'Jane' }].map('name').find(/Jo/) // 'John'
+  ```
 - Immutability
   ```js
   const a = [5, 3, 11, 8, 2]
@@ -49,6 +54,67 @@ Utility library to extend javascript primitives.
   - [~250 loc](https://github.com/vbrajon/rawjs/blob/master/raw.js)
   - [~100 tests](https://github.com/vbrajon/rawjs/blob/master/test-unit.js)
   - [3 benchmarks](https://github.com/vbrajon/rawjs/blob/master/test-perf.js)
+
+## Advanced
+
+- RawJS provides a CLI Utility when installed globally
+  ```bash
+  npm i -g rawjs # or git clone && npm link --local
+  curl -s https://jsonplaceholder.typicode.com/users | raw ".map('address.geo')"
+  ```
+- RawJS only provides an ESM version for now. Usage:
+  - Example: Bash / Node
+  ```bash
+  #!/usr/bin/env node -r esm
+  import raw from 'raw'
+  raw()
+  console.log([1, 2, 3].sum())
+  ```
+  - Example: Browser / Vuejs
+  ```html
+  <main>
+    <input v-model="search"><hr>
+    <div :text="table.filter(RegExp(search))"></div><hr>
+    Note the use of .filter(RegExp) shorthand provided by RawJS
+  </main>
+  <script type="module">
+    import Vue from 'https://unpkg.com/vue@2.6.10/dist/vue.esm.browser.js'
+    import raw from 'https://vbrajon.github.io/rawjs/raw.js'
+    raw()
+    new Vue({
+      el: 'main',
+      data: {
+        table: Array(100).fill(0).map((_, i) => i),
+        search: '',
+      },
+    })
+  </script>
+  ```
+- Add or remove shorthands is a bit tricky ATM:
+  ```js
+  // Modify the `raw.wrap` function with the following signature:
+  raw._wrap = raw.wrap
+  raw.wrap = (args, primitive, fname, ctx) => {
+    if (fname === 'sort' && args[0] === '-') return [(a, b) => b - a]
+    return raw._wrap(args, primitive, fname, ctx)
+  }
+  ```
+- Non enumerable functions are not added by default, they can be added with:
+  ```js
+  Object.prototype.keys = Object.keys
+  Object.prototype.values = Object.values
+  ```
+- Be extra careful with extending Object prototype as it will be available everywhere
+  ```js
+  ''.map() || 1..map() || /rx/.map() // return {} instead of throwing error
+  ```
+- Array `sort` and `reverse` are overridden. They are extensively used internally by the JS engine so you may want to deactivate the shorthand. This will remove immutability for those functions.
+  ```js
+  Array.prototype.sort = Array.prototype._sort
+  Array.prototype.reverse = Array.prototype._reverse
+  delete Array.sort
+  delete Array.reverse
+  ```
 
 ---
 

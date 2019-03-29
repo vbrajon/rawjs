@@ -84,8 +84,8 @@ test('it extends String # format, words, join, lower, upper, capitalize', t => {
 })
 
 test('it extends Number # format, [math], duration', t => {
-  t.equal((1000.0001).format(), '1,000.0001')
-  t.equal((1000.0001).format(' ', ','), '1 000,0001')
+  t.equal((1010.0101).format(), '1,010.01')
+  t.equal((1010.0101).format('fr'), '1 010,01')
   t.equal((3.1415).floor(), 3)
   t.equal(Math.PI.cos(), -1)
   t.equal((3).pow(2), 9)
