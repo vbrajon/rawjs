@@ -5,9 +5,11 @@ Utility library to extend javascript primitives.
 ---
 
 ## API
+
 <api></api>
 
 ## Concepts
+
 - Extends Object with `map`, `reduce`, `filter`, `find`
   ```js
   import raw from 'raw' // Once imported, you have access to the primitive APIs
@@ -57,25 +59,32 @@ Utility library to extend javascript primitives.
 
 ## Advanced
 
-- RawJS provides a CLI Utility when installed globally
+- RawJS provides a CLI utility when installed globally
   ```bash
   npm i -g rawjs # or git clone && npm link --local
   curl -s https://jsonplaceholder.typicode.com/users | raw ".map('address.geo')"
   ```
-- RawJS only provides an ESM version for now. Usage:
-  - Example: Bash / Node
+- RawJS provides an automatic documentation mechanism, try:
+  ```javascript
+  // Open Devtools, add a function like the following
+  Object.chaos = () => Math.random()
+  // Scroll to API and click on a Object to see it appear
+  ```
+  <a style="position: absolute;margin-top: -55px;" class="button" href="#api">Scroll Up</a>
+- RawJS only provides an ESM version for now.  
+  **Bash / Node**
   ```bash
   #!/usr/bin/env node -r esm
   import raw from 'raw'
   raw()
   console.log([1, 2, 3].sum())
   ```
-  - Example: Browser / Vuejs
+  **Browser / Vuejs**
   ```html
   <main>
-    <input v-model="search"><hr>
-    <div :text="table.filter(RegExp(search))"></div><hr>
-    Note the use of .filter(RegExp) shorthand provided by RawJS
+    <input v-model="search" />
+    <div :text="table.filter(RegExp(search))"></div>
+    # Note the use of .filter(RegExp) shorthand provided by RawJS
   </main>
   <script type="module">
     import Vue from 'https://unpkg.com/vue@2.6.10/dist/vue.esm.browser.js'
@@ -119,15 +128,12 @@ Utility library to extend javascript primitives.
 ---
 
 ```css
-.api { margin: 20px 0; }
-.api [colspan] { padding: 0; }
-.api tr td:nth-child(2) { padding: 8px; }
-.api pre { margin: 0;border-top-left-radius: 0;border-top-right-radius: 0;white-space: pre-wrap; }
-.api :not(pre) > code { cursor: pointer;user-select: none;margin: 4px;border: 1px solid #eee; }
-.api :not(pre) > code.active { background: hsl(49, 100%, 83%);border-color: #fd4; }
-.api .tab { cursor: pointer;display: inline-block;padding: 12px;background: var(--text);color: white; }
-.api .tab:hover, .api .tab.active { background: hsl(49, 100%, 43%); }
-.api .tab.active { border-bottom: 4px solid #fd4;padding-bottom: 8px; }
+.api { position: relative; }
+.api > .row { position: absolute;top: 0;left: -250px;width: 250px; }
+.api > .row > .column { flex: 1;text-align: right; }
+.api > .row > .column > * { cursor: pointer;padding: 10px;background: #f5f5f5; }
+.api > .row > .column > .active { position: relative;right: -4px;border-right: 4px solid #fd4;background: #eee;font-weight: 600; }
+.api > pre { min-height: 180px;border-radius: 0; }
 ```
 
 ```js
@@ -135,35 +141,35 @@ document.title = 'RawJS'
 document.querySelector('[rel=icon]').href = 'https://vbrajon.github.io/rawjs/r.png'
 
 import('https://vbrajon.github.io/rawjs/raw.js')
-.then(m => window.raw = m.default)
-.then(() => raw())
-.then(() => $('main').__vue__.file = $('main').__vue__.file + ' ') // HACK force reload
+  .then(m => (window.raw = m.default))
+  .then(() => raw())
+  .then(() => ($('main').__vue__.file = $('main').__vue__.file + ' ')) // HACK force reload
 
 Vue.component('api', {
-  template: `<table class="api">
-  <tr>
-    <th>Primitive</th>
-    <th>Function</th>
-  </tr>
-  <tr v-for="primitive in [Object, Array, Function, String, Number, Date, RegExp]">
-    <td>{{ primitive.name }}</td>
-    <td><code :class="{ active: pname === primitive.name && fname == fn }" @click="pname = primitive.name;fname = fn;" v-for="fn in primitive.name === 'Number' ? ['format', '[math]'] : Object.keys(primitive)">{{ fn }}</code></td>
-  </tr>
-  <tr>
-    <td colspan="2"><pre><code lang="language-js" v-html="fstring">}</code></pre></td>
-  <tr>
-</table>`,
+  template: `<div class="api">
+    <div class="row" v-if="window.innerWidth > 1200">
+      <div class="column">
+        <div :class="{ active: pname === primitive.name }" @click="pname = primitive.name;fname = Object.keys(window[pname])[0]" v-for="primitive in [Object, Array, Function, String, Number, Date, RegExp]">{{ primitive.name }}</div>
+      </div>
+      <div class="column">
+        <div :class="{ active: fname === fn }" @click="fname = fn" v-for="fn in Object.keys(window[pname])">{{ fn }}</div>
+      </div>
+    </div>
+    <div v-else>
+      <select @change="pname = $event.target.value;fname = Object.keys(window[pname])[0]">
+        <option v-for="primitive in [Object, Array, Function, String, Number, Date, RegExp]">{{ primitive.name }}</option>
+      </select>
+      <select @change="fname = $event.target.value">
+        <option v-for="fn in Object.keys(window[pname])">{{ fn }}</option>
+      </select>
+    </div>
+    <pre><code lang="language-js" v-html="Prism.highlight('' + window[this.pname][this.fname], Prism.languages.javascript, 'js')"></code></pre>
+  </div>`,
   data() {
     return {
       pname: 'Object',
       fname: 'map',
     }
-  },
-  computed: {
-    fstring() {
-      if (this.fname === '[math]') return Prism.highlight(Object.getOwnPropertyNames(Math).filter(k => typeof Math[k] === 'function').map(k => 'Math.' + k).join(', '), Prism.languages.javascript, 'js')
-      return Prism.highlight('' + window[this.pname][this.fname], Prism.languages.javascript, 'js')
-    },
   },
 })
 ```

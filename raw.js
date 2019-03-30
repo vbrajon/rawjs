@@ -178,10 +178,10 @@ String.join = (str, sep = ' ') => {
   return words.join(sep)
 }
 
+Number.format = (num, lang = 'en') => new Intl.NumberFormat(lang).format(num)
 Object.getOwnPropertyNames(Math)
   .filter(k => typeof Math[k] === 'function')
   .forEach(k => (Number[k] = Math[k]))
-Number.format = (num, lang = 'en') => new Intl.NumberFormat(lang).format(num)
 
 Date.format = (date, fmt = 'YYYY-MM-DD', lang = 'en') => {
   const intl = option => date.toLocaleDateString(lang, option)
