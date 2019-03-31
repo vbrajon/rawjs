@@ -5,28 +5,43 @@ const raw = () => {
         enumerable: false,
         configurable: true,
         writable: true,
+        value: function __raw__() {
+          return primitive[fname](...raw.wrap(this, arguments, primitive, fname))
+        },
+      })
+    }
+    for (const shorthand of raw[primitive.name] || []) {
+      if (raw[primitive.name + '#' + shorthand]) return
+      raw[primitive.name + '#' + shorthand] = primitive.prototype[shorthand]
+      Object.defineProperty(primitive.prototype, shorthand, {
+        enumerable: false,
+        configurable: true,
+        writable: true,
         value: function() {
-          return primitive[fname](this, ...raw.wrap(arguments, primitive, fname, this))
+          return raw[primitive.name + '#' + shorthand].call(...raw.wrap(this, arguments, primitive, shorthand))
         },
       })
     }
   }
 }
 raw.version = '1.1.1'
-raw.wrap = (args, primitive, fname, ctx) => {
+raw.Array = ['map', 'reduce', 'filter', 'find', 'sort', 'reverse']
+raw.wrap = (ctx, args, primitive, fname) => {
+  if (primitive === Array && ['sort', 'reverse'].includes(fname)) ctx = ctx.slice()
+
   if (args.length === 0) {
-    if (['map', 'filter', 'find'].includes(fname)) return [x => x]
-    return []
+    if (['map', 'filter', 'find'].includes(fname)) return [ctx, x => x]
+    return [ctx]
   }
 
   let a0 = args[0]
-  if (['map', 'filter'].includes(fname) && typeof a0 === 'number') return [x => x[a0]]
-  if (['map', 'filter'].includes(fname) && typeof a0 === 'string') return [x => access(x, a0)]
-  if (['filter', 'find'].includes(fname) && a0 instanceof RegExp) return [x => a0.test(x)]
-  if (fname === 'find' && typeof a0 !== 'function') return [x => same(x, a0)]
-  if (fname === 'sort' && typeof a0 !== 'function') return [multi_sort(a0)]
-  if (fname === 'sort' && typeof a0 === 'function' && a0.length === 1) return [(a, b) => (a0(a) === a0(b) ? 0 : a0(a) > a0(b) ? 1 : -1)]
-  return args
+  if (['map', 'filter'].includes(fname) && typeof a0 === 'number') return [ctx, x => x[a0]]
+  if (['map', 'filter'].includes(fname) && typeof a0 === 'string') return [ctx, x => access(x, a0)]
+  if (['filter', 'find'].includes(fname) && a0 instanceof RegExp) return [ctx, x => a0.test(x)]
+  if (fname === 'find' && typeof a0 !== 'function') return [ctx, x => same(x, a0)]
+  if (fname === 'sort' && typeof a0 !== 'function') return [ctx, multi_sort(a0)]
+  if (fname === 'sort' && typeof a0 === 'function' && a0.length === 1) return [ctx, (a, b) => (a0(a) === a0(b) ? 0 : a0(a) > a0(b) ? 1 : -1)]
+  return [ctx, ...args]
 
   function access(x, path) {
     return path
@@ -81,18 +96,6 @@ Object.filter = (obj, fn) =>
     }, {})
 Object.find = (obj, fn) => Object.keys(obj).find((k, i) => fn(obj[k], k, i, obj))
 
-Array.prototype._map = [].map
-Array.prototype._reduce = [].reduce
-Array.prototype._filter = [].filter
-Array.prototype._find = [].find
-Array.prototype._sort = [].sort
-Array.prototype._reverse = [].reverse
-Array.map = (arr, fn) => arr._map(fn)
-Array.reduce = (arr, fn, base) => arr._reduce(fn, base)
-Array.filter = (arr, fn) => arr._filter(fn)
-Array.find = (arr, fn) => arr._find(fn)
-Array.sort = (arr, fn) => arr.slice()._sort(fn)
-Array.reverse = (arr, fn) => arr.slice()._reverse(fn)
 Array.group = (arr, fn) =>
   arr.map(fn).reduce((acc, v, i) => {
     acc[v] = acc[v] || []

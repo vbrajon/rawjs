@@ -68,9 +68,10 @@ Utility library to extend javascript primitives.
   ```javascript
   // Open Devtools, add a function like the following
   Object.chaos = () => Math.random()
-  // Scroll to API and click on a Object to see it appear
+  // Then scroll up
+  //
   ```
-  <a style="position: absolute;margin-top: -55px;" class="button" href="#api">Scroll Up</a>
+  <a style="position: absolute;margin-top: -55px;" class="button" href="#api" onclick="__r__()">Scroll Up</a>
 - RawJS only provides an ESM version for now.  
   **Bash / Node**
   ```bash
@@ -103,9 +104,9 @@ Utility library to extend javascript primitives.
   ```js
   // Modify the `raw.wrap` function with the following signature:
   raw._wrap = raw.wrap
-  raw.wrap = (args, primitive, fname, ctx) => {
-    if (fname === 'sort' && args[0] === '-') return [(a, b) => b - a]
-    return raw._wrap(args, primitive, fname, ctx)
+  raw.wrap = (ctx, args, primitive, fname) => {
+    if (fname === 'sort' && args[0] === '-') return [ctx, (a, b) => b - a]
+    return raw._wrap(ctx, args, primitive, fname)
   }
   ```
 - Non enumerable functions are not added by default, they can be added with:
@@ -119,16 +120,16 @@ Utility library to extend javascript primitives.
   ```
 - Array `sort` and `reverse` are overridden. They are extensively used internally by the JS engine so you may want to deactivate the shorthand. This will remove immutability for those functions.
   ```js
-  Array.prototype.sort = Array.prototype._sort
-  Array.prototype.reverse = Array.prototype._reverse
-  delete Array.sort
-  delete Array.reverse
+  Array.prototype.sort = raw['Array#sort']
+  Array.prototype.reverse = raw['Array#reverse']
   ```
 
 ---
 
 ```css
-.api { position: relative; }
+h1:first-of-type, [id]:hover { background: linear-gradient(to right,#fd4 50%,#fd971f);-webkit-background-clip: text;-webkit-text-fill-color: transparent; }
+
+.api { position: relative;margin-bottom: 100px; }
 .api > .row { position: absolute;top: 0;left: -250px;width: 250px; }
 .api > .row > .column { flex: 1;text-align: right; }
 .api > .row > .column > * { cursor: pointer;padding: 10px;background: #f5f5f5; }
@@ -140,10 +141,11 @@ Utility library to extend javascript primitives.
 document.title = 'RawJS'
 document.querySelector('[rel=icon]').href = 'https://vbrajon.github.io/rawjs/r.png'
 
+window.__r__ = () => $('main').__vue__.file = $('main').__vue__.file + ' '
 import('https://vbrajon.github.io/rawjs/raw.js')
-  .then(m => (window.raw = m.default))
+  .then(m => window.raw = m.default)
   .then(() => raw())
-  .then(() => ($('main').__vue__.file = $('main').__vue__.file + ' ')) // HACK force reload
+  .then(__r__) // HACK force reload
 
 Vue.component('api', {
   template: `<div class="api">
@@ -156,14 +158,14 @@ Vue.component('api', {
       </div>
     </div>
     <div v-else>
-      <select @change="pname = $event.target.value;fname = Object.keys(window[pname])[0]">
+      <select v-model="pname" @change="fname = Object.keys(window[pname])[0]">
         <option v-for="primitive in [Object, Array, Function, String, Number, Date, RegExp]">{{ primitive.name }}</option>
       </select>
-      <select @change="fname = $event.target.value">
+      <select v-model="fname">
         <option v-for="fn in Object.keys(window[pname])">{{ fn }}</option>
       </select>
     </div>
-    <pre><code lang="language-js" v-html="Prism.highlight('' + window[this.pname][this.fname], Prism.languages.javascript, 'js')"></code></pre>
+    <pre><code class="language-js" v-html="Prism.highlight('' + window[this.pname][this.fname], Prism.languages.javascript, 'js')"></code></pre>
   </div>`,
   data() {
     return {

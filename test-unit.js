@@ -8,12 +8,17 @@ test('it works without extending', t => {
 })
 
 test('it extends primitive prototypes', t => {
-  Object.custom = x => 1
-  t.equal(typeof {}.custom, 'undefined')
   t.equal(typeof {}.map, 'undefined')
   raw()
-  t.equal(typeof {}.custom, 'function')
   t.equal(typeof {}.map, 'function')
+  t.end()
+})
+
+test('it is extensible', t => {
+  Object.custom = x => 1
+  t.equal(typeof {}.custom, 'undefined')
+  raw()
+  t.equal(typeof {}.custom, 'function')
   delete Object.prototype.custom
   delete Object.custom
   t.equal(typeof {}.custom, 'undefined')
@@ -140,7 +145,6 @@ test('it works with shorthand', t => {
   t.same([null, 'a', undefined].filter(), ['a'])
   t.same([{ a: { b: 'one' } }, { a: { b: 'two' } }].map('a.b'), ['one', 'two'])
   t.same([{ a: { b: 'one' } }, { a: { b: 'two' } }].map('a.b.lower.capitalize'), ['One', 'Two'])
-  t.end()
 
   const nest = [[[4]], [2, 3], [1]]
   const list = [{ lastname: 'John', age: 24 }, { lastname: 'Jane', age: 34 }, { lastname: 'John', age: 20 }]
@@ -155,4 +159,5 @@ test('it works with shorthand', t => {
   // t.same(list.filter({ lastname: ['John', 'Jane'] }), list)
   // t.same(list.filter({ age: '>28' }), [{ lastname: 'Jane', age: 34 }])
   // t.same(list.find({ lastname: 'John' }), { lastname: 'John', age: 24 })
+  t.end()
 })
