@@ -1,5 +1,5 @@
 import test from 'tape'
-import raw from './raw'
+import raw from './raw.js'
 
 test('it works without extending', t => {
   t.equal(raw.version.slice(0, 1), '1')
@@ -7,7 +7,7 @@ test('it works without extending', t => {
   t.end()
 })
 
-test('it extends primitive prototypes', t => {
+test('it works when extending', t => {
   t.equal(typeof {}.map, 'undefined')
   raw()
   t.equal(typeof {}.map, 'function')
@@ -99,14 +99,16 @@ test('it extends Number # format, [math], duration', t => {
 })
 
 test('it extends Date # format, plus, minus, start, end, relative', t => {
-  const d = new Date('2019-03-11 00:10:10')
+  const d = new Date('2019-03-11 10:09:08')
   t.equal(d.format(), '2019-03-11')
   t.equal(d.format('Dday, M+YY'), '11day, 3+19') // comma are accepted if followed by a space
   t.equal(d.format('DD/MM/YYYY'), '11/03/2019')
+  t.equal(d.format('hhhmmm'), '10h09m')
+  t.equal(d.format('hour,minute'), '10:09')
   t.equal(d.format('day,month,year'), 'March 11, 2019')
   t.equal(d.format('day,month,year', 'fr'), '11 mars 2019')
   t.equal(d.format('wday,day,mon'), 'Mon, Mar 11')
-  t.equal(d.format('day,weekday,hour,minute,second'), '11 Monday, 12:10:10 AM')
+  t.equal(d.format('day,weekday,hour,minute,second'), '11 Monday, 10:09:08 AM')
   t.equal(d.format('weekday,wday,month,mon'), 'Monday (month: March)') // long format if both are specified
   t.equal(d.plus('day').format(), '2019-03-12')
   t.equal(d.minus('1 month, 2 days').format(), '2019-02-09')
@@ -118,7 +120,7 @@ test('it extends Date # format, plus, minus, start, end, relative', t => {
       .minus('3day')
       .start('minute')
       .toISOString(),
-    '2019-07-07T22:10:00.000Z',
+    '2019-07-08T08:09:00.000Z',
   )
   // t.equal(new Date().plus('14 days').relative(), '2 weeks from now')
   t.end()
@@ -159,5 +161,6 @@ test('it works with shorthand', t => {
   // t.same(list.filter({ lastname: ['John', 'Jane'] }), list)
   // t.same(list.filter({ age: '>28' }), [{ lastname: 'Jane', age: 34 }])
   // t.same(list.find({ lastname: 'John' }), { lastname: 'John', age: 24 })
+  // t.same([{ name: 'John', age: 12 }, { name: 'John', age: 30 }, { name: 'Jane', age: 12 }].group(['name', 'age']), { John: { '12': [{ name: 'John', age: 12 }], '30': [{ name: 'John', age: 30 }] }, Jane: { '12': [{ name: 'Jane', age: 12 }] } })
   t.end()
 })

@@ -200,23 +200,21 @@ Date.format = (date, fmt = 'YYYY-MM-DD', lang = 'en') => {
     if (parts.includes('mon')) options.month = 'short'
     if (parts.includes('month')) options.month = 'long'
     if (parts.includes('year')) options.year = 'numeric'
+    if (!options.day && !options.month && !options.year) return Date.format(date, [options.hour && 'hh', options.minute && 'mm', options.second && 'ss'].filter(d => d).join(':'))
     return intl(options)
   }
-  const pad = (int, length) =>
-    length === 1
-      ? int
-      : Array(length)
-          .fill(0)
-          .concat(int)
-          .join('')
-          .slice(-length)
+  const letters = { s: 'Seconds', m: 'Minutes', h: 'Hours', D: 'Date', M: 'Month', Y: 'FullYear' }
+  Object.keys(letters).map(letter => {
+    const zeros = letter === 'Y' ? '0000' : '00'
+    let int = date['get' + letters[letter]]()
+    if (letter === 'M') int = int + 1
+    fmt = fmt.replace(RegExp(letter + '+', 'g'), m => {
+      if (m.length === 1) return int
+      if (m.length > zeros.length) return (zeros + int).slice(-zeros.length) + letter
+      return (zeros + int).slice(-m.length)
+    })
+  })
   return fmt
-    .replace(/s+/g, m => pad(date.getSeconds(), m.length))
-    .replace(/m+/g, m => pad(date.getMonth(), m.length))
-    .replace(/h+/g, m => pad(date.getHours(), m.length))
-    .replace(/D+/g, m => pad(date.getDate(), m.length))
-    .replace(/M+/g, m => pad(date.getMonth() + 1, m.length))
-    .replace(/Y+/g, m => pad(date.getFullYear(), m.length))
 }
 Date.modify = (date, str, sign) => {
   const d = new Date(date)
