@@ -1,26 +1,31 @@
-const raw = () => {
+const raw = (primitive, fname, { wrap, shorthand } = {}) => {
+  if (primitive && fname) {
+    let fn = primitive[fname]
+    if (!shorthand && primitive.prototype[fname]) return // console.log('skip', primitive, fname)
+    if (shorthand) {
+      if (raw[primitive.name + '#' + fname]) return // console.log('skip', primitive, fname)
+      raw[primitive.name + '#' + fname] = primitive.prototype[fname]
+      fn = raw[primitive.name + '#' + fname]
+    }
+    let f = fn
+    if (wrap) f = (ctx, ...args) => fn(...raw.wrap(ctx, args, primitive, fname))
+    if (wrap && shorthand) f = (ctx, ...args) => fn.call(...raw.wrap(ctx, args, primitive, fname))
+    Object.defineProperty(primitive.prototype, fname, {
+      enumerable: false,
+      configurable: true,
+      writable: true,
+      value: function __raw__() {
+        return f(this, ...arguments)
+      },
+    })
+    return
+  }
   for (const primitive of [Object, Array, Function, String, Number, Boolean, Date, RegExp]) {
     for (const fname in primitive) {
-      Object.defineProperty(primitive.prototype, fname, {
-        enumerable: false,
-        configurable: true,
-        writable: true,
-        value: function __raw__() {
-          return primitive[fname](...raw.wrap(this, arguments, primitive, fname))
-        },
-      })
+      raw(primitive, fname, { wrap: true })
     }
-    for (const shorthand of raw[primitive.name] || []) {
-      if (raw[primitive.name + '#' + shorthand]) return
-      raw[primitive.name + '#' + shorthand] = primitive.prototype[shorthand]
-      Object.defineProperty(primitive.prototype, shorthand, {
-        enumerable: false,
-        configurable: true,
-        writable: true,
-        value: function() {
-          return raw[primitive.name + '#' + shorthand].call(...raw.wrap(this, arguments, primitive, shorthand))
-        },
-      })
+    for (const fname of raw[primitive.name] || []) {
+      raw(primitive, fname, { wrap: true, shorthand: true })
     }
   }
 }
@@ -55,7 +60,7 @@ raw.wrap = (ctx, args, primitive, fname) => {
         }
       }, x)
   }
-  function same(a, b) {
+  function eq(a, b) {
     if (a === b) return true
     if (a instanceof Date && b instanceof Date) return a.getTime() === b.getTime()
     if (!a || !b || (typeof a != 'object' && typeof b !== 'object')) return a === b
@@ -63,7 +68,7 @@ raw.wrap = (ctx, args, primitive, fname) => {
     if (a.prototype !== b.prototype) return false
     let keys = Object.keys(a)
     if (keys.length !== Object.keys(b).length) return false
-    return keys.every(k => same(a[k], b[k]))
+    return keys.every(k => eq(a[k], b[k]))
   }
   function directed_sort(p) {
     if (!/^-/.test(p)) return (a, b) => (a[p] === b[p] ? 0 : a[p] > b[p] ? 1 : -1)
