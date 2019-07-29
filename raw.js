@@ -1,15 +1,13 @@
-const raw = (primitive, fname, { wrap, shorthand } = {}) => {
+if (typeof window === 'undefined') window = global
+window.raw = (primitive, fname) => {
   if (primitive && fname) {
-    let fn = primitive[fname]
-    if (!shorthand && primitive.prototype[fname]) return // console.log('skip', primitive, fname)
-    if (shorthand) {
-      if (raw[primitive.name + '#' + fname]) return // console.log('skip', primitive, fname)
+    let f = (ctx, ...args) => primitive[fname](...raw.wrap(ctx, args, primitive, fname))
+    if (primitive.prototype[fname]) {
+      if (!primitive.prototype[fname].toString().includes('{ [native code] }')) return
+      if (raw[primitive.name + '#' + fname]) return
       raw[primitive.name + '#' + fname] = primitive.prototype[fname]
-      fn = raw[primitive.name + '#' + fname]
+      f = (ctx, ...args) => raw[primitive.name + '#' + fname].call(...raw.wrap(ctx, args, primitive, fname))
     }
-    let f = fn
-    if (wrap) f = (ctx, ...args) => fn(...raw.wrap(ctx, args, primitive, fname))
-    if (wrap && shorthand) f = (ctx, ...args) => fn.call(...raw.wrap(ctx, args, primitive, fname))
     Object.defineProperty(primitive.prototype, fname, {
       enumerable: false,
       configurable: true,
@@ -22,28 +20,31 @@ const raw = (primitive, fname, { wrap, shorthand } = {}) => {
   }
   for (const primitive of [Object, Array, Function, String, Number, Boolean, Date, RegExp]) {
     for (const fname in primitive) {
-      raw(primitive, fname, { wrap: true })
+      raw(primitive, fname)
     }
     for (const fname of raw[primitive.name] || []) {
-      raw(primitive, fname, { wrap: true, shorthand: true })
+      raw(primitive, fname)
     }
   }
 }
 raw.version = '1.1.1'
-raw.Array = ['map', 'reduce', 'filter', 'find', 'sort', 'reverse']
+Array.fromEntries = Object.fromEntries
+raw.Object = ['keys', 'values', 'entries']
+raw.Array = ['map', 'reduce', 'filter', 'find', 'sort', 'reverse', 'fromEntries']
 raw.wrap = (ctx, args, primitive, fname) => {
   if (primitive === Array && ['sort', 'reverse'].includes(fname)) ctx = ctx.slice()
 
   if (args.length === 0) {
-    if (['map', 'filter', 'find'].includes(fname)) return [ctx, x => x]
+    if (['map', 'filter', 'find', 'group'].includes(fname)) return [ctx, x => x]
     return [ctx]
   }
 
   let a0 = args[0]
-  if (['map', 'filter'].includes(fname) && typeof a0 === 'number') return [ctx, x => x[a0]]
-  if (['map', 'filter'].includes(fname) && typeof a0 === 'string') return [ctx, x => access(x, a0)]
+  if (['map', 'filter', 'group'].includes(fname) && typeof a0 === 'number') return [ctx, x => x[a0]]
+  if (['map', 'filter', 'group'].includes(fname) && typeof a0 === 'string') return [ctx, x => access(x, a0)]
+  if (fname === 'group' && Array.isArray(a0)) return [ctx, x => a0.map(a => access(x, a))]
   if (['filter', 'find'].includes(fname) && a0 instanceof RegExp) return [ctx, x => a0.test(x)]
-  if (fname === 'find' && typeof a0 !== 'function') return [ctx, x => same(x, a0)]
+  if (fname === 'find' && typeof a0 !== 'function') return [ctx, x => eq(x, a0)]
   if (fname === 'sort' && typeof a0 !== 'function') return [ctx, multi_sort(a0)]
   if (fname === 'sort' && typeof a0 === 'function' && a0.length === 1) return [ctx, (a, b) => (a0(a) === a0(b) ? 0 : a0(a) > a0(b) ? 1 : -1)]
   return [ctx, ...args]
@@ -172,7 +173,7 @@ String.words = (str, clean = /[^a-z0-9-_\s]+/gi, normalize = true) =>
   str
     .normalize(normalize ? 'NFKD' : false)
     .replace(clean, '')
-    .replace(/([a-z\d])([A-Z])/g, '$1 $2')
+    .replace(/([a-z])([A-Z\d])/g, '$1 $2')
     .split(/[-_\s]/)
     .filter(Boolean)
 String.join = (str, sep = ' ') => {
@@ -180,13 +181,14 @@ String.join = (str, sep = ' ') => {
   if (sep === 'title') return words.map('lower.capitalize').join(' ')
   if (sep === 'pascal') return words.map('lower.capitalize').join('')
   if (sep === 'camel') return str.join('pascal').replace(/./, c => c.toLowerCase())
+  if (['dash', 'list', 'kebab', 'underscore', 'snake'].includes(sep)) words = words.map('lower')
   if (['dash', 'list', 'kebab'].includes(sep)) sep = '-'
   if (['underscore', 'snake'].includes(sep)) sep = '_'
-  if (['-', '_'].includes(sep)) words = words.map('lower')
   return words.join(sep)
 }
 
 Number.format = (num, lang = 'en') => new Intl.NumberFormat(lang).format(num)
+Number.fix = num => +num.toPrecision(16)
 Object.getOwnPropertyNames(Math)
   .filter(k => typeof Math[k] === 'function')
   .forEach(k => (Number[k] = Math[k]))
@@ -253,5 +255,3 @@ Date.end = (date, str) => date.modify(str, '>')
 RegExp.escape = r => RegExp(r.source.replace(/([\\/'*+?|()[\]{}.^$-])/g, '\\$1'), r.flags)
 RegExp.plus = (r, f) => RegExp(r.source, r.flags.replace(f, '') + f)
 RegExp.minus = (r, f) => RegExp(r.source, r.flags.replace(f, ''))
-
-export default raw

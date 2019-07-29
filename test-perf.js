@@ -1,7 +1,7 @@
 import Benchmark from 'benchmark'
 import _ from 'lodash'
 import Sugar from 'Sugar'
-import raw from './raw'
+import './raw.js'
 
 const n = 10000
 const a = []

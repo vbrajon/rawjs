@@ -1,5 +1,5 @@
 import test from 'tape'
-import raw from './raw.js'
+import './raw.js'
 
 test('it works without extending', t => {
   t.equal(raw.version.slice(0, 1), '1')
@@ -77,12 +77,13 @@ test('it extends String # format, words, join, lower, upper, capitalize', t => {
   t.equal('{k2}{k2}{k3}'.format({ k1: 'a', k2: x => 'b' }), 'bb{k3}')
   t.equal('{1}{0}{}{1}'.format('a', 'b'), 'baab')
   t.equal('66 pears x 3 apples'.format({ [/\d+/]: x => x * 2 }), '132 pears x 6 apples')
-  const str = 'i am: The\t1\nAND,_L?on*e%ly.'
+  const str = 'i am: The1\nAND\t,_L?on*e%ly.'
   t.same(str.words(), ['i', 'am', 'The', '1', 'AND', 'Lonely'])
-  t.same(str.words(false), ['i', 'am:', 'The', '1', 'AND,', 'L?on*e%ly.'])
+  t.same(str.words(false), ['i', 'am:', 'The', '1', 'AND', ',', 'L?on*e%ly.'])
   t.equal(str.join('title'), 'I Am The 1 And Lonely') // Titleize
-  t.equal(str.join('-'), 'i-am-the-1-and-lonely') // kebab case | list case | dash
-  t.equal(str.join('_'), 'i_am_the_1_and_lonely') // snake case | underscore
+  t.equal(str.join('-'), 'i-am-The-1-AND-Lonely')
+  t.equal(str.join('dash'), 'i-am-the-1-and-lonely') // kebab case | list case | dash
+  t.equal(str.join('underscore'), 'i_am_the_1_and_lonely') // snake case | underscore
   t.equal(str.join('camel'), 'iAmThe1AndLonely') // camel case
   t.equal(str.join('pascal'), 'IAmThe1AndLonely') // pascal case
   t.end()
@@ -94,6 +95,7 @@ test('it extends Number # format, [math], duration', t => {
   t.equal((3.1415).floor(), 3)
   t.equal(Math.PI.cos(), -1)
   t.equal((3).pow(2), 9)
+  t.equal((.1 + .2).fix(), .3)
   // t.equal((3666000).duration(), '1 hour')
   t.end()
 })
