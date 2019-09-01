@@ -30,35 +30,35 @@ window.raw = (primitive, fname) => {
 raw.version = '1.1.1'
 Array.fromEntries = Object.fromEntries
 raw.Object = ['keys', 'values', 'entries']
-raw.Array = ['map', 'reduce', 'filter', 'find', 'sort', 'reverse', 'fromEntries']
+raw.Array = ['map', 'reduce', 'filter', 'find', 'findIndex', 'sort', 'reverse', 'fromEntries']
 raw.wrap = (ctx, args, primitive, fname) => {
   if (primitive === Array && ['sort', 'reverse'].includes(fname)) ctx = ctx.slice()
-
   if (args.length === 0) {
-    if (['map', 'filter', 'find', 'group'].includes(fname)) return [ctx, x => x]
+    if (['map', 'filter', 'find', 'findIndex', 'group'].includes(fname)) return [ctx, x => x]
+    if (['sort'].includes(fname)) return [ctx, sort]
     return [ctx]
   }
 
   let a0 = args[0]
-  if (['map', 'filter', 'group'].includes(fname) && typeof a0 === 'number') return [ctx, x => x[a0]]
-  if (['map', 'filter', 'group'].includes(fname) && typeof a0 === 'string') return [ctx, x => access(x, a0)]
-  if (fname === 'group' && Array.isArray(a0)) return [ctx, x => a0.map(a => access(x, a))]
-  if (['filter', 'find'].includes(fname) && a0 instanceof RegExp) return [ctx, x => a0.test(x)]
-  if (fname === 'find' && typeof a0 !== 'function') return [ctx, x => eq(x, a0)]
-  if (fname === 'sort' && typeof a0 !== 'function') return [ctx, multi_sort(a0)]
-  if (fname === 'sort' && typeof a0 === 'function' && a0.length === 1) return [ctx, (a, b) => (a0(a) === a0(b) ? 0 : a0(a) > a0(b) ? 1 : -1)]
+  const t0 = Object.prototype.toString.call(a0).slice(8, -1)
+  if (['map', 'group'].includes(fname) && ['String', 'Number'].includes(t0)) return [ctx, x => access(x, a0)]
+  if (['filter', 'find', 'findIndex'].includes(fname) && t0 === 'Object') return [ctx, x => Object.entries(a0).every(([k, v]) => (v.test && v.test(x[k])) || (v.some && v.some(d => eq(x[k], d))) || eq(x[k], v))]
+  if (['filter', 'find', 'findIndex'].includes(fname) && t0 !== 'Function') return [ctx, x => (a0.test && a0.test(x)) || (a0.some && a0.some(d => eq(x, d))) || eq(x, a0)]
+  if (fname === 'sort' && t0 === 'Array') return [ctx, multi_sort(a0)]
+  if (fname === 'sort' && t0 !== 'Function') return [ctx, directed_sort(a0, args[1])]
+  if (fname === 'sort' && t0 === 'Function' && a0.length === 1) return [ctx, (a, b) => (a0(a) === a0(b) ? 0 : a0(a) > a0(b) ? 1 : -1)]
   return [ctx, ...args]
 
   function access(x, path) {
+    if (!path) return x
+    if (typeof path === 'number') return x[path]
     return path
-      .replace(/\[[^\]]\]/g, m => '.' + m.slice(1, -1))
+      .replace(/\[[^\]]\]/g, m => '.' + m.replace(/^[['"]+/, '').replace(/['"]]+$/, ''))
       .split('.')
       .reduce((x, p) => {
         try {
           return typeof x[p] === 'function' ? x[p]() : x[p]
-        } catch (e) {
-          return null
-        }
+        } catch (e) {}
       }, x)
   }
   function eq(a, b) {
@@ -71,13 +71,18 @@ raw.wrap = (ctx, args, primitive, fname) => {
     if (keys.length !== Object.keys(b).length) return false
     return keys.every(k => eq(a[k], b[k]))
   }
-  function directed_sort(p) {
-    if (!/^-/.test(p)) return (a, b) => (a[p] === b[p] ? 0 : a[p] > b[p] ? 1 : -1)
-    p = p.slice(1)
-    return (a, b) => (a[p] === b[p] ? 0 : a[p] > b[p] ? -1 : 1)
+  function sort(a, b) {
+    if (typeof a !== typeof b) return typeof a > typeof b ? -1 : 1
+    if (!a && a !== 0) return -1
+    if (!b && b !== 0) return 1
+    if (a === b) return 0
+    return a > b ? 1 : -1
+  }
+  function directed_sort(p, inv = /^-/.test(p)) {
+    p = ('' + p).replace(/^[+-]/, '')
+    return (a, b) => sort(access(a, p), access(b, p)) * (inv || -1)
   }
   function multi_sort(p) {
-    if (!Array.isArray(p)) return directed_sort(p)
     return (a, b) => {
       for (const k of p) {
         const z = directed_sort(k)(a, b)
@@ -87,39 +92,28 @@ raw.wrap = (ctx, args, primitive, fname) => {
   }
 }
 
-Object.map = (obj, fn) =>
-  Object.keys(obj).reduce((acc, k, i) => {
-    acc[k] = fn(obj[k], k, i, obj)
-    return acc
-  }, {})
+Object.map = (obj, fn) => Object.keys(obj).reduce((acc, k, i) => ((acc[k] = fn(obj[k], k, i, obj)), acc), {})
 Object.reduce = (obj, fn, base) => Object.keys(obj).reduce((acc, k, i) => fn(acc, obj[k], k, i, obj), base)
 Object.filter = (obj, fn) =>
   Object.keys(obj)
     .filter((k, i) => fn(obj[k], k, i, obj))
-    .reduce((acc, k) => {
-      acc[k] = obj[k]
-      return acc
-    }, {})
+    .reduce((acc, k) => ((acc[k] = obj[k]), acc), {})
 Object.find = (obj, fn) => Object.keys(obj).find((k, i) => fn(obj[k], k, i, obj))
 
-Array.group = (arr, fn) =>
-  arr.map(fn).reduce((acc, v, i) => {
-    acc[v] = acc[v] || []
-    acc[v].push(arr[i])
-    return acc
-  }, {})
-Array.unique = arr => [...new Set(arr)]
+Array.group = (arr, fn) => arr.map(fn).reduce((acc, v, i) => ((acc[v] = (acc[v] || []).concat([arr[i]])), acc), {})
+Array.unique = arr => Array.from(new Set(arr))
 Array.min = arr => arr.slice().sort((a, b) => a - b)[0]
 Array.max = arr => arr.slice().sort((a, b) => b - a)[0]
 Array.sum = arr => arr.reduce((acc, v) => acc + v, 0)
-Array.average = arr => arr.reduce((acc, v) => acc + v, 0) / arr.length
+Array.mean = arr => arr.reduce((acc, v) => acc + v, 0) / arr.length
 Array.median = arr => {
   const mid = Math.floor(arr.length / 2)
   const nums = [...arr].sort((a, b) => a - b)
   return arr.length % 2 ? nums[mid] : (nums[mid - 1] + nums[mid]) / 2
 }
+Array.shuffle = (arr, r) => arr.map((v, i) => (r = Math.floor(Math.random() * i), [arr[i], arr[r]] = [arr[r], arr[i]]))
 
-Function.delay = (fn, ms = 0) => {
+Function.wait = (fn, ms = 0) => {
   fn.timeout = setTimeout(fn, ms)
   return fn
 }
@@ -169,12 +163,12 @@ String.format = (str, ...args) => {
 String.lower = str => str.toLowerCase()
 String.upper = str => str.toUpperCase()
 String.capitalize = str => str.replace(/./, c => c.toUpperCase())
-String.words = (str, clean = /[^a-z0-9-_\s]+/gi, normalize = true) =>
+String.words = (str, sep = /[-_.\s]/) =>
   str
-    .normalize(normalize ? 'NFKD' : false)
-    .replace(clean, '')
+    .normalize('NFKD')
+    .replace(RegExp('[^A-z0-9' + sep.source.slice(1, -1) + ']', 'g'), '')
     .replace(/([a-z])([A-Z\d])/g, '$1 $2')
-    .split(/[-_\s]/)
+    .split(sep)
     .filter(Boolean)
 String.join = (str, sep = ' ') => {
   let words = str.words()
@@ -187,16 +181,16 @@ String.join = (str, sep = ' ') => {
   return words.join(sep)
 }
 
+Number.fix = num => +num.toPrecision(15)
 Number.format = (num, lang = 'en') => new Intl.NumberFormat(lang).format(num)
-Number.fix = num => +num.toPrecision(16)
 Object.getOwnPropertyNames(Math)
   .filter(k => typeof Math[k] === 'function')
   .forEach(k => (Number[k] = Math[k]))
 
 Date.format = (date, fmt = 'YYYY-MM-DD', lang = 'en') => {
   const intl = option => date.toLocaleDateString(lang, option)
-  if (/,[^ ]/.test(fmt)) {
-    const parts = fmt.split(',')
+  const parts = fmt.split(',').map(s => s.trim())
+  if (!parts.filter(d => !['year', 'month', 'mon', 'day', 'weekday', 'wday', 'hour', 'minute', 'second'].includes(d)).length) {
     const options = {}
     if (parts.includes('second')) options.second = '2-digit'
     if (parts.includes('minute')) options.minute = '2-digit'
@@ -227,22 +221,22 @@ Date.modify = (date, str, sign) => {
   const d = new Date(date)
   const names = ['Seconds', 'Minutes', 'Hours', 'Date', 'Month', 'FullYear']
   let fn
-  if (sign === '+') fn = (n, i) => d['set' + names[i]](d['get' + names[i]]() + n)
-  if (sign === '-') fn = (n, i) => d['set' + names[i]](d['get' + names[i]]() - n)
-  if (sign === '<') fn = (n, i) => names.slice(0, i).map(name => d['set' + name](name === 'Date' ? 1 : 0))
+  if (sign === '+') fn = (i, n) => d['set' + names[i]](d['get' + names[i]]() + n)
+  if (sign === '-') fn = (i, n) => d['set' + names[i]](d['get' + names[i]]() - n)
+  if (sign === '<') fn = (i, n) => names.slice(0, i).map(name => d['set' + name](name === 'Date' ? 1 : 0))
   if (sign === '>') {
     const last = { Seconds: 59, Minutes: 59, Hours: 23, Date: new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(), Month: 12 }
-    fn = (n, i) => names.slice(0, i).map(name => d['set' + name](last[name]))
+    fn = i => names.slice(0, i).map(name => d['set' + name](last[name]))
   }
   str.split(',').forEach(part =>
     part
       .trim()
-      .replace(/^(\d*)\s*seconds?$/, (m, n) => fn(+n || 1, 0))
-      .replace(/^(\d*)\s*minutes?$/, (m, n) => fn(+n || 1, 1))
-      .replace(/^(\d*)\s*hours?$/, (m, n) => fn(+n || 1, 2))
-      .replace(/^(\d*)\s*days?$/, (m, n) => fn(+n || 1, 3))
-      .replace(/^(\d*)\s*months?$/, (m, n) => fn(+n || 1, 4))
-      .replace(/^(\d*)\s*years?$/, (m, n) => fn(+n || 1, 5)),
+      .replace(/^(\d*)\s*seconds?$/, (m, n) => fn(0, +n || 1 - (n === '0')))
+      .replace(/^(\d*)\s*minutes?$/, (m, n) => fn(1, +n || 1 - (n === '0')))
+      .replace(/^(\d*)\s*hours?$/, (m, n) => fn(2, +n || 1 - (n === '0')))
+      .replace(/^(\d*)\s*days?$/, (m, n) => fn(3, +n || 1 - (n === '0')))
+      .replace(/^(\d*)\s*months?$/, (m, n) => fn(4, +n || 1 - (n === '0')))
+      .replace(/^(\d*)\s*years?$/, (m, n) => fn(5, +n || 1 - (n === '0'))),
   )
   d.setMilliseconds(0)
   return d
