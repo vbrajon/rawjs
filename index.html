@@ -80,7 +80,7 @@
           output = await eval(`async () => {
             ${this.setup}
             const start = performance.now()
-            const result = ${this.value || 'null'}
+            let result;${this.value.split('\n').filter(x => x).map((l, i, ls) => i === ls.length - 1 && !/^const/.test(l) ? 'result = ' + l : l).join('\n')};
             const time = performance.now() - start
             return { result, time }
           }`)()
@@ -117,7 +117,7 @@
     el: 'main',
     data() {
       return {
-        setup: `await import('http://127.0.0.1:8000/raw.js')
+        setup: `await import('./raw.js')
 raw()
 const arr = [{ name: 'Jane Doe', age: 22 }, { name: 'John Doe', age: 29, birthdate: new Date('1989-11-14') }, { name: 'Janette Doe', age: 22 }, { name: 'Johnny Doe', age: 71, birthdate: new Date('Feb 26, 1932') }]
 const obj = arr[0]
@@ -141,7 +141,26 @@ const date = new Date('2019-01-20 10:09:08')`,
           [`arr.group(['age', 'name']).map(g => g.map(g => g.map('birthdate')))`, { 22: { 'Jane Doe': [], 'Janette Doe': [] }, 29: { 'John Doe': [] }, 71: { 'Johnny Doe': [] } }],
           [`arr.sort(['-age', 'name']).map(d => [d.age, d.name])`, [[22, 'Janette Doe'], [22, 'Jane Doe'], [29, 'John Doe'], [71, 'Johnny Doe']]],
           [`[null, 'a', undefined].filter()`, ['a']],
-          [`[{ a: { b: 'one' } }, { a: { b: 'two' } }]\n.map('a.b.capitalize')`, ['One', 'Two']],
+          [`[{ a: { b: 'one' } }, { a: { b: 'two' } }].map('a.b.capitalize')`, ['One', 'Two']],
+          // Function
+          [`((a, b) => [a, b]).partial(null, 2)(1)`, [1, 2]],
+          [`const mem = (x => x / 2).memoize()
+mem(2)
+mem.cache['[2]']`, 1],
+          [`await (() => 1).wait(500).promise`, 1],
+          [`let n = 0
+const inc = (() => n++).every(100, 5)
+await (() => n).wait(1000).promise`, 5],
+          [`let n = 0
+const inc = (() => n++).debounce(100)
+inc.every(50, 8)
+inc.wait(800)
+await (() => n).wait(1000).promise`, 2],
+          [`let n = 0
+const inc = (() => n++).throttle(100)
+inc.every(50, 8)
+inc.wait(800)
+await (() => n).wait(1000).promise`, 4],
           // String
           [`str.words()`, ['i', 'am', 'The', '1', 'AND', 'Lonely']],
           [`str.join('title')`, 'I Am The 1 And Lonely'],
@@ -155,13 +174,14 @@ const date = new Date('2019-01-20 10:09:08')`,
           [`'{k2}{k2}{k3}'.format({ k1: 'a', k2: x => 'b' })`, 'bb{k3}'],
           [`'66 pears x 3 apples'.format({ [/\d+/]: x => x * 2 })`, '132 pears x 6 apples'],
           // Number
-          [`(1010.0101).format()`, '1,010.01'],
-          [`(1010.0101).format(1)`, '1k'],
-          [`(1010.0101).format('fr')`, '1 010,01'],
+          [`(.1 * 3).format()`, .3],
+          [`(-.000123456789).format(1)`, '-1m'],
+          [`(123456789000).format(2)`, '120G'],
+          [`(1010.01010).format('en')`, '1,010.01'],
+          [`(1010.01010).format('fr')`, '1 010,01'],
           [`(3.1415).floor()`, 3],
           [`Math.PI.cos()`, -1],
           [`(3).pow(2)`, 9],
-          [`(102 / 100 - 1).fix()`, .02],
           [`(3666000).duration()`, '1 hour'],
           // Date
           [`date.format()`, '2019-01-20'],

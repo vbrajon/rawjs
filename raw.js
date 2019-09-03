@@ -75,8 +75,7 @@ raw.wrap = (ctx, args, primitive, fname) => {
     if (typeof a !== typeof b) return typeof a > typeof b ? -1 : 1
     if (!a && a !== 0) return -1
     if (!b && b !== 0) return 1
-    if (a === b) return 0
-    return a > b ? 1 : -1
+    return a === b ? 0 : a > b ? 1 : -1
   }
   function directed_sort(p, inv = /^-/.test(p)) {
     p = ('' + p).replace(/^[+-]/, '')
@@ -111,21 +110,27 @@ Array.median = arr => {
   const nums = [...arr].sort((a, b) => a - b)
   return arr.length % 2 ? nums[mid] : (nums[mid - 1] + nums[mid]) / 2
 }
-Array.shuffle = (arr, r) => arr.map((v, i) => (r = Math.floor(Math.random() * i), [arr[i], arr[r]] = [arr[r], arr[i]]))
+Array.shuffle = (arr, r) => arr.map((v, i) => ((r = Math.floor(Math.random() * i)), ([arr[i], arr[r]] = [arr[r], arr[i]])))
 
-Function.wait = (fn, ms = 0) => {
-  fn.timeout = setTimeout(fn, ms)
-  return fn
+// Function.wrap = (fn, pre = (...args) => args, post = x => x) => (...args) => post(fn(...pre(...args)))
+Function.partial = (fn, ...outer) => (...inner) => fn(...outer.map((a, i) => (a === null ? inner.shift() : a)).concat(inner))
+Function.wait = (fn, ms = 0, repeat = 1, immediate = true) => {
+  const f = (...args) => f.promise = new Promise((ok, ko) => {
+    f.timeout = setInterval(async () => {
+      try {
+        ok(await fn(...args))
+      } catch (e) {
+        ko(e)
+      } finally {
+        if (--repeat === 0) f.cancel()
+      }
+    }, ms)
+  })
+  f.cancel = () => (clearTimeout(f.timeout), delete f.timeout, delete f.promise, delete f.cancel)
+  if (immediate) f()
+  return f
 }
-Function.every = (fn, ms = 0, immediate = true) => {
-  if (immediate) fn()
-  fn.timeout = setInterval(fn, ms)
-  return fn
-}
-Function.cancel = (fn, ms = 0) => {
-  fn.timeout = clearTimeout(fn.timeout)
-  return fn
-}
+Function.every = (fn, ms, repeat = 0, immediate = true) => Function.wait(fn, ms, repeat, immediate)
 Function.debounce = (fn, ms = 0) => (...args) => {
   clearTimeout(fn.timeout)
   fn.timeout = setTimeout(() => fn(...args), ms)
@@ -136,15 +141,15 @@ Function.throttle = (fn, ms = 0) => (...args) => {
   setTimeout(() => delete fn.flag, ms)
   fn(...args)
 }
-Function.memoize = fn => {
-  fn.cache = {}
-  return function() {
-    const hash = JSON.stringify(arguments)
-    if (!fn.cache[hash]) fn.cache[hash] = fn(arguments) || 'null-memoize'
-    return fn.cache[hash] === 'null-memoize' ? null : fn.cache[hash]
+Function.memoize = (fn, hash_fn = JSON.stringify) => {
+  const f = (...args) => {
+    const hash = hash_fn(args)
+    if (!f.cache.hasOwnProperty(hash)) f.cache[hash] = fn(...args)
+    return f.cache[hash]
   }
+  f.cache = {}
+  return f
 }
-Function.partial = (fn, ...outer) => (...inner) => fn(...outer.map((a, i) => (a === null ? inner.shift() : a)).concat(inner))
 
 String.format = (str, ...args) => {
   args.map((arg, i) => {
@@ -181,8 +186,7 @@ String.join = (str, sep = ' ') => {
   return words.join(sep)
 }
 
-Number.fix = num => +num.toPrecision(15)
-Number.format = (num, lang = 'en') => new Intl.NumberFormat(lang).format(num)
+Number.format = (num, fmt) => fmt ? new Intl.NumberFormat(fmt).format(num) : +num.toPrecision(16)
 Object.getOwnPropertyNames(Math)
   .filter(k => typeof Math[k] === 'function')
   .forEach(k => (Number[k] = Math[k]))
