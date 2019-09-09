@@ -77,9 +77,9 @@ raw.wrap = (ctx, args, primitive, fname) => {
     if (!b && b !== 0) return 1
     return a === b ? 0 : a > b ? 1 : -1
   }
-  function directed_sort(p, inv = /^-/.test(p)) {
+  function directed_sort(p, desc = /^-/.test(p)) {
     p = ('' + p).replace(/^[+-]/, '')
-    return (a, b) => sort(access(a, p), access(b, p)) * (inv || -1)
+    return (a, b) => sort(access(a, p), access(b, p)) * (!desc || -1)
   }
   function multi_sort(p) {
     return (a, b) => {
@@ -186,11 +186,24 @@ String.join = (str, sep = ' ') => {
   return words.join(sep)
 }
 
-Number.format = (num, fmt) => fmt ? new Intl.NumberFormat(fmt).format(num) : +num.toPrecision(16)
+Number.duration = num => {
+  const n = [31557600000, 2629800000, 604800000, 86400000, 3600000, 60000, 1000]
+  const i = n.findIndex(v => v < Math.abs(num)) || 0
+  return Math.round(Math.abs(num) / n[i]) + ' ' + ['year', 'month', 'week', 'day', 'hour', 'minute', 'second', 'millisecond'][i] + (Math.abs(num) / n[i] > 1.5 ? 's' : '')
+}
+Number.format = (num, fmt) => {
+  if (typeof fmt === 'string') return new Intl.NumberFormat(fmt).format(num)
+  if (typeof fmt === 'number') return (+num.toPrecision(fmt)).toExponential().replace(/([+-\d.]+)e([+-\d]+)/, (m, n, e) => +(n + 'e' + (e - Math.floor(e / 3) * 3)) + (['mµnpfazy', 'kMGTPEZY'][+(e > 0)].split('')[Math.abs(Math.floor(e / 3)) - 1] || ''))
+  return +num.toPrecision(16)
+}
 Object.getOwnPropertyNames(Math)
   .filter(k => typeof Math[k] === 'function')
   .forEach(k => (Number[k] = Math[k]))
 
+Date.relative = date => {
+  const num = date - new Date()
+  return num.duration() + (num > 0 ? ' from now' : ' ago')
+}
 Date.format = (date, fmt = 'YYYY-MM-DD', lang = 'en') => {
   const intl = option => date.toLocaleDateString(lang, option)
   const parts = fmt.split(',').map(s => s.trim())
@@ -229,7 +242,7 @@ Date.modify = (date, str, sign) => {
   if (sign === '-') fn = (i, n) => d['set' + names[i]](d['get' + names[i]]() - n)
   if (sign === '<') fn = (i, n) => names.slice(0, i).map(name => d['set' + name](name === 'Date' ? 1 : 0))
   if (sign === '>') {
-    const last = { Seconds: 59, Minutes: 59, Hours: 23, Date: new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(), Month: 12 }
+    const last = { Seconds: 59, Minutes: 59, Hours: 23, Date: new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(), Month: 11 }
     fn = i => names.slice(0, i).map(name => d['set' + name](last[name]))
   }
   str.split(',').forEach(part =>
@@ -243,6 +256,8 @@ Date.modify = (date, str, sign) => {
       .replace(/^(\d*)\s*years?$/, (m, n) => fn(5, +n || 1 - (n === '0'))),
   )
   d.setMilliseconds(0)
+  if (sign === '+' && /(year|month)/.test(str) && date.getMonth() !== (d.getMonth() - (str.match(/(\d*)\s*months?/) ? +str.match(/(\d*)\s*months?/)[1] || 1 : 0)) % 12) return d.start('month').minus('second')
+  if (sign === '-' && /(year|month)/.test(str) && date.getMonth() !== (d.getMonth() + (str.match(/(\d*)\s*months?/) ? +str.match(/(\d*)\s*months?/)[1] || 1 : 0)) % 12) return d.start('month').minus('second')
   return d
 }
 Date.plus = (date, str) => date.modify(str, '+')

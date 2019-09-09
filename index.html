@@ -17,21 +17,26 @@
   [id]:hover { background: linear-gradient(to right,#03f,#0bf);-webkit-background-clip: text;-webkit-text-fill-color: transparent; }
 </style>
 <style>
-  * { font: inherit;outline: inherit;box-sizing: border-box;caret-color: var(--primary);-webkit-tap-highlight-color: transparent;-webkit-text-size-adjust: 100%;-webkit-font-smoothing: antialiased;-moz-osx-font-smoothing: grayscale; }
-  body { margin: 80px;color: white;background: #2f3138;font-size: 18px;font-family: sans-serif; }
+  * { outline: inherit;font: inherit;-moz-osx-font-smoothing: grayscale;-webkit-font-smoothing: antialiased;-webkit-tap-highlight-color: transparent;-webkit-text-size-adjust: 100%;box-sizing: border-box;caret-color: var(--primary); }
+  body { margin: 80px;color: white;background: #2f3138;font-family: sans-serif;font-size: 18px; }
   h1 { display: flex;align-items: center;justify-content: space-between;color: #afafaf;font-size: 22px;font-weight: 300;text-transform: uppercase;letter-spacing: 0.1em; }
-  button { opacity: .8;padding: 5px 10px;color: #fa3;background: none;border: 1px solid #fa3;border-radius: 4px;font-size: 18px;text-transform: uppercase; }
+  button { opacity: 0.8;padding: 5px 10px;color: #fa3;background: none;border: 1px solid #fa3;border-radius: 4px;font-size: 18px;text-transform: uppercase; }
   button:hover { opacity: 1; }
   pre { margin: 0;padding: 0;background: none; }
-  pre.error, pre.warning { padding: 10px;white-space: normal; }
+  pre.error,
+  pre.warning { padding: 10px;white-space: normal; }
   pre.error { color: #f34; }
-  .testarea { margin-top: 15px;transition: .4s; }
+  .testarea { margin-top: 15px;transition: 0.4s; }
   .testarea.success { background: #2f4138!important; }
   .testarea.warning { background: #4f4138!important; }
   .testarea.error { background: #4f3138!important; }
-  .testarea svg { cursor: pointer;position: absolute;top: calc(50% - 17px);right: 0;margin: 5px 10px;border: none;fill: #fa3; }
+  .testarea svg { position: absolute;top: calc(50% - 17px);right: 0;cursor: pointer;margin: 5px 10px;border: none;fill: #fa3; }
   .testarea .time { position: absolute;top: calc(50% - 17px);right: 40px;line-height: 34px; }
   [v-cloak] { display: none; }
+
+  .testarea { position: relative;overflow: hidden;width: 100%;color: white;background-color: #2a2b2f;border-radius: 10px;font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New";line-height: 27px; }
+  .testarea textarea { position: absolute;top: 0px;left: 0px;overflow: hidden;width: 100%;height: 100%;padding: 20px;color: inherit;background: none;border: none;outline: none;white-space: pre-wrap;-webkit-font-smoothing: antialiased;-webkit-text-fill-color: transparent;resize: none; }
+  .testarea pre { position: relative;pointer-events: none;margin: 0px;padding: 20px;background: none;border: 0px;white-space: pre-wrap; }
 </style>
 <main v-cloak>
   <h1>Setup Code</h1>
@@ -44,18 +49,17 @@
 <script src="https://unpkg.com/prismjs@1.16.0/components/prism-markdown.js"></script>
 <script src="https://unpkg.com/prismjs@1.16.0/components/prism-js-extras.js"></script>
 <script>
-  // import 'https://cdn.jsdelivr.net/gh/vbrajon/rawjs/raw.js'
   Vue.component('testarea', {
     props: ['value', 'expect', 'setup'],
     template: `<div class="test">
       <div style="display: flex;">
-        <div class="testarea" style="position: relative;text-align: left;box-sizing: border-box;padding: 0px;overflow: hidden;width: 100%;font-size: 18px;background-color: rgb(42, 43, 47);color: rgb(255, 255, 255);border-radius: 10px;font-family: source-code-pro, Menlo, Monaco, Consolas, &quot;Courier New&quot;;line-height: 27px;">
-          <textarea :value="value" @input="$emit('input', $event.target.value)" style="margin: 0px;border: 0px;background: none;box-sizing: inherit;display: inherit;font-family: inherit;font-size: inherit;font-style: inherit;font-variant-ligatures: inherit;font-weight: inherit;letter-spacing: inherit;line-height: inherit;tab-size: inherit;text-indent: inherit;text-rendering: inherit;text-transform: inherit;white-space: pre-wrap;word-break: keep-all;overflow-wrap: break-word;position: absolute;top: 0px;left: 0px;height: 100%;width: 100%;resize: none;color: inherit;overflow: hidden;outline: none;-webkit-font-smoothing: antialiased;-webkit-text-fill-color: transparent;padding: 20px;"></textarea>
-          <pre v-html="Prism.highlight(value || '', Prism.languages.js, 'js')" style="margin: 0px;border: 0px;background: none;box-sizing: inherit;display: inherit;font-family: inherit;font-size: inherit;font-style: inherit;font-variant-ligatures: inherit;font-weight: inherit;letter-spacing: inherit;line-height: inherit;tab-size: inherit;text-indent: inherit;text-rendering: inherit;text-transform: inherit;white-space: pre-wrap;word-break: keep-all;overflow-wrap: break-word;position: relative;pointer-events: none;padding: 20px;"></pre>
+        <div class="testarea">
+          <textarea :value="value" @input="$emit('input', $event.target.value)"></textarea>
+          <pre v-html="Prism.highlight(value || '', Prism.languages.js, 'js')"></pre>
         </div>
-        <div v-if="$listeners.expect" class="testarea" :class="output" style="position: relative;text-align: left;box-sizing: border-box;padding: 0px;overflow: hidden;width: 100%;font-size: 18px;background-color: rgb(42, 43, 47);color: rgb(255, 255, 255);border-radius: 10px;font-family: source-code-pro, Menlo, Monaco, Consolas, &quot;Courier New&quot;;line-height: 27px;">
-          <textarea :value="JSON.stringify(expect || null, true, 2).replace(/\\s+/g, ' ')" @input="$emit('expect', JSON.parse($event.target.value))" style="margin: 0px;border: 0px;background: none;box-sizing: inherit;display: inherit;font-family: inherit;font-size: inherit;font-style: inherit;font-variant-ligatures: inherit;font-weight: inherit;letter-spacing: inherit;line-height: inherit;tab-size: inherit;text-indent: inherit;text-rendering: inherit;text-transform: inherit;white-space: pre-wrap;word-break: keep-all;overflow-wrap: break-word;position: absolute;top: 0px;left: 0px;height: 100%;width: 100%;resize: none;color: inherit;overflow: hidden;outline: none;-webkit-font-smoothing: antialiased;-webkit-text-fill-color: transparent;padding: 20px;"></textarea>
-          <pre v-html="Prism.highlight(JSON.stringify(expect || null, true, 2).replace(/\\s+/g, ' '), Prism.languages.js, 'js')" style="margin: 0px;border: 0px;background: none;box-sizing: inherit;display: inherit;font-family: inherit;font-size: inherit;font-style: inherit;font-variant-ligatures: inherit;font-weight: inherit;letter-spacing: inherit;line-height: inherit;tab-size: inherit;text-indent: inherit;text-rendering: inherit;text-transform: inherit;white-space: pre-wrap;word-break: keep-all;overflow-wrap: break-word;position: relative;pointer-events: none;padding: 20px;"></pre>
+        <div v-if="$listeners.expect" class="testarea" :class="output">
+          <textarea :value="JSON.stringify(expect || null, true, 2).replace(/\\s+/g, ' ')" @input="tryparse"></textarea>
+          <pre v-html="Prism.highlight(JSON.stringify(expect || null, true, 2).replace(/\\s+/g, ' '), Prism.languages.js, 'js')"></pre>
           <svg @click="$emit('clear')" v-if="$listeners.clear" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path><path d="M0 0h24v24H0z" fill="none"></path></svg>
           <div class="time" v-if="output.time">{{ output.time < 1 ? ~~(output.time * 1000) + 'μs' : output.time < 1000 ? ~~output.time + 'ms' : ~~(output.time / 1000) + 's' }}</div>
         </div>
@@ -69,6 +73,17 @@
       return {
         output: {},
       }
+    },
+    methods: {
+      tryparse($event) {
+        const v = $event.target.value
+        $event.target.parentElement.querySelector('pre').innerHTML = Prism.highlight(v, Prism.languages.js, 'js')
+        try {
+          return this.$emit('expect', JSON.parse(v))
+        } catch(e) {
+          $event.target.parentElement.className = 'testarea'
+        }
+      },
     },
     created() {
       let run = 0
@@ -139,7 +154,7 @@ const date = new Date('2019-01-20 10:09:08')`,
           [`arr.map('age').median()`, 25.5],
           [`arr.group('age').map(g => g.map('name'))`, { 22: ['Jane Doe', 'Janette Doe'], 29: ['John Doe'], 71: ['Johnny Doe'] }],
           [`arr.group(['age', 'name']).map(g => g.map(g => g.map('birthdate')))`, { 22: { 'Jane Doe': [], 'Janette Doe': [] }, 29: { 'John Doe': [] }, 71: { 'Johnny Doe': [] } }],
-          [`arr.sort(['-age', 'name']).map(d => [d.age, d.name])`, [[22, 'Janette Doe'], [22, 'Jane Doe'], [29, 'John Doe'], [71, 'Johnny Doe']]],
+          [`arr.sort(['-age', 'name']).map(d => [d.age, d.name])`, [[71, 'Johnny Doe'], [29, 'John Doe'], [22, 'Jane Doe'], [22, 'Janette Doe']]],
           [`[null, 'a', undefined].filter()`, ['a']],
           [`[{ a: { b: 'one' } }, { a: { b: 'two' } }].map('a.b.capitalize')`, ['One', 'Two']],
           // Function
@@ -172,26 +187,30 @@ await (() => n).wait(1000).promise`, 4],
           [`'{}{}{}'.format('a', 'b')`, 'ab{}'],
           [`'{1}{0}{}{1}'.format('a', 'b')`, 'baab'],
           [`'{k2}{k2}{k3}'.format({ k1: 'a', k2: x => 'b' })`, 'bb{k3}'],
-          [`'66 pears x 3 apples'.format({ [/\d+/]: x => x * 2 })`, '132 pears x 6 apples'],
+          [`'66 pears x 3 apples'.format({ [/\\d+/]: x => x * 2 })`, '132 pears x 6 apples'],
           // Number
           [`(.1 * 3).format()`, .3],
-          [`(-.000123456789).format(1)`, '-1m'],
+          [`(-.000123456789).format(1)`, '-100µ'],
           [`(123456789000).format(2)`, '120G'],
           [`(1010.01010).format('en')`, '1,010.01'],
           [`(1010.01010).format('fr')`, '1 010,01'],
           [`(3.1415).floor()`, 3],
           [`Math.PI.cos()`, -1],
           [`(3).pow(2)`, 9],
-          [`(3666000).duration()`, '1 hour'],
+          [`(36666666).duration()`, '10 hours'],
           // Date
           [`date.format()`, '2019-01-20'],
           [`date.format('DD/MM/YYYY hhhmmm')`, '20/01/2019 10h09m'],
           [`date.format('day, month, year', 'fr')`, '20 janvier 2019'],
           [`date.format('month, day, weekday, hour, minute, second')`, 'Sunday, January 20, 10:09:08 AM'],
           [`date.plus('day').format()`, '2019-01-21'],
+          [`new Date('2019-05-31').minus('3 month').format()`, '2019-02-28'],
+          [`new Date('2019-01-31').plus('1 month').format()`, '2019-02-28'],
+          [`new Date('2016-02-29').plus('1 year').format()`, '2017-02-28'],
+          [`date.plus('1 month, 11 days').format()`, '2019-02-28'],
           [`date.minus('1 month, 2 days').format()`, '2018-12-18'],
           [`date.start('month').toISOString()`, '2018-12-31T23:00:00.000Z'],
-          [`date.end('month').toISOString()`, '2019-01-31T22:59:59.000Z'],
+          [`date.end('year').toISOString()`, '2019-12-31T22:59:59.000Z'],
           [`new Date().plus('14 days').relative()`, '2 weeks from now'],
           // RegExp
           [`/(parenthesis)/.escape().source`, '\\(parenthesis\\)'],
