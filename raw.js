@@ -1,22 +1,12 @@
 if (typeof window === 'undefined') window = global
 window.raw = (primitive, fname) => {
   if (primitive && fname) {
-    let f = (ctx, ...args) => primitive[fname](...raw.wrap(ctx, args, primitive, fname))
-    if (primitive.prototype[fname]) {
-      if (!primitive.prototype[fname].toString().includes('{ [native code] }')) return
-      if (raw[primitive.name + '#' + fname]) return
-      raw[primitive.name + '#' + fname] = primitive.prototype[fname]
-      f = (ctx, ...args) => raw[primitive.name + '#' + fname].call(...raw.wrap(ctx, args, primitive, fname))
-    }
-    Object.defineProperty(primitive.prototype, fname, {
+    return Object.defineProperty(primitive.prototype, fname, {
       enumerable: false,
       configurable: true,
       writable: true,
-      value: function __raw__() {
-        return f(this, ...arguments)
-      },
+      value: raw.wrap(primitive, fname),
     })
-    return
   }
   for (const primitive of [Object, Array, Function, String, Number, Boolean, Date, RegExp]) {
     for (const fname in primitive) {
@@ -31,35 +21,39 @@ raw.version = '1.1.1'
 Array.fromEntries = Object.fromEntries
 raw.Object = ['keys', 'values', 'entries']
 raw.Array = ['map', 'reduce', 'filter', 'find', 'findIndex', 'sort', 'reverse', 'fromEntries']
-raw.wrap = (ctx, args, primitive, fname) => {
-  if (primitive === Array && ['sort', 'reverse'].includes(fname)) ctx = ctx.slice()
-  if (args.length === 0) {
-    if (['map', 'filter', 'find', 'findIndex', 'group'].includes(fname)) return [ctx, x => x]
-    if (['sort'].includes(fname)) return [ctx, sort]
-    return [ctx]
+raw.wrap = (primitive, fname) => {
+  if (primitive.prototype[fname] && primitive.prototype[fname].toString().includes('{ [native code] }') && !primitive.prototype['_' + fname]) primitive.prototype['_' + fname] = primitive.prototype[fname]
+  const fn = primitive.prototype['_' + fname]
+    ? (ctx, ...args) => primitive.prototype['_' + fname].call(ctx, ...args)
+    : (ctx, ...args) => primitive[fname](ctx, ...args)
+  return function() {
+    let ctx = this
+    if (primitive === Array && ['sort', 'reverse'].includes(fname)) ctx = ctx.slice()
+    if (arguments.length === 0) {
+      if (['map', 'filter', 'find', 'findIndex', 'group'].includes(fname)) return fn(ctx, x => x)
+      if (['sort'].includes(fname)) return fn(ctx, sort)
+      return fn(ctx)
+    }
+    let a0 = arguments[0]
+    const t0 = Object.prototype.toString.call(a0).slice(8, -1)
+    if (['map', 'group'].includes(fname) && ['String', 'Number'].includes(t0)) return fn(ctx, x => access(x, a0))
+    if (['filter', 'find', 'findIndex'].includes(fname) && t0 === 'Object') return fn(ctx, x => Object.entries(a0).every(([k, v]) => (v.test && v.test(x[k])) || (v.some && v.some(d => eq(x[k], d))) || eq(x[k], v)))
+    if (['filter', 'find', 'findIndex'].includes(fname) && t0 !== 'Function') return fn(ctx, x => (a0.test && a0.test(x)) || (a0.some && a0.some(d => eq(x, d))) || eq(x, a0))
+    if (fname === 'sort' && t0 === 'Array') return fn(ctx, multi_sort(a0))
+    if (fname === 'sort' && t0 !== 'Function') return fn(ctx, directed_sort(a0, arguments[1]))
+    if (fname === 'sort' && t0 === 'Function' && a0.length === 1) return fn(ctx, (a, b) => (a0(a) === a0(b) ? 0 : a0(a) > a0(b) ? 1 : -1))
+    return fn(ctx, ...arguments)
   }
 
-  let a0 = args[0]
-  const t0 = Object.prototype.toString.call(a0).slice(8, -1)
-  if (['map', 'group'].includes(fname) && ['String', 'Number'].includes(t0)) return [ctx, x => access(x, a0)]
-  if (['filter', 'find', 'findIndex'].includes(fname) && t0 === 'Object') return [ctx, x => Object.entries(a0).every(([k, v]) => (v.test && v.test(x[k])) || (v.some && v.some(d => eq(x[k], d))) || eq(x[k], v))]
-  if (['filter', 'find', 'findIndex'].includes(fname) && t0 !== 'Function') return [ctx, x => (a0.test && a0.test(x)) || (a0.some && a0.some(d => eq(x, d))) || eq(x, a0)]
-  if (fname === 'sort' && t0 === 'Array') return [ctx, multi_sort(a0)]
-  if (fname === 'sort' && t0 !== 'Function') return [ctx, directed_sort(a0, args[1])]
-  if (fname === 'sort' && t0 === 'Function' && a0.length === 1) return [ctx, (a, b) => (a0(a) === a0(b) ? 0 : a0(a) > a0(b) ? 1 : -1)]
-  return [ctx, ...args]
-
   function access(x, path) {
-    if (!path) return x
-    if (typeof path === 'number') return x[path]
-    return path
-      .replace(/\[[^\]]\]/g, m => '.' + m.replace(/^[['"]+/, '').replace(/['"]]+$/, ''))
-      .split('.')
-      .reduce((x, p) => {
-        try {
-          return typeof x[p] === 'function' ? x[p]() : x[p]
-        } catch (e) {}
-      }, x)
+    try {
+      if (!path) return x
+      if (x[path]) return typeof x[path] === 'function' ? x[path]() : x[path]
+      return path
+        .replace(/\[[^\]]\]/g, m => '.' + m.replace(/^[['"]+/, '').replace(/['"]]+$/, ''))
+        .split('.')
+        .reduce((x, p) => typeof x[p] === 'function' ? x[p]() : x[p], x)
+    } catch (e) {}
   }
   function eq(a, b) {
     if (a === b) return true
@@ -112,20 +106,22 @@ Array.median = arr => {
 }
 Array.shuffle = (arr, r) => arr.map((v, i) => ((r = Math.floor(Math.random() * i)), ([arr[i], arr[r]] = [arr[r], arr[i]])))
 
-// Function.wrap = (fn, pre = (...args) => args, post = x => x) => (...args) => post(fn(...pre(...args)))
+Function.wrap = (fn, wrap) => (...args) => wrap(fn, ...args)
 Function.partial = (fn, ...outer) => (...inner) => fn(...outer.map((a, i) => (a === null ? inner.shift() : a)).concat(inner))
 Function.wait = (fn, ms = 0, repeat = 1, immediate = true) => {
-  const f = (...args) => f.promise = new Promise((ok, ko) => {
-    f.timeout = setInterval(async () => {
-      try {
-        ok(await fn(...args))
-      } catch (e) {
-        ko(e)
-      } finally {
-        if (--repeat === 0) f.cancel()
-      }
-    }, ms)
-  })
+  const f = (...args) =>
+    (f.promise = new Promise(
+      (ok, ko) =>
+        (f.timeout = setInterval(() => {
+          try {
+            Promise.resolve(fn(...args)).then(ok)
+          } catch (e) {
+            ko(e)
+          } finally {
+            if (--repeat === 0) f.cancel()
+          }
+        }, ms)),
+    ))
   f.cancel = () => (clearTimeout(f.timeout), delete f.timeout, delete f.promise, delete f.cancel)
   if (immediate) f()
   return f
@@ -141,11 +137,11 @@ Function.throttle = (fn, ms = 0) => (...args) => {
   setTimeout(() => delete fn.flag, ms)
   fn(...args)
 }
-Function.memoize = (fn, hash_fn = JSON.stringify) => {
+Function.memoize = (fn, hash = JSON.stringify) => {
   const f = (...args) => {
-    const hash = hash_fn(args)
-    if (!f.cache.hasOwnProperty(hash)) f.cache[hash] = fn(...args)
-    return f.cache[hash]
+    const key = hash(args)
+    if (!f.cache.hasOwnProperty(key)) f.cache[key] = fn(...args)
+    return f.cache[key]
   }
   f.cache = {}
   return f
@@ -168,7 +164,7 @@ String.format = (str, ...args) => {
 String.lower = str => str.toLowerCase()
 String.upper = str => str.toUpperCase()
 String.capitalize = str => str.replace(/./, c => c.toUpperCase())
-String.words = (str, sep = /[-_.\s]/) =>
+String.words = (str, sep = /[-_,.\s]/) =>
   str
     .normalize('NFKD')
     .replace(RegExp('[^A-z0-9' + sep.source.slice(1, -1) + ']', 'g'), '')
@@ -256,8 +252,9 @@ Date.modify = (date, str, sign) => {
       .replace(/^(\d*)\s*years?$/, (m, n) => fn(5, +n || 1 - (n === '0'))),
   )
   d.setMilliseconds(0)
-  if (sign === '+' && /(year|month)/.test(str) && date.getMonth() !== (d.getMonth() - (str.match(/(\d*)\s*months?/) ? +str.match(/(\d*)\s*months?/)[1] || 1 : 0)) % 12) return d.start('month').minus('second')
-  if (sign === '-' && /(year|month)/.test(str) && date.getMonth() !== (d.getMonth() + (str.match(/(\d*)\s*months?/) ? +str.match(/(\d*)\s*months?/)[1] || 1 : 0)) % 12) return d.start('month').minus('second')
+  const month = str.match(/(\d*)\s*months?/) ? +str.match(/(\d*)\s*months?/)[1] || +(str.match(/(\d*)\s*months?/)[1] !== '0') : 0
+  if (sign === '+' && /(year|month)/.test(str) && date.getMonth() !== (d.getMonth() - month) % 12) return d.start('month').minus('second')
+  if (sign === '-' && /(year|month)/.test(str) && date.getMonth() !== (d.getMonth() + month) % 12) return d.start('month').minus('second')
   return d
 }
 Date.plus = (date, str) => date.modify(str, '+')
