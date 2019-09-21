@@ -18,15 +18,13 @@ window.raw = (primitive, fname) => {
   }
 }
 raw.version = '1.1.1'
-Array.fromEntries = Object.fromEntries
-raw.Object = ['keys', 'values', 'entries']
-raw.Array = ['map', 'reduce', 'filter', 'find', 'findIndex', 'sort', 'reverse', 'fromEntries']
-raw.wrap = (primitive, fname) => {
-  if (primitive.prototype[fname] && primitive.prototype[fname].toString().includes('{ [native code] }') && !primitive.prototype['_' + fname]) primitive.prototype['_' + fname] = primitive.prototype[fname]
-  const fn = primitive.prototype['_' + fname]
-    ? (ctx, ...args) => primitive.prototype['_' + fname].call(ctx, ...args)
-    : (ctx, ...args) => primitive[fname](ctx, ...args)
+raw.Object = ['keys', 'values']
+raw.Array = ['map', 'reduce', 'filter', 'find', 'findIndex', 'sort', 'reverse']
+raw.wrap = function(primitive, fname) {
+  if (primitive.prototype[fname] && primitive.prototype[fname].toString().includes('[native code]') && !primitive.prototype['_' + fname]) primitive.prototype['_' + fname] = primitive.prototype[fname]
+  const fn = primitive.prototype['_' + fname] ? (ctx, ...args) => ctx['_' + fname](...args) : primitive[fname]
   return function() {
+    // console.log(primitive, fname, this, arguments, fn)
     let ctx = this
     if (primitive === Array && ['sort', 'reverse'].includes(fname)) ctx = ctx.slice()
     if (arguments.length === 0) {
@@ -56,14 +54,11 @@ raw.wrap = (primitive, fname) => {
     } catch (e) {}
   }
   function eq(a, b) {
-    if (a === b) return true
-    if (a instanceof Date && b instanceof Date) return a.getTime() === b.getTime()
-    if (!a || !b || (typeof a != 'object' && typeof b !== 'object')) return a === b
-    if (a === null || a === undefined || b === null || b === undefined) return false
-    if (a.prototype !== b.prototype) return false
-    let keys = Object.keys(a)
-    if (keys.length !== Object.keys(b).length) return false
-    return keys.every(k => eq(a[k], b[k]))
+    if (a == null || b == null) return a === b
+    if (a.__proto__ !== b.__proto__) return false
+    if (!['Object', 'Array'].includes(Object.prototype.toString.call(a).slice(8, -1))) return a === b || a.toString() === b.toString()
+    if (Object.getOwnPropertyNames(a).length !== Object.getOwnPropertyNames(b).length) return false
+    return Object.getOwnPropertyNames(a).every(k => eq(a[k], b[k]))
   }
   function sort(a, b) {
     if (typeof a !== typeof b) return typeof a > typeof b ? -1 : 1
@@ -104,7 +99,6 @@ Array.median = arr => {
   const nums = [...arr].sort((a, b) => a - b)
   return arr.length % 2 ? nums[mid] : (nums[mid - 1] + nums[mid]) / 2
 }
-Array.shuffle = (arr, r) => arr.map((v, i) => ((r = Math.floor(Math.random() * i)), ([arr[i], arr[r]] = [arr[r], arr[i]])))
 
 Function.wrap = (fn, wrap) => (...args) => wrap(fn, ...args)
 Function.partial = (fn, ...outer) => (...inner) => fn(...outer.map((a, i) => (a === null ? inner.shift() : a)).concat(inner))
@@ -147,20 +141,7 @@ Function.memoize = (fn, hash = JSON.stringify) => {
   return f
 }
 
-String.format = (str, ...args) => {
-  args.map((arg, i) => {
-    if (typeof arg === 'object')
-      return arg.map((v, k) => {
-        const name_re = /^\/.*\/$/.test(k) ? RegExp(k.slice(1, -1), 'g') : RegExp('\\{' + k + '\\}', 'g')
-        str = str.replace(name_re, v)
-      })
-    const null_re = /\{\}/
-    const position_re = RegExp('\\{' + i + '\\}', 'g')
-    str = str.replace(null_re, arg)
-    str = str.replace(position_re, arg)
-  })
-  return str
-}
+String.format = (str, ...args) => str.replace(/\{[^}]*\}/g, m => args[m.slice(1, -1)] || args.shift() || '')
 String.lower = str => str.toLowerCase()
 String.upper = str => str.toUpperCase()
 String.capitalize = str => str.replace(/./, c => c.toUpperCase())
