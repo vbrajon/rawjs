@@ -1,6 +1,5 @@
 <meta charset="utf-8" />
 <link rel="icon" href="data:,">
-<script>import('/test-runner.js')</script>
 <style>
   /* Prism - Raw theme */
   pre { overflow: auto;margin: .5em 0;padding: 1em; }
@@ -32,9 +31,8 @@
   .editor .wrapper { position: relative;overflow: hidden;width: 100%;font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New";line-height: 27px; }
   .editor .wrapper textarea { position: absolute;top: 0px;left: 0px;overflow: hidden;width: 100%;height: 100%;padding: 0;color: inherit;background: none;border: none;outline: none;white-space: pre-wrap;-webkit-font-smoothing: antialiased;-webkit-text-fill-color: transparent;resize: none; }
   .editor .wrapper pre { position: relative;pointer-events: none;margin: 0px;padding: 0;background: none;border: 0px;white-space: pre-wrap; }
-  [v-cloak] { display: none; }
 </style>
-<main v-cloak>
+<main>
   <h1>Test suite - raw.js</h1>
   <testarea :value="test" @input="Vue.set(tests, i, $event)" v-for="test, i in tests"></testarea>
 </main>
@@ -66,7 +64,6 @@
         if (!this.value) return
         const r = ++run
         const result = await run_test(this.value)
-        console.log(result)
         if (r === run) this.run = result
       }, { immediate: true })
     },
@@ -74,7 +71,7 @@
   new Vue({
     el: 'main',
     data() {
-      window.addEventListener('runner', e => this.tests = e.detail.tests)
+      import('/test-runner.js').then(() => run_file('test-suite-raw.js')).then(r => this.tests = r.tests)
       return {
         tests: [],
       }

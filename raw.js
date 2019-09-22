@@ -1,85 +1,5 @@
-if (typeof window === 'undefined') window = global
-window.raw = (primitive, fname) => {
-  if (primitive && fname) {
-    return Object.defineProperty(primitive.prototype, fname, {
-      enumerable: false,
-      configurable: true,
-      writable: true,
-      value: raw.wrap(primitive, fname),
-    })
-  }
-  for (const primitive of [Object, Array, Function, String, Number, Boolean, Date, RegExp]) {
-    for (const fname in primitive) {
-      raw(primitive, fname)
-    }
-    for (const fname of raw[primitive.name] || []) {
-      raw(primitive, fname)
-    }
-  }
-}
-raw.version = '1.1.1'
-raw.Object = ['keys', 'values']
-raw.Array = ['map', 'reduce', 'filter', 'find', 'findIndex', 'sort', 'reverse']
-raw.wrap = function(primitive, fname) {
-  if (primitive.prototype[fname] && primitive.prototype[fname].toString().includes('[native code]') && !primitive.prototype['_' + fname]) primitive.prototype['_' + fname] = primitive.prototype[fname]
-  const fn = primitive.prototype['_' + fname] ? (ctx, ...args) => ctx['_' + fname](...args) : primitive[fname]
-  return function() {
-    // console.log(primitive, fname, this, arguments, fn)
-    let ctx = this
-    if (primitive === Array && ['sort', 'reverse'].includes(fname)) ctx = ctx.slice()
-    if (arguments.length === 0) {
-      if (['map', 'filter', 'find', 'findIndex', 'group'].includes(fname)) return fn(ctx, x => x)
-      if (['sort'].includes(fname)) return fn(ctx, sort)
-      return fn(ctx)
-    }
-    let a0 = arguments[0]
-    const t0 = Object.prototype.toString.call(a0).slice(8, -1)
-    if (['map', 'group'].includes(fname) && ['String', 'Number'].includes(t0)) return fn(ctx, x => access(x, a0))
-    if (['filter', 'find', 'findIndex'].includes(fname) && t0 === 'Object') return fn(ctx, x => Object.entries(a0).every(([k, v]) => (v.test && v.test(x[k])) || (v.some && v.some(d => eq(x[k], d))) || eq(x[k], v)))
-    if (['filter', 'find', 'findIndex'].includes(fname) && t0 !== 'Function') return fn(ctx, x => (a0.test && a0.test(x)) || (a0.some && a0.some(d => eq(x, d))) || eq(x, a0))
-    if (fname === 'sort' && t0 === 'Array') return fn(ctx, multi_sort(a0))
-    if (fname === 'sort' && t0 !== 'Function') return fn(ctx, directed_sort(a0, arguments[1]))
-    if (fname === 'sort' && t0 === 'Function' && a0.length === 1) return fn(ctx, (a, b) => (a0(a) === a0(b) ? 0 : a0(a) > a0(b) ? 1 : -1))
-    return fn(ctx, ...arguments)
-  }
-
-  function access(x, path) {
-    try {
-      if (!path) return x
-      if (x[path]) return typeof x[path] === 'function' ? x[path]() : x[path]
-      return path
-        .replace(/\[[^\]]\]/g, m => '.' + m.replace(/^[['"]+/, '').replace(/['"]]+$/, ''))
-        .split('.')
-        .reduce((x, p) => typeof x[p] === 'function' ? x[p]() : x[p], x)
-    } catch (e) {}
-  }
-  function eq(a, b) {
-    if (a == null || b == null) return a === b
-    if (a.__proto__ !== b.__proto__) return false
-    if (!['Object', 'Array'].includes(Object.prototype.toString.call(a).slice(8, -1))) return a === b || a.toString() === b.toString()
-    if (Object.getOwnPropertyNames(a).length !== Object.getOwnPropertyNames(b).length) return false
-    return Object.getOwnPropertyNames(a).every(k => eq(a[k], b[k]))
-  }
-  function sort(a, b) {
-    if (typeof a !== typeof b) return typeof a > typeof b ? -1 : 1
-    if (!a && a !== 0) return -1
-    if (!b && b !== 0) return 1
-    return a === b ? 0 : a > b ? 1 : -1
-  }
-  function directed_sort(p, desc = /^-/.test(p)) {
-    p = ('' + p).replace(/^[+-]/, '')
-    return (a, b) => sort(access(a, p), access(b, p)) * (!desc || -1)
-  }
-  function multi_sort(p) {
-    return (a, b) => {
-      for (const k of p) {
-        const z = directed_sort(k)(a, b)
-        if (z) return z
-      }
-    }
-  }
-}
-
+// Object.prototype.keys = function keys() { return Object.keys(this) }
+// Object.prototype.values = function values() { return Object.values(this) }
 Object.map = (obj, fn) => Object.keys(obj).reduce((acc, k, i) => ((acc[k] = fn(obj[k], k, i, obj)), acc), {})
 Object.reduce = (obj, fn, base) => Object.keys(obj).reduce((acc, k, i) => fn(acc, obj[k], k, i, obj), base)
 Object.filter = (obj, fn) =>
@@ -88,6 +8,14 @@ Object.filter = (obj, fn) =>
     .reduce((acc, k) => ((acc[k] = obj[k]), acc), {})
 Object.find = (obj, fn) => Object.keys(obj).find((k, i) => fn(obj[k], k, i, obj))
 
+Array.map = (arr, fn) => arr.map(fn)
+Array.reduce = (arr, fn, base) => arr.reduce(fn, base)
+Array.filter = (arr, fn) => arr.filter(fn)
+Array.find = (arr, fn) => arr.find(fn)
+Array.findIndex = (arr, fn) => arr.findIndex(fn)
+Array.forEach = (arr, fn) => arr.forEach(fn)
+Array.reverse = arr => arr.slice().reverse()
+Array.sort = (arr, fn) => arr = arr.slice().sort(fn)
 Array.group = (arr, fn) => arr.map(fn).reduce((acc, v, i) => ((acc[v] = (acc[v] || []).concat([arr[i]])), acc), {})
 Array.unique = arr => Array.from(new Set(arr))
 Array.min = arr => arr.slice().sort((a, b) => a - b)[0]
@@ -246,3 +174,82 @@ Date.end = (date, str) => date.modify(str, '>')
 RegExp.escape = r => RegExp(r.source.replace(/([\\/'*+?|()[\]{}.^$-])/g, '\\$1'), r.flags)
 RegExp.plus = (r, f) => RegExp(r.source, r.flags.replace(f, '') + f)
 RegExp.minus = (r, f) => RegExp(r.source, r.flags.replace(f, ''))
+
+function access(x, path) {
+  try {
+    if (!path) return x
+    if (x[path]) return typeof x[path] === 'function' ? x[path]() : x[path]
+    return path
+      .replace(/\[[^\]]\]/g, m => '.' + m.replace(/^[['"]+/, '').replace(/['"]]+$/, ''))
+      .split('.')
+      .reduce((x, p) => typeof x[p] === 'function' ? x[p]() : x[p], x)
+  } catch (e) {}
+}
+function eq(a, b) {
+  if (a == null || b == null) return a === b
+  if (a.__proto__ !== b.__proto__) return false
+  if (!['Object', 'Array'].includes(Object.prototype.toString.call(a).slice(8, -1))) return a === b || a.toString() === b.toString()
+  if (Object.getOwnPropertyNames(a).length !== Object.getOwnPropertyNames(b).length) return false
+  return Object.getOwnPropertyNames(a).every(k => eq(a[k], b[k]))
+}
+function default_sort(a, b) {
+  if (typeof a !== typeof b) return typeof a > typeof b ? -1 : 1
+  if (!a && a !== 0) return -1
+  if (!b && b !== 0) return 1
+  return a === b ? 0 : a > b ? 1 : -1
+}
+function directed_sort(p, desc = /^-/.test(p)) {
+  p = ('' + p).replace(/^[+-]/, '')
+  return (a, b) => default_sort(access(a, p), access(b, p)) * (!desc || -1)
+}
+function multi_sort(p) {
+  return (a, b) => {
+    for (const k of p) {
+      const z = directed_sort(k)(a, b)
+      if (z) return z
+    }
+  }
+}
+
+if (typeof window === 'undefined') window = global
+window.raw = (primitive, fname) => {
+  if (primitive && fname) {
+    if (primitive.prototype[fname] && primitive.prototype[fname].toString().includes('[native code]')) primitive.prototype['_' + fname] = primitive.prototype[fname]
+    const native = !!primitive.prototype['_' + fname]
+    const shortcut = raw.shortcut[fname] ? `const a = args[0], map = ${JSON.stringify(raw.shortcut[fname], (k, v) => ['function', 'string'].includes(typeof v) ? '<<' + v + '>>' : v).replace(/("<<|>>")/g, '')}, type = Object.prototype.toString.call(args[0]).slice(8, -1).toLowerCase();args[0] = map[type] || map.default || a;` : ''
+    const content = native ? `this._${fname}(...args)` : `${primitive.name}.${fname}(this, ...args)`
+    const fn = eval(`(function ${fname}(...args) { ${shortcut}return ${content} })`)
+    Object.defineProperty(primitive.prototype, fname, {
+      enumerable: false,
+      configurable: true,
+      writable: true,
+      value: fn,
+    })
+    return primitive.name + '.' + fname + (native ? '#native' : '')
+  }
+  if (primitive) return Object.keys(primitive).map(fname => raw(primitive, fname))
+  return [Object, Array, Function, String, Number, Boolean, Date, RegExp].map(primitive => raw(primitive)).flat()
+}
+raw.version = '1.1.1'
+raw.shortcut = [
+  {
+    on: ['map', 'group', 'forEach'],
+    undefined: x => x,
+    string: x => access(x, a),
+    number: x => access(x, a),
+  },
+  {
+    on: ['filter', 'find', 'findIndex'],
+    undefined: x => x,
+    function: 'a',
+    object: x => Object.entries(a).every(([k, v]) => (v.test && v.test(x[k])) || (v.some && v.some(d => eq(x[k], d))) || eq(x[k], v)),
+    default: x => (a.test && a.test(x)) || (a.some && a.some(d => eq(x, d))) || eq(x, a),
+  },
+  {
+    on: ['sort'],
+    undefined: 'default_sort',
+    function: 'a',
+    array: 'multi_sort(a)',
+    default: 'directed_sort(a)',
+  },
+].reduce((acc, v) => (v.on.map(t => acc[t] = v), delete v.on, acc), {})
