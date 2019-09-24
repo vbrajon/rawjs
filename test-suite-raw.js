@@ -3,7 +3,13 @@ raw()
 arr = [{ name: 'Jane Doe', age: 22 }, { name: 'John Doe', age: 29, birthdate: new Date('1989-11-14') }, { name: 'Janette Doe', age: 22 }, { name: 'Johnny Doe', age: 71, birthdate: new Date('Feb 26, 1932') }]
 obj = arr[0]
 str = 'i am: The1\nAND\t,_L?on*e%ly.'
-date = new Date('2019-01-20 10:09:08')
+date = new Date('2019-01-20T09:09:08Z')
+
+// [ 'name', 'age' ] //
+obj.keys()
+
+// [ 'Jane Doe', 22 ] //
+obj.values()
 
 // { name: 'Jane Doe', age: 44 } //
 obj.map(v => v * 2 || v)
@@ -17,8 +23,26 @@ obj.filter(Number)
 // { 'Jane Doe': 'name', 22: 'age' } //
 obj.reduce((acc, v, k) => (acc[v] = k, acc), {})
 
+// ['a', /a/] //
+[null, 'a', undefined, /a/].filter()
+
 // ['Jane Doe', 'Janette Doe', 'John Doe', 'Johnny Doe'] //
 arr.map('name').sort()
+
+// ['Jane Doe', 'Janette Doe'] //
+arr.map('name').filter(/Ja/)
+
+// ['Jane Doe', 'Janette Doe'] //
+// arr.find({ name: /J/ })
+
+// [[71, 'Johnny Doe'], [29, 'John Doe'], [22, 'Jane Doe'], [22, 'Janette Doe']] //
+arr.sort(['-age', 'name']).map(d => [d.age, d.name])
+
+// { 22: ['Jane Doe', 'Janette Doe'], 29: ['John Doe'], 71: ['Johnny Doe'] } //
+// arr.group('age').map(g => g.map('name'))
+
+// { 22: { 'Jane Doe': [], 'Janette Doe': [] }, 29: { 'John Doe': [] }, 71: { 'Johnny Doe': [] } }
+// arr.group(['age', 'name']).map(g => g.map(g => g.map('birthdate')))
 
 // [22, 29, 71] //
 arr.map('age').unique()
@@ -37,18 +61,6 @@ arr.map('age').mean()
 
 // 25.5 //
 arr.map('age').median()
-
-// { 22: ['Jane Doe', 'Janette Doe'], 29: ['John Doe'], 71: ['Johnny Doe'] } //
-arr.group('age').map(g => g.map('name'))
-
-// { 22: { 'Jane Doe': [], 'Janette Doe': [] }, 29: { 'John Doe': [] }, 71: { 'Johnny Doe': [] } }
-// arr.group(['age', 'name']).map(g => g.map(g => g.map('birthdate')))
-
-// [[71, 'Johnny Doe'], [29, 'John Doe'], [22, 'Jane Doe'], [22, 'Janette Doe']] //
-arr.sort(['-age', 'name']).map(d => [d.age, d.name])
-
-// ['a', /a/] //
-[null, 'a', undefined, /a/].filter()
 
 // ['One', 'Two'] //
 [{ a: { b: 'one' } }, { a: { b: 'two' } }].map('a.b.capitalize')

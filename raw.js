@@ -1,47 +1,11 @@
-const s = {
-  map: a => {
-    if (a == null) return x => x
-    if (a instanceof Function) return a
-    return x => access(x, a)
-  },
-  filter: a => {
-    if (a == null) return x => x
-    if (a instanceof Function) return a
-    if (a.__proto__ === Object.__proto__) return x => Object.entries(a).every(([k, v]) => (v.test && v.test(x[k])) || (v.some && v.some(d => eq(x[k], d))) || eq(x[k], v))
-    return x => (a.test && a.test(x)) || (a.some && a.some(d => eq(x, d))) || eq(x, a)
-  },
-  sort: a => {
-    if (a == null) return default_sort
-    if (a instanceof Array) return multi_sort(a)
-    if (a instanceof Function && a.length === 1) return directed_sort(a)
-    return a
-  },
-}
-
-// Object.prototype.keys = function keys() { return Object.keys(this) }
-// Object.prototype.values = function values() { return Object.values(this) }
-Object.map = (obj, fn) => Object.keys(obj).reduce((acc, k, i) => ((acc[k] = s.map(fn)(obj[k], k, i, obj)), acc), {})
+Object.map = (obj, fn) => Object.keys(obj).reduce((acc, k, i) => ((acc[k] = fn(obj[k], k, i, obj)), acc), {})
 Object.reduce = (obj, fn, base) => Object.keys(obj).reduce((acc, k, i) => fn(acc, obj[k], k, i, obj), base)
 Object.filter = (obj, fn) =>
   Object.keys(obj)
-    .filter((k, i) => s.filter(fn)(obj[k], k, i, obj))
+    .filter((k, i) => fn(obj[k], k, i, obj))
     .reduce((acc, k) => ((acc[k] = obj[k]), acc), {})
-Object.find = (obj, fn) => Object.keys(obj).find((k, i) => s.filter(fn)(obj[k], k, i, obj))
+Object.find = (obj, fn) => Object.keys(obj).find((k, i) => fn(obj[k], k, i, obj))
 
-Array.prototype._map = Array.prototype.map
-Array.map = (arr, fn) => arr._map(s.map(fn))
-Array.prototype._reduce = Array.prototype.reduce
-Array.reduce = (arr, fn, base) => arr._reduce(fn, base)
-Array.prototype._filter = Array.prototype.filter
-Array.filter = (arr, fn) => arr._filter(s.filter(fn))
-Array.prototype._find = Array.prototype.find
-Array.find = (arr, fn) => arr._find(s.filter(fn))
-Array.prototype._findIndex = Array.prototype.findIndex
-Array.findIndex = (arr, fn) => arr._findIndex(s.filter(fn))
-Array.prototype._reverse = Array.prototype.reverse
-Array.reverse = arr => arr.slice()._reverse()
-Array.prototype._sort = Array.prototype.sort
-Array.sort = (arr, fn) => arr = arr.slice()._sort(s.sort(fn))
 Array.group = (arr, fn) => arr.map(fn).reduce((acc, v, i) => ((acc[v] = (acc[v] || []).concat([arr[i]])), acc), {})
 Array.unique = arr => Array.from(new Set(arr))
 Array.min = arr => arr.slice().sort((a, b) => a - b)[0]
@@ -136,7 +100,7 @@ Date.relative = date => {
   return num.duration() + (num > 0 ? ' from now' : ' ago')
 }
 Date.format = (date, fmt = 'YYYY-MM-DD', lang = 'en') => {
-  const intl = option => date.toLocaleDateString(lang, option)
+  const intl = option => date.toLocaleString(lang, option)
   const parts = fmt.split(',').map(s => s.trim())
   if (!parts.filter(d => !['year', 'month', 'mon', 'day', 'weekday', 'wday', 'hour', 'minute', 'second'].includes(d)).length) {
     const options = {}
@@ -240,15 +204,49 @@ function multi_sort(p) {
 if (typeof window === 'undefined') window = global
 window.raw = (primitive, fname) => {
   if (primitive && fname) {
+    if (primitive.prototype[fname] && primitive.prototype[fname].toString().includes('[native code]')) primitive.prototype['_' + fname] = primitive.prototype[fname]
+    const native = primitive.prototype['_' + fname]
+    const shortcut = (raw.shortcut.find(s => s.on.includes(fname)) || {}).fn
+    const fn = eval(`(function ${fname}(...args) { return ${native ? ['sort', 'reverse'].includes(fname) ? 'this.slice()._' + fname + '(' : 'this._' + fname + '(' : primitive.name + '.' + fname + '(this, '}${shortcut ? 'shortcut(args[0]), ...args.slice(1)' : '...args'}) })`)
     Object.defineProperty(primitive.prototype, fname, {
       enumerable: false,
       configurable: true,
       writable: true,
-      value: function(...args) { return primitive[fname](this, ...args) },
+      value: fn,
     })
-    return primitive.name + '.' + fname + (!!primitive.prototype['_' + fname] ? '#native' : '')
+    return primitive.name + '.' + fname + (native ? '#native' : '') + (shortcut ? '#shortcut' : '')
   }
-  if (primitive) return Object.keys(primitive).map(fname => raw(primitive, fname))
+  if (primitive) return Object.keys(primitive).concat(raw[primitive.name] || []).map(fname => raw(primitive, fname))
   return [Object, Array, Function, String, Number, Date, RegExp].map(primitive => raw(primitive)).flat()
 }
 raw.version = '1.1.1'
+raw.Object = ['keys', 'values']
+raw.Array = ['map', 'reduce', 'filter', 'find', 'findIndex', 'sort', 'reverse']
+raw.shortcut = [
+  {
+    on: ['map'],
+    fn: a => {
+      if (a == null) return x => x
+      if (a instanceof Function) return a
+      return x => access(x, a)
+    }
+  },
+  {
+    on: ['filter', 'find', 'findIndex'],
+    fn: a => {
+      if (a == null) return x => x
+      if (a instanceof Function) return a
+      if (a.__proto__ === Object.__proto__) return x => Object.entries(a).every(([k, v]) => (v.test && v.test(x[k])) || (v.some && v.some(d => eq(x[k], d))) || eq(x[k], v))
+      return x => (a.test && a.test(x)) || (a.some && a.some(d => eq(x, d))) || eq(x, a)
+    },
+  },
+  {
+    on: ['sort'],
+    fn: a => {
+      if (a == null) return default_sort
+      if (a instanceof Array) return multi_sort(a)
+      if (a instanceof Function && a.length === 1) return directed_sort(a)
+      return a
+    },
+  },
+]
