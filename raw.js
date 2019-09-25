@@ -20,28 +20,22 @@ Array.median = arr => {
 
 Function.wrap = (fn, wrap) => (...args) => wrap(fn, ...args)
 Function.partial = (fn, ...outer) => (...inner) => fn(...outer.map((a, i) => (a === null ? inner.shift() : a)).concat(inner))
-Function.wait = (fn, ms = 0, repeat = 1, immediate = true) => {
-  const f = (...args) =>
-    (f.promise = new Promise(
-      (ok, ko) =>
-        (f.timeout = setInterval(() => {
-          try {
-            Promise.resolve(fn(...args)).then(ok)
-          } catch (e) {
-            ko(e)
-          } finally {
-            if (--repeat === 0) f.cancel()
-          }
-        }, ms)),
-    ))
-  f.cancel = () => (clearTimeout(f.timeout), delete f.timeout, delete f.promise, delete f.cancel)
-  if (immediate) f()
-  return f
+Function.every = (fn, ms = 0, repeat = Infinity, immediate = true) => {
+  fn.start = () => fn.id = fn.id || setInterval(() => {
+    if (--repeat < 1 + immediate) fn.stop()
+    fn.r ? fn.r(fn()) : fn()
+    delete fn.r
+  }, ms)
+  fn.stop = () => (clearInterval(fn.id), delete fn.id, delete fn.then)
+  fn.then = r => fn.r = r
+  fn.start()
+  if (immediate) fn()
+  return fn
 }
-Function.every = (fn, ms, repeat = 0, immediate = true) => Function.wait(fn, ms, repeat, immediate)
+Function.wait = (fn, ms) => Function.every(fn, ms, 1, false)
 Function.debounce = (fn, ms = 0) => (...args) => {
-  clearTimeout(fn.timeout)
-  fn.timeout = setTimeout(() => fn(...args), ms)
+  clearTimeout(fn.id)
+  fn.id = setTimeout(() => fn(...args), ms)
 }
 Function.throttle = (fn, ms = 0) => (...args) => {
   if (fn.flag) return
@@ -84,7 +78,7 @@ String.join = (str, sep = ' ') => {
 Number.duration = num => {
   const n = [31557600000, 2629800000, 604800000, 86400000, 3600000, 60000, 1000]
   const i = n.findIndex(v => v < Math.abs(num)) || 0
-  return Math.round(Math.abs(num) / n[i]) + ' ' + ['year', 'month', 'week', 'day', 'hour', 'minute', 'second', 'millisecond'][i] + (Math.abs(num) / n[i] > 1.5 ? 's' : '')
+  return Math.round(num / n[i]) + ' ' + ['year', 'month', 'week', 'day', 'hour', 'minute', 'second', 'millisecond'][i] + (Math.abs(num) / n[i] > 1.5 ? 's' : '')
 }
 Number.format = (num, fmt) => {
   if (typeof fmt === 'string') return new Intl.NumberFormat(fmt).format(num)
@@ -95,10 +89,9 @@ Object.getOwnPropertyNames(Math)
   .filter(k => typeof Math[k] === 'function')
   .forEach(k => (Number[k] = Math[k]))
 
-Date.relative = date => {
-  const num = date - new Date()
-  return num.duration() + (num > 0 ? ' from now' : ' ago')
-}
+Date.relative = (date, d2 = new Date()) => (date - d2).duration().replace(/^(-?)(.*)/, (m, sign, d) => d + (sign === '-' ? ' ago' : ' from now'))
+Date.getWeek = (date, soy = new Date(date.getFullYear(), 0, 0)) => Math.floor(((date - soy) / 86400000 + 6 - soy.getDay()) / 7)
+Date.getQuarter = date => Math.ceil((date.getMonth() + 1) / 3)
 Date.format = (date, fmt = 'YYYY-MM-DD', lang = 'en') => {
   const intl = option => date.toLocaleString(lang, option)
   const parts = fmt.split(',').map(s => s.trim())
@@ -116,13 +109,15 @@ Date.format = (date, fmt = 'YYYY-MM-DD', lang = 'en') => {
     if (!options.day && !options.month && !options.year) return Date.format(date, [options.hour && 'hh', options.minute && 'mm', options.second && 'ss'].filter(d => d).join(':'))
     return intl(options)
   }
-  const letters = { s: 'Seconds', m: 'Minutes', h: 'Hours', D: 'Date', M: 'Month', Y: 'FullYear' }
+  const letters = { s: 'Seconds', m: 'Minutes', h: 'Hours', D: 'Date', W: 'Week', M: 'Month', Q: 'Quarter', Y: 'FullYear' }
   Object.keys(letters).map(letter => {
     const zeros = letter === 'Y' ? '0000' : '00'
-    let int = date['get' + letters[letter]]()
-    if (letter === 'M') int = int + 1
     fmt = fmt.replace(RegExp(letter + '+', 'g'), m => {
-      if (m.length === 1) return int
+      let int
+      if (letter === 'W') int = 'W' + Date.getWeek(date)
+      if (letter === 'M') int = date.getMonth() + 1
+      if (letter === 'Q') int = 'Q' + Date.getQuarter(date)
+      if (!int) int = date['get' + letters[letter]]()
       if (m.length > zeros.length) return (zeros + int).slice(-zeros.length) + letter
       return (zeros + int).slice(-m.length)
     })
@@ -236,7 +231,7 @@ raw.shortcut = [
     fn: a => {
       if (a == null) return x => x
       if (a instanceof Function) return a
-      if (a.__proto__ === Object.__proto__) return x => Object.entries(a).every(([k, v]) => (v.test && v.test(x[k])) || (v.some && v.some(d => eq(x[k], d))) || eq(x[k], v))
+      if (a.__proto__ === Object.prototype) return x => Object.entries(a).every(([k, v]) => (v.test && v.test(x[k])) || (v.some && v.some(d => eq(x[k], d))) || eq(x[k], v))
       return x => (a.test && a.test(x)) || (a.some && a.some(d => eq(x, d))) || eq(x, a)
     },
   },

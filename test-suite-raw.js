@@ -32,14 +32,14 @@ arr.map('name').sort()
 // ['Jane Doe', 'Janette Doe'] //
 arr.map('name').filter(/Ja/)
 
-// ['Jane Doe', 'Janette Doe'] //
-// arr.find({ name: /J/ })
+// { name: 'Jane Doe', age: 22 } //
+arr.find({ name: /Ja/ })
 
 // [[71, 'Johnny Doe'], [29, 'John Doe'], [22, 'Jane Doe'], [22, 'Janette Doe']] //
 arr.sort(['-age', 'name']).map(d => [d.age, d.name])
 
 // { 22: ['Jane Doe', 'Janette Doe'], 29: ['John Doe'], 71: ['Johnny Doe'] } //
-// arr.group('age').map(g => g.map('name'))
+arr.group('age').map(g => g.map('name'))
 
 // { 22: { 'Jane Doe': [], 'Janette Doe': [] }, 29: { 'John Doe': [] }, 71: { 'Johnny Doe': [] } }
 // arr.group(['age', 'name']).map(g => g.map(g => g.map('birthdate')))
@@ -72,24 +72,6 @@ arr.map('age').median()
 const mem = (x => x / 2).memoize()
 mem(2)
 mem.cache['[2]']
-
-// 1 //
-await (() => 1).wait(100).promise
-
-// 5 //
-let n = 0, inc = () => n++
-inc.every(50, 5)
-await (() => n).wait(500).promise
-
-// 1 //
-let n = 0, inc = () => n++
-inc.debounce(75).every(50, 5)
-await (() => n).wait(500).promise
-
-// 3 //
-let n = 0, inc = () => n++
-inc.throttle(75).every(50, 5)
-await (() => n).wait(500).promise
 
 // ['i', 'am', 'The', '1', 'AND', 'Lonely'] //
 str.words()
@@ -151,14 +133,20 @@ Math.PI.cos()
 // 9 //
 (3).pow(2)
 
-// '10 hours' //
-(36666666).duration()
+// '-10 hours' //
+(-36666666).duration()
+
+// '12 seconds ago' //
+date.minus('12 seconds').relative(date)
 
 // '2019-01-20' //
 date.format()
 
 // '20/01/2019 10h09m' //
 date.format('DD/MM/YYYY hhhmmm')
+
+// 'Q1 W3' //
+date.format('QQ WW')
 
 // '20 janvier 2019' //
 date.format('day, month, year', 'fr')
@@ -168,6 +156,15 @@ date.format('month, day, weekday, hour, minute, second')
 
 // '2019-01-21' //
 date.plus('day').format()
+
+// 8 //
+Date.getWeek(new Date('2015-02-26'))
+
+// 9 //
+Date.getWeek(new Date('2018-02-26'))
+
+// 2 //
+Date.getQuarter(new Date('2018-04-01'))
 
 // '2019-02-28' //
 new Date('2019-05-31').minus('3 month').format()
