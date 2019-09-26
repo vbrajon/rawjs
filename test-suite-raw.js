@@ -35,6 +35,9 @@ arr.map('name').filter(/Ja/)
 // { name: 'Jane Doe', age: 22 } //
 arr.find({ name: /Ja/ })
 
+// arr.sort('age').map('age') //
+arr.sort(d => d.age).map(d => d.age)
+
 // [[71, 'Johnny Doe'], [29, 'John Doe'], [22, 'Jane Doe'], [22, 'Janette Doe']] //
 arr.sort(['-age', 'name']).map(d => [d.age, d.name])
 
@@ -175,11 +178,17 @@ new Date('2019-01-31').plus('1 month').format()
 // '2017-02-28' //
 new Date('2016-02-29').plus('1 year').format()
 
-// '2019-02-28' //
-date.plus('1 month, 11 days').format()
+// '2019-01-31' //
+new Date('2018-12-31').plus('1 month').format()
 
-// '2018-12-18' //
-date.minus('1 month, 2 days').format()
+// '2018-11-30' //
+new Date('2018-12-31').minus('1 month').format()
+
+// '2018-11-30' //
+new Date('2018-12-31').minus('1 month').format()
+
+// '2017-12-18' //
+date.minus('1 year, 1 month and 2 days').format()
 
 // '2018-12-31T23:00:00.000Z' //
 date.start('month').toISOString()

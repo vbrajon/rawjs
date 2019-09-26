@@ -135,20 +135,15 @@ Date.modify = (date, str, sign) => {
     const last = { Seconds: 59, Minutes: 59, Hours: 23, Date: new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(), Month: 11 }
     fn = i => names.slice(0, i).map(name => d['set' + name](last[name]))
   }
-  str.split(',').forEach(part =>
-    part
-      .trim()
-      .replace(/^(\d*)\s*seconds?$/, (m, n) => fn(0, +n || 1 - (n === '0')))
-      .replace(/^(\d*)\s*minutes?$/, (m, n) => fn(1, +n || 1 - (n === '0')))
-      .replace(/^(\d*)\s*hours?$/, (m, n) => fn(2, +n || 1 - (n === '0')))
-      .replace(/^(\d*)\s*days?$/, (m, n) => fn(3, +n || 1 - (n === '0')))
-      .replace(/^(\d*)\s*months?$/, (m, n) => fn(4, +n || 1 - (n === '0')))
-      .replace(/^(\d*)\s*years?$/, (m, n) => fn(5, +n || 1 - (n === '0'))),
-  )
+  str
+    .replace(/(\d*)\s*seconds?/, (m, n) => fn(0, +n || 1 - (n === '0')))
+    .replace(/(\d*)\s*minutes?/, (m, n) => fn(1, +n || 1 - (n === '0')))
+    .replace(/(\d*)\s*hours?/, (m, n) => fn(2, +n || 1 - (n === '0')))
+    .replace(/(\d*)\s*days?/, (m, n) => fn(3, +n || 1 - (n === '0')))
+    .replace(/(\d*)\s*months?/, (m, n) => fn(4, +n || 1 - (n === '0')))
+    .replace(/(\d*)\s*years?/, (m, n) => fn(5, +n || 1 - (n === '0')))
   d.setMilliseconds(0)
-  const month = str.match(/(\d*)\s*months?/) ? +str.match(/(\d*)\s*months?/)[1] || +(str.match(/(\d*)\s*months?/)[1] !== '0') : 0
-  if (sign === '+' && /(year|month)/.test(str) && date.getMonth() !== (d.getMonth() - month) % 12) return d.start('month').minus('second')
-  if (sign === '-' && /(year|month)/.test(str) && date.getMonth() !== (d.getMonth() + month) % 12) return d.start('month').minus('second')
+  if (['-', '+'].includes(sign) && /(year|month)/.test(str) && !/day/.test(str) && date.getDate() !== d.getDate()) return d.start('month').minus('second')
   return d
 }
 Date.plus = (date, str) => date.modify(str, '+')
@@ -240,8 +235,9 @@ raw.shortcut = [
     fn: a => {
       if (a == null) return default_sort
       if (a instanceof Array) return multi_sort(a)
-      if (a instanceof Function && a.length === 1) return directed_sort(a)
-      return a
+      if (a instanceof Function && a.length === 1) return (x, y) => default_sort(a(x), a(y))
+      if (a instanceof Function && a.length === 2) return a
+      return directed_sort(a)
     },
   },
 ]
