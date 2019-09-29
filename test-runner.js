@@ -21,26 +21,35 @@ function equal(a, b) {
 }
 
 async function run_test(test) {
-  let output, expected, error, time = 0
+  let error, time = 0
   try {
     const fn = eval('(async function eval_string() {\n' + test.replace(/(.*)\s*$/, 'return $1') + '\n})')
     const start = performance.now()
-    output = await fn()
+    const output = await fn()
     time = performance.now() - start
     if (test.match(/^\/\/(.*)\/\//)) {
-      expected = eval('(' + (test.match(/^\/\/(.*)\/\//)[1] || 'null') + ')')
+      const expected = eval('(' + (test.match(/^\/\/(.*)\/\//)[1] || 'null') + ')')
       equal(output, expected)
     }
   } catch(e) {
     error = e
   }
-  return { test, time, output, expected, error }
+  return { test, time, error }
+}
+
+async function run_performance(test) {
+  const tests = []
+  const start = performance.now()
+  while (performance.now() - start < 1000) tests.push(await run_test(test))
+  const time = performance.now() - start
+  console.log(test.split('\n').slice(-1)[0], +tests.length.toPrecision(1))
+  return { test, time, error: (tests.find(t => t.error) || {}).error, runs: tests.length }
 }
 
 Promise.map = async (arr, fn) => await arr.reduce(async (acc, v) => ((await acc).push(await fn(v)), acc), Promise.resolve([]))
-async function run_tests(tests, parallel) {
-  if (parallel) return [run_test(tests[0]), await Promise.all(tests.slice(1).map(run_test))]
-  return await Promise.map(tests, run_test)
+async function run_tests(tests) {
+  if (window.perf) return [await run_test(tests[0]), await Promise.map(tests.slice(1), run_performance)].flat()
+  return [await run_test(tests[0]), await Promise.all(tests.slice(1).map(run_test))].flat()
 }
 
 async function download_tests(url, download = window.download || (async file => await (await fetch(file)).text())) {
@@ -48,7 +57,8 @@ async function download_tests(url, download = window.download || (async file => 
     .replace(/import([^'"]*)["']([^'"]*)['"]/g, (m, a, b) => `${a.trim() ? `window.${a.replace(/(.* as )?(.* from )/, (m, a, b) => b.slice(0, -5).trim())} = ` : ''}await import("${b}")`)
     .replace(/(^|\n)(\w+\s*=)/g, '$1window.$2')
     .split('\n\n')
-    .filter(t => !t.trim().split('\n').every(l => l.startsWith('//')))
+    .map(t => t.trim())
+    .filter(t => !t.split('\n').every(l => l.startsWith('//')))
 }
 
 async function run_file(url) {
@@ -60,15 +70,16 @@ async function run_file(url) {
   const errored = results.filter(d => !d.test || d.error)
   const [clear, red, green, yellow, blue] = [0, 31, 32, 33, 34].map(n => `\x1b[${n}m`)
   if (errored.length) console.error(errored)
-  console.log(`${blue}${url}${clear} | ${yellow}${~~(time)}ms${clear}: ${green}${passed.length} passed${clear}, ${red}${errored.length} errored${clear}`)
+  console.log(`${blue}${url}${clear} | ${yellow}${time > 1000 ? +(time / 1000).toPrecision(2) + 's' : +(time).toPrecision(2) + 'ms'}${clear}: ${green}${passed.length} passed${clear}, ${red}${errored.length} errored${clear}`)
   return results
 }
 
 if (typeof global !== 'undefined') {
-  const [ok, ko, crash] = ['Bottle', 'Ping', 'Sosumi'].map(k => () => require('child_process').spawn('afplay', ['/System/Library/Sounds/' + k + '.aiff'], { detached: true, stdio: 'ignore' }).unref())
+  const [ok, ko, crash] = ['Bottle', 'Ping', 'Sosumi'].map(k => () => require('child_process').spawn('afplay', ['/System/Library/Sounds/' + k + '.aiff'], { detached: true, stdio: 'ignore' }).unref())
   const options = process.argv.slice(2).filter(d => d.startsWith('--')).reduce((acc, v) => (acc[v.slice(2)] = true, acc), {})
   const files = process.argv.slice(2).filter(d => !d.startsWith('--'))
   window = global
+  window.perf = options.perf || options.performance || options.benchmark
   window.performance = require('perf_hooks').performance
   window.equal = require('assert').deepStrictEqual
   window.download = async file => require('fs').promises.readFile(file, 'utf-8')

@@ -100,17 +100,20 @@ str.join('pascal')
 // 'ab' //
 '{}{}{}'.format('a', 'b')
 
+// 'ab' //
+'{}{}{}'.format(['a', 'b'])
+
 // 'bbbaa' //
 '{1}{1}{1}{0}{0}'.format('a', 'b')
 
-// 'ab' //
+// 'abbbbaa' //
 '{}{}{}{1}{1}{1}{0}{0}'.format('a', 'b')
 
 // 'bb' //
-// '{k2}{k2}{k3}'.format({ k1: 'a', k2: 'b' })
+'{k2}{k2}{k3}'.format({ k1: 'a', k2: 'b' })
 
 // '66 pears x 4 apples' //
-// '{66} pears x {3} apples'.format((x, i) => +x + i)
+'{66} pears x {3} apples'.format((x, i) => +x + i)
 
 // 0.3 //
 (.1 * 3).format()

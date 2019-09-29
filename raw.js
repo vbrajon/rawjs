@@ -53,7 +53,12 @@ Function.memoize = (fn, hash = JSON.stringify) => {
   return f
 }
 
-String.format = (str, ...args) => str.replace(/\{[^}]*\}/g, m => args[m.slice(1, -1)] || args.shift() || '')
+String.format = (str, ...args) => {
+  let n = 0, fn = (m, n) => args[m] || args[n]
+  if (typeof args[0] === 'object') fn = (m, n) => args[0][m] || args[0][n]
+  if (typeof args[0] === 'function') fn = args.shift()
+  return str.replace(/\{[^}]*\}/g, m => fn(m.slice(1, -1), n++) || '')
+}
 String.lower = str => str.toLowerCase()
 String.upper = str => str.toUpperCase()
 String.capitalize = str => str.replace(/./, c => c.toUpperCase())
@@ -194,17 +199,25 @@ function multi_sort(p) {
 if (typeof window === 'undefined') window = global
 window.raw = (primitive, fname) => {
   if (primitive && fname) {
-    if (primitive.prototype[fname] && primitive.prototype[fname].toString().includes('[native code]')) primitive.prototype['_' + fname] = primitive.prototype[fname]
+    if (primitive.prototype[fname] && primitive.prototype[fname].toString().includes('[native code]')) {
+      primitive.prototype['_' + fname] = primitive.prototype[fname]
+      primitive[fname] = (x, ...args) => x['_' + fname](...args)
+      if (['sort', 'reverse'].includes(fname)) primitive[fname] = (x, ...args) => x.slice()['_' + fname](...args)
+    }
+    const fn = primitive[fname].fn || primitive[fname]
     const native = primitive.prototype['_' + fname]
-    const shortcut = (raw.shortcut.find(s => s.on.includes(fname)) || {}).fn
-    const fn = eval(`(function ${fname}(...args) { return ${native ? ['sort', 'reverse'].includes(fname) ? 'this.slice()._' + fname + '(' : 'this._' + fname + '(' : primitive.name + '.' + fname + '(this, '}${shortcut ? 'shortcut(args[0]), ...args.slice(1)' : '...args'}) })`)
-    Object.defineProperty(primitive.prototype, fname, {
+    const shortcut = raw.shortcut.find(s => s.on.includes(fname))
+    primitive[fname] = (x, ...args) => primitive[fname].fn(x, primitive[fname].shortcut(args[0]), ...args.slice(1))
+    primitive[fname].fn = fn
+    primitive[fname].native = native
+    primitive[fname].shortcut = shortcut ? shortcut.fn : x => x
+    if (raw.extend) Object.defineProperty(primitive.prototype, fname, {
       enumerable: false,
       configurable: true,
       writable: true,
-      value: fn,
+      value: function(...args) { return primitive[fname](this, ...args) },
     })
-    return primitive.name + '.' + fname + (native ? '#native' : '') + (shortcut ? '#shortcut' : '')
+    return primitive.name + '.' + fname + (primitive[fname].native ? '#native' : '') + (shortcut ? '#shortcut' : '')
   }
   if (primitive) return Object.keys(primitive).concat(raw[primitive.name] || []).map(fname => raw(primitive, fname))
   return [Object, Array, Function, String, Number, Date, RegExp].map(primitive => raw(primitive)).flat()
@@ -219,7 +232,7 @@ raw.shortcut = [
       if (a == null) return x => x
       if (a instanceof Function) return a
       return x => access(x, a)
-    }
+    },
   },
   {
     on: ['filter', 'find', 'findIndex'],
@@ -241,3 +254,5 @@ raw.shortcut = [
     },
   },
 ]
+raw()
+raw.extend = true

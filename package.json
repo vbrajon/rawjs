@@ -6,9 +6,8 @@
     "raw": "cli.js"
   },
   "scripts": {
-    "test": "npm run test:unit && npm run test:perf",
-    "test:unit": "node -r esm test-runner.js test-suite-raw.js",
-    "test:perf": "node -r esm test-runner.js test-suite-perf.js --benchmark",
+    "test": "node -r esm test-runner.js test-suite*",
+    "test:perf": "node -r esm test-runner.js test-suite-perf.js --perf",
     "test:watch": "node -r esm test-runner.js test-suite-raw.js --watch"
   },
   "devDependencies": {
