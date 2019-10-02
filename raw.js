@@ -160,6 +160,13 @@ RegExp.escape = r => RegExp(r.source.replace(/([\\/'*+?|()[\]{}.^$-])/g, '\\$1')
 RegExp.plus = (r, f) => RegExp(r.source, r.flags.replace(f, '') + f)
 RegExp.minus = (r, f) => RegExp(r.source, r.flags.replace(f, ''))
 
+function eq(a, b) {
+  if (a == null || b == null) return a === b
+  if (a.__proto__ !== b.__proto__) return false
+  if (![Object.prototype.toString, Array.prototype.toString].includes(a.toString)) return a === b || a.toString() === b.toString()
+  if (Object.getOwnPropertyNames(a).length !== Object.getOwnPropertyNames(b).length) return false
+  return Object.keys(a).every(k => a[k] === a || eq(a[k], b[k]))
+}
 function access(x, path) {
   try {
     if (!path) return x
@@ -169,13 +176,6 @@ function access(x, path) {
       .split('.')
       .reduce((x, p) => typeof x[p] === 'function' ? x[p]() : x[p], x)
   } catch (e) {}
-}
-function eq(a, b) {
-  if (a == null || b == null) return a === b
-  if (a.__proto__ !== b.__proto__) return false
-  if (!['Object', 'Array'].includes(Object.prototype.toString.call(a).slice(8, -1))) return a === b || a.toString() === b.toString()
-  if (Object.getOwnPropertyNames(a).length !== Object.getOwnPropertyNames(b).length) return false
-  return Object.getOwnPropertyNames(a).every(k => eq(a[k], b[k]))
 }
 function default_sort(a, b) {
   if (typeof a !== typeof b) return typeof a > typeof b ? -1 : 1
@@ -204,6 +204,7 @@ window.raw = (primitive, fname) => {
       primitive[fname] = (x, ...args) => x['_' + fname](...args)
       if (['sort', 'reverse'].includes(fname)) primitive[fname] = (x, ...args) => x.slice()['_' + fname](...args)
     }
+    if (typeof primitive[fname] !== 'function') return
     const fn = primitive[fname].fn || primitive[fname]
     const native = primitive.prototype['_' + fname]
     const shortcut = raw.shortcut.find(s => s.on.includes(fname))
@@ -217,7 +218,7 @@ window.raw = (primitive, fname) => {
       writable: true,
       value: function(...args) { return primitive[fname](this, ...args) },
     })
-    return primitive.name + '.' + fname + (primitive[fname].native ? '#native' : '') + (shortcut ? '#shortcut' : '')
+    return primitive.name + '.' + fname + (native ? '#native' : '') + (shortcut ? '#shortcut' : '')
   }
   if (primitive) return Object.keys(primitive).concat(raw[primitive.name] || []).map(fname => raw(primitive, fname))
   return [Object, Array, Function, String, Number, Date, RegExp].map(primitive => raw(primitive)).flat()

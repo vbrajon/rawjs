@@ -12,9 +12,9 @@ function equal(a, b) {
   function eq(a, b) {
     if (a == null || b == null) return a === b
     if (a.__proto__ !== b.__proto__) return false
-    if (!['Object', 'Array'].includes(Object.prototype.toString.call(a).slice(8, -1))) return a === b || a.toString() === b.toString()
+    if (![Object.prototype.toString, Array.prototype.toString].includes(a.toString)) return a === b || a.toString() === b.toString()
     if (Object.getOwnPropertyNames(a).length !== Object.getOwnPropertyNames(b).length) return false
-    return Object.getOwnPropertyNames(a).every(k => eq(a[k], b[k]))
+    return Object.keys(a).every(k => a[k] === a || eq(a[k], b[k]))
   }
   if (!eq(a, b)) throw new AssertionError(a, b)
   return true
@@ -54,11 +54,11 @@ async function run_tests(tests) {
 
 async function download_tests(url, download = window.download || (async file => await (await fetch(file)).text())) {
   return (await download(url))
-    .replace(/import([^'"]*)["']([^'"]*)['"]/g, (m, a, b) => `${a.trim() ? `window.${a.replace(/(.* as )?(.* from )/, (m, a, b) => b.slice(0, -5).trim())} = ` : ''}await import("${b}")`)
+    .replace(/import ([^'"]*)["']([^'"]*)['"]/g, (m, a, b) => `${a.trim() ? `window.${a.replace(/(.* as )?(.* from )/, (m, a, b) => b.slice(0, -5).trim())} = ` : ''}(await import("${b}")).default`)
     .replace(/(^|\n)(\w+\s*=)/g, '$1window.$2')
     .split('\n\n')
     .map(t => t.trim())
-    .filter(t => !t.split('\n').every(l => l.startsWith('//')))
+    .filter(t => t && !t.split('\n').every(l => l.startsWith('//')))
 }
 
 async function run_file(url) {
