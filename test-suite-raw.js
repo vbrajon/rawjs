@@ -23,6 +23,9 @@ obj.filter(Number)
 // { 'Jane Doe': 'name', 22: 'age' } //
 obj.reduce((acc, v, k) => (acc[v] = k, acc), {})
 
+// [null, 'a', undefined, /a/] //
+[null, 'a', undefined, /a/].map()
+
 // ['a', /a/] //
 [null, 'a', undefined, /a/].filter()
 
@@ -72,12 +75,19 @@ arr.map('age').median()
 ((a, b) => [a, b]).partial(null, 2)(1)
 
 // 1 //
+(x => x).wrap((fn, x) => fn(x / 2) / 2)(4)
+
+// 1 //
 const mem = (x => x / 2).memoize()
+mem(2)
 mem(2)
 mem.cache['[2]']
 
 // ['i', 'am', 'The', '1', 'AND', 'Lonely'] //
 str.words()
+
+// 'i am The 1 AND Lonely' //
+str.join()
 
 // 'I Am The 1 And Lonely' //
 str.join('title')
@@ -187,14 +197,71 @@ new Date('2018-12-31').plus('1 month').format()
 // '2018-11-30' //
 new Date('2018-12-31').minus('1 month').format()
 
-// '2018-11-30' //
-new Date('2018-12-31').minus('1 month').format()
-
-// '2017-12-18' //
-date.minus('1 year, 1 month and 2 days').format()
+// '2017-12-19T08:07:58.000Z' // DEPRECATED
+date.minus('1 year, 1 month, 1 day, hour, minute and 10 seconds').toISOString()
 
 // '2018-12-31T23:00:00.000Z' //
 date.start('month').toISOString()
 
 // '2019-12-31T22:59:59.000Z' //
 date.end('year').toISOString()
+
+// 'Sun (month: Jan)' //
+date.format('mon, wday')
+
+// '10:09:08' //
+date.format('hour, minute, second')
+
+// 'A.B' //
+'a.b'.upper()
+
+// 2 //
+[1, 2, 3].median()
+
+// '1 millisecond' //
+(1).duration()
+
+// '1' //
+(1).format(10)
+
+// '2 hours from now' //
+new Date().plus('2 hours').relative()
+
+// 'john@gmail\\.com' //
+/john@gmail.com/.escape().source
+
+// 'i' //
+/QwErTy/.plus('i').flags
+
+// '' //
+/QwErTy/.minus('i').flags
+
+// { a: { b: 1 }} //
+access({ a: { b: 1 }})
+
+// 1 //
+access({ a: { b: 1 }}, 'a.b')
+
+// access({ a: { 'b-c': 1 }}, "a['b-c']") //
+access({ a: { 'b-c': 1 }}, 'a.b-c')
+
+// true //
+eq([undefined, null, { a: { b: /c/ }, c: [{ d: 1 }] }, [], x => x, /a/gi, new Date('2020'), '', '&', 'A', false, true, NaN, -Infinity, -1, -0, 0, 1, Infinity], [undefined, null, { a: { b: /c/ }, c: [{ d: 1 }] }, [], x => x, /a/gi, new Date('2020'), '', '&', 'A', false, true, NaN, -Infinity, -1, -0, 0, 1, Infinity])
+
+// false //
+eq([null], [null, undefined])
+
+// undefined //
+raw(Object, 'notdefined')
+
+// { a: 1 } //
+[{ a: 1 }].find({ a: 1 })
+
+// { a: 1 } //
+[{ a: 1 }].find([{ a: 1 }])
+
+// { a: 2 } //
+[{ a: 1 }, { a: 2 }].find({ a: [2, 3] })
+
+// 19 //
+[undefined, null, { a: { b: /c/ }, c: [{ d: 1 }] }, [], x => x, /a/gi, new Date('2020'), '', '&', 'A', false, true, NaN, -Infinity, -1, -0, 0, 1, Infinity].sort().length

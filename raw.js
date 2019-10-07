@@ -81,8 +81,8 @@ String.join = (str, sep = ' ') => {
 }
 
 Number.duration = num => {
-  const n = [31557600000, 2629800000, 604800000, 86400000, 3600000, 60000, 1000]
-  const i = n.findIndex(v => v < Math.abs(num)) || 0
+  const n = [31557600000, 2629800000, 604800000, 86400000, 3600000, 60000, 1000, 1]
+  const i = n.findIndex(v => v <= Math.abs(num))
   return Math.round(num / n[i]) + ' ' + ['year', 'month', 'week', 'day', 'hour', 'minute', 'second', 'millisecond'][i] + (Math.abs(num) / n[i] > 1.5 ? 's' : '')
 }
 Number.format = (num, fmt) => {
@@ -160,43 +160,24 @@ RegExp.escape = r => RegExp(r.source.replace(/([\\/'*+?|()[\]{}.^$-])/g, '\\$1')
 RegExp.plus = (r, f) => RegExp(r.source, r.flags.replace(f, '') + f)
 RegExp.minus = (r, f) => RegExp(r.source, r.flags.replace(f, ''))
 
-function eq(a, b) {
+if (typeof global !== 'undefined') window = global
+window.eq = (a, b) => {
   if (a == null || b == null) return a === b
   if (a.__proto__ !== b.__proto__) return false
   if (![Object.prototype.toString, Array.prototype.toString].includes(a.toString)) return a === b || a.toString() === b.toString()
-  if (Object.getOwnPropertyNames(a).length !== Object.getOwnPropertyNames(b).length) return false
+  if (Object.keys(a).length !== Object.keys(b).length) return false
   return Object.keys(a).every(k => a[k] === a || eq(a[k], b[k]))
 }
-function access(x, path) {
+window.access = (x, path) => {
   try {
     if (!path) return x
     if (x[path]) return typeof x[path] === 'function' ? x[path]() : x[path]
     return path
-      .replace(/\[[^\]]\]/g, m => '.' + m.replace(/^[['"]+/, '').replace(/['"]]+$/, ''))
+      .replace(/\[[^\]]*\]/g, m => '.' + m.replace(/^[\['"\s]+/, '').replace(/['"\s\]]+$/, ''))
       .split('.')
       .reduce((x, p) => typeof x[p] === 'function' ? x[p]() : x[p], x)
   } catch (e) {}
 }
-function default_sort(a, b) {
-  if (typeof a !== typeof b) return typeof a > typeof b ? -1 : 1
-  if (!a && a !== 0) return -1
-  if (!b && b !== 0) return 1
-  return a === b ? 0 : a > b ? 1 : -1
-}
-function directed_sort(p, desc = /^-/.test(p)) {
-  p = ('' + p).replace(/^[+-]/, '')
-  return (a, b) => default_sort(access(a, p), access(b, p)) * (!desc || -1)
-}
-function multi_sort(p) {
-  return (a, b) => {
-    for (const k of p) {
-      const z = directed_sort(k)(a, b)
-      if (z) return z
-    }
-  }
-}
-
-if (typeof window === 'undefined') window = global
 window.raw = (primitive, fname) => {
   if (primitive && fname) {
     if (primitive.prototype[fname] && primitive.prototype[fname].toString().includes('[native code]')) {
@@ -252,6 +233,24 @@ raw.shortcut = [
       if (a instanceof Function && a.length === 1) return (x, y) => default_sort(a(x), a(y))
       if (a instanceof Function && a.length === 2) return a
       return directed_sort(a)
+      function default_sort(a, b) {
+        if (typeof a !== typeof b) return typeof a > typeof b ? -1 : 1
+        if (!a && a !== 0) return -1
+        if (!b && b !== 0) return 1
+        return a === b ? 0 : a > b ? 1 : -1
+      }
+      function directed_sort(p, desc = /^-/.test(p)) {
+        p = ('' + p).replace(/^[+-]/, '')
+        return (a, b) => default_sort(access(a, p), access(b, p)) * (!desc || -1)
+      }
+      function multi_sort(p) {
+        return (a, b) => {
+          for (const k of p) {
+            const z = directed_sort(k)(a, b)
+            if (z) return z
+          }
+        }
+      }
     },
   },
 ]

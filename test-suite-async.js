@@ -18,3 +18,11 @@ await (() => n).wait(500)
 let n = 0, inc = () => n++
 inc.throttle(75).every(50, 5)
 await (() => n).wait(500)
+
+// true //
+let n = 0, inc = () => n++
+inc.every()
+inc.stop.wait(10)
+inc.debounce()
+inc.throttle()
+await (() => n > 0).wait(500)

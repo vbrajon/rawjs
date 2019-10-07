@@ -13,7 +13,7 @@ function equal(a, b) {
     if (a == null || b == null) return a === b
     if (a.__proto__ !== b.__proto__) return false
     if (![Object.prototype.toString, Array.prototype.toString].includes(a.toString)) return a === b || a.toString() === b.toString()
-    if (Object.getOwnPropertyNames(a).length !== Object.getOwnPropertyNames(b).length) return false
+    if (Object.keys(a).length !== Object.keys(b).length) return false
     return Object.keys(a).every(k => a[k] === a || eq(a[k], b[k]))
   }
   if (!eq(a, b)) throw new AssertionError(a, b)
