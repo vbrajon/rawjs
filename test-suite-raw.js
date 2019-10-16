@@ -265,3 +265,6 @@ raw(Object, 'notdefined')
 
 // 19 //
 [undefined, null, { a: { b: /c/ }, c: [{ d: 1 }] }, [], x => x, /a/gi, new Date('2020'), '', '&', 'A', false, true, NaN, -Infinity, -1, -0, 0, 1, Infinity].sort().length
+
+// [1, 2]
+[].map.call({ 0: 1, 1: 2 }, x => x)

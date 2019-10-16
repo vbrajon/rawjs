@@ -182,8 +182,8 @@ window.raw = (primitive, fname) => {
   if (primitive && fname) {
     if (primitive.prototype[fname] && primitive.prototype[fname].toString().includes('[native code]')) {
       primitive.prototype['_' + fname] = primitive.prototype[fname]
-      primitive[fname] = (x, ...args) => x['_' + fname](...args)
-      if (['sort', 'reverse'].includes(fname)) primitive[fname] = (x, ...args) => x.slice()['_' + fname](...args)
+      primitive[fname] = (x, ...args) => primitive.prototype['_' + fname].call(x, ...args)
+      if (['sort', 'reverse'].includes(fname)) primitive[fname] = (x, ...args) => primitive.prototype['_' + fname].call(x.slice(), ...args)
     }
     if (typeof primitive[fname] !== 'function') return
     const fn = primitive[fname].fn || primitive[fname]

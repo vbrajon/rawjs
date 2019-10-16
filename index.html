@@ -1,0 +1,97 @@
+<meta charset="utf-8">
+<link rel="icon" href="data:,">
+<style>
+  /* Prism - Raw theme */
+  pre { overflow: auto;margin: .5em 0;padding: 1em;background: rgba(0,0,0,.2);color: #ccc; }
+  pre, code[class*="language-"] { border-radius: .3em;font: 400 1em/1.5 Menlo, monospace;white-space: pre;tab-size: 2;hyphens: none; }
+  :not(pre) > code[class*="language-"] { padding: .1em; }
+  .token.comment { color: #555; }
+  .token.class-name { color: #fd0; }
+  .token.keyword { color: #f6e; }
+  .token.property-access { color: #f34; }
+  .token.boolean, .token.number { color: #fa3; }
+  .token.string, .token.regex { color: #7d0; }
+  .token.function, .token.method { color: #39f; }
+  .token.operator { color: #3df; }
+  [id] { cursor: pointer; }
+  [id]:hover { background: linear-gradient(to right,#03f,#0bf);-webkit-background-clip: text;-webkit-text-fill-color: transparent; }
+</style>
+<style>
+  * { box-sizing: border-box; }
+  ::-webkit-scrollbar { width: 1px;height: 1px;background-color: transparent; }
+  ::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,.3); }
+  ::-webkit-scrollbar-track { background-color: rgba(0,0,0,.65); }
+  body { margin: 0;color: white;background: #252423;font: 400 18px/1.4 sans-serif;-webkit-font-smoothing: antialiased; }
+  main { width: 100%;height: 100%;display: flex; }
+  .sidebar { width: 240px; }
+  .demo { width: 340px; }
+  .info { width: calc(100% - 340px - 240px); }
+  section { display: flex;flex-direction: column;padding: 80px 20px 20px;overflow-y: scroll; }
+  section div { cursor: pointer;transition: all .3s cubic-bezier(.4,0,.2,1); }
+  header { z-index: 1;position: fixed;display: flex;align-items: center;width: inherit;height: 60px;margin: -80px -20px 20px -20px;padding: 0 20px;font-size: 20px;font-weight: 300;text-transform: uppercase; }
+  header:before { z-index: -1;content: "";position: absolute;top: 0;bottom: 0;left: 0;right: 1px;background: #252423;border-bottom: 1px solid rgb(0,0,0,.65); }
+  .sidebar .primitive { text-transform: uppercase; }
+  .sidebar .sidebar-info { margin-top: auto;padding-top: 20px; }
+  .sidebar > div:not(.active) > div:not(:first-child) { display: none; }
+  section > div > div:first-child { opacity: .4; }
+  section > div > div:not(:first-child) { position: relative;opacity: .7;padding: 4px 10px;font-size: 14px;line-height: 1; }
+  section > div > div:not(:first-child):before { z-index: -1;content: "";position: absolute;top: 4px;bottom: 4px;left: 0;border-left: 1px solid currentColor; }
+  section > div > div:hover { opacity: 1; }
+  .Object { color: #f34;opacity: 1!important; }
+  .Array { color: #fd0;opacity: 1!important; }
+  .Function { color: #39f;opacity: 1!important; }
+  .String { color: #7d0;opacity: 1!important; }
+  .Number { color: #fa3;opacity: 1!important; }
+  .Date { color: #f6e;opacity: 1!important; }
+  .RegExp { color: #3df;opacity: 1!important; }
+</style>
+<script src="raw.js"></script>
+<script src="https://unpkg.com/vue@2.6.10/dist/vue.js"></script>
+<script src="https://unpkg.com/prismjs@1.16.0/prism.js"></script>
+<script src="https://unpkg.com/prismjs@1.16.0/components/prism-markdown.js"></script>
+<script src="https://unpkg.com/prismjs@1.16.0/components/prism-js-extras.js"></script>
+<script async defer src="https://buttons.github.io/buttons.js"></script>
+<main>
+  <section class="sidebar">
+    <header><div style="background: linear-gradient(to right, #f34, #fd0);-webkit-background-clip: text;-webkit-text-fill-color: transparent;">RawJS</div><div style="margin-left: auto;opacity: .7;font-size: 16px;">{{ raw.version }}</div></header>
+    <div class="primitive" :class="{ active: primitive.name === pname }" v-for="primitive in [Object, Array, (x => x).constructor, String, Number, Date, RegExp]">
+      <div :class="{ [primitive.name]: pname === primitive.name }" @click="pname = primitive.name;fname = (raw[primitive.name] || []).concat(Object.keys(primitive)).unique()[0]">{{ primitive.name }}</div>
+      <div :class="[{ [primitive.name]: fname === fn }, fn]" @click="fname = fn" v-for="fn in (raw[primitive.name] || []).concat(Object.keys(primitive)).unique().filter(fn => primitive[fn].fn !== Math[fn])">.{{ fn }}</div>
+    </div>
+    <div class="sidebar-info">
+      <a class="github-button" href="https://github.com/vbrajon/rawjs/archive/master.zip" data-icon="octicon-cloud-download" aria-label="Download vbrajon/rawjs on GitHub">Download</a>
+      <a class="github-button" href="https://github.com/vbrajon/rawjs" data-show-count="true" aria-label="Star vbrajon/rawjs on GitHub">Star</a>
+    </div>
+  </section>
+  <section class="demo">
+    <header :class="pname">{{ pname }}</header>
+    <template v-for="primitive in [Object, Array, (x => x).constructor, String, Number, Date, RegExp]">
+      <div :class="primitive.name" @click="pname = primitive.name;fname = fn" v-for="fn in (raw[primitive.name] || []).concat(Object.keys(primitive)).unique().filter(fn => primitive[fn].fn !== Math[fn])">{{ primitive.name }}.{{ fn }}{{ primitive[fn].native ? ' #native' : '' }}{{ primitive[fn].shortcut.toString() !== 'x => x' ? ' #shortcut' : '' }}</div>
+    </template>
+  </section>
+  <section class="info">
+    <header :class="pname">.{{ fname }}</header>
+    <pre v-if="window[pname][fname].shortcut.toString() !== 'x => x'"><code class="language-js" v-html="Prism.highlight(('' + window[pname][fname].shortcut).replace(/\n    /g, '\n'), Prism.languages.javascript, 'js')"></code></pre>
+    <pre v-if="!window[pname][fname].native && !window[pname][fname].fn.toString().includes('[native code]')"><code class="language-js" v-html="Prism.highlight('' + window[pname][fname].fn, Prism.languages.javascript, 'js')"></code></pre>
+  </section>
+</main>
+<script>
+  raw()
+  Vue.prototype.window = window
+  Vue.prototype.raw = raw
+  Vue.prototype.Prism = Prism
+  new Vue({
+    el: 'main',
+    data() {
+      const [pname, fname] = (location.hash.slice(1) || 'Object.keys').split('.')
+      return {
+        pname,
+        fname,
+      }
+    },
+    created() {
+      import('./test-runner.js').then(() => download_tests('test-suite-raw.js')).then(r => window.tests = r)
+      this.$watch(() => [this.pname, this.fname], arr => window.history.replaceState({}, null, '#' + arr.join('.')))
+    },
+  })
+</script>
