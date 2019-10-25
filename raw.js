@@ -97,6 +97,7 @@ Object.getOwnPropertyNames(Math)
 Date.relative = (date, d2 = new Date()) => (date - d2).duration().replace(/^(-?)(.*)/, (m, sign, d) => d + (sign === '-' ? ' ago' : ' from now'))
 Date.getWeek = (date, soy = new Date(date.getFullYear(), 0, 0)) => Math.floor(((date - soy) / 86400000 + 6 - soy.getDay()) / 7)
 Date.getQuarter = date => Math.ceil((date.getMonth() + 1) / 3)
+Date.getLastDate = date => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
 Date.format = (date, fmt = 'YYYY-MM-DD', lang = 'en') => {
   const intl = option => date.toLocaleString(lang, option)
   const parts = fmt.split(',').map(s => s.trim())
@@ -137,8 +138,8 @@ Date.modify = (date, str, sign) => {
   if (sign === '-') fn = (i, n) => d['set' + names[i]](d['get' + names[i]]() - n)
   if (sign === '<') fn = (i, n) => names.slice(0, i).map(name => d['set' + name](name === 'Date' ? 1 : 0))
   if (sign === '>') {
-    const last = { Seconds: 59, Minutes: 59, Hours: 23, Date: new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(), Month: 11 }
-    fn = i => names.slice(0, i).map(name => d['set' + name](last[name]))
+    const last = { Seconds: 59, Minutes: 59, Hours: 23, Date: Date.getLastDate, Month: 11 }
+    fn = i => names.slice(0, i).reverse().map(name => d['set' + name](typeof last[name] === 'number' ? last[name] : last[name](d)))
   }
   str
     .replace(/(\d*)\s*seconds?/, (m, n) => fn(0, +n || 1 - (n === '0')))

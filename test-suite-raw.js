@@ -191,6 +191,9 @@ new Date('2019-01-31').plus('1 month').format()
 // '2017-02-28' //
 new Date('2016-02-29').plus('1 year').format()
 
+// '2016-12-31' //
+new Date('2016-02-29').end('1 year').format()
+
 // '2019-01-31' //
 new Date('2018-12-31').plus('1 month').format()
 
