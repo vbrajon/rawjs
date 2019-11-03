@@ -189,11 +189,8 @@ window.raw = (primitive, fname) => {
     if (typeof primitive[fname] !== 'function') return
     const fn = primitive[fname].fn || primitive[fname]
     const native = primitive.prototype['_' + fname]
-    const shortcut = raw.shortcut.find(s => s.on.includes(fname))
-    primitive[fname] = (x, ...args) => primitive[fname].fn(x, primitive[fname].shortcut(args[0]), ...args.slice(1))
-    primitive[fname].fn = fn
-    primitive[fname].native = native
-    primitive[fname].shortcut = shortcut ? shortcut.fn : x => x
+    const shortcut = Object.keys(raw).includes(fname)
+    primitive[fname] = shortcut ? Function.wrap(fn, raw[fname]) : fn
     if (raw.extend) Object.defineProperty(primitive.prototype, fname, {
       enumerable: false,
       configurable: true,
@@ -202,58 +199,67 @@ window.raw = (primitive, fname) => {
     })
     return primitive.name + '.' + fname + (native ? '#native' : '') + (shortcut ? '#shortcut' : '')
   }
-  if (primitive) return Object.keys(primitive).concat(raw[primitive.name] || []).map(fname => raw(primitive, fname))
+  if (primitive) return Array.unique(Object.keys(primitive).concat(raw[primitive.name] || [])).map(fname => raw(primitive, fname))
   return [Object, Array, Function, String, Number, Date, RegExp].map(primitive => raw(primitive)).flat()
 }
 raw.version = '1.1.1'
 raw.Object = ['keys', 'values']
 raw.Array = ['map', 'reduce', 'filter', 'find', 'findIndex', 'sort', 'reverse']
-raw.shortcut = [
-  {
-    on: ['map'],
-    fn: a => {
-      if (a == null) return x => x
-      if (a instanceof Function) return a
-      return x => access(x, a)
-    },
-  },
-  {
-    on: ['filter', 'find', 'findIndex'],
-    fn: a => {
-      if (a == null) return x => x
-      if (a instanceof Function) return a
-      if (a.__proto__ === Object.prototype) return x => Object.entries(a).every(([k, v]) => (v.test && v.test(x[k])) || (v.some && v.some(d => eq(x[k], d))) || eq(x[k], v))
-      return x => (a.test && a.test(x)) || (a.some && a.some(d => eq(x, d))) || eq(x, a)
-    },
-  },
-  {
-    on: ['sort'],
-    fn: a => {
-      if (a == null) return default_sort
-      if (a instanceof Array) return multi_sort(a)
-      if (a instanceof Function && a.length === 1) return (x, y) => default_sort(a(x), a(y))
-      if (a instanceof Function && a.length === 2) return a
-      return directed_sort(a)
-      function default_sort(a, b) {
-        if (typeof a !== typeof b) return typeof a > typeof b ? -1 : 1
-        if (!a && a !== 0) return -1
-        if (!b && b !== 0) return 1
-        return a === b ? 0 : a > b ? 1 : -1
-      }
-      function directed_sort(p, desc = /^-/.test(p)) {
-        p = ('' + p).replace(/^[+-]/, '')
-        return (a, b) => default_sort(access(a, p), access(b, p)) * (!desc || -1)
-      }
-      function multi_sort(p) {
-        return (a, b) => {
-          for (const k of p) {
-            const z = directed_sort(k)(a, b)
-            if (z) return z
-          }
+raw.map = (fn, ...args) => {
+  const f = a => {
+    if (a == null) return x => x
+    if (a instanceof Function) return a
+    return x => access(x, a)
+  }
+  args[1] = f(args[1])
+  return fn(...args)
+}
+raw.filter = (fn, ...args) => {
+  const f = a => {
+    if (a == null) return x => x
+    if (a instanceof Function) return a
+    if (a instanceof Array) return x => a.some(v => eq(x, v))
+    if (a instanceof RegExp) return x => a.test(x)
+    if (a instanceof Object) return x => Object.keys(a).every(k => f(a[k])(x[k]))
+    return x => eq(x, a) || access(x, a)
+  }
+  args[1] = f(args[1])
+  return fn(...args)
+}
+raw.find = raw.filter
+raw.findIndex = raw.filter
+raw.sort = (fn, ...args) => {
+  const f = a => {
+    if (a == null) return default_sort
+    if (a instanceof Array) return multi_sort(a)
+    if (a instanceof Function && a.length === 1) return (x, y) => default_sort(a(x), a(y))
+    if (a instanceof Function && a.length === 2) return a
+    return directed_sort(a)
+    function default_sort(a, b) {
+      if (typeof a !== typeof b) return typeof a > typeof b ? -1 : 1
+      if (!a && a !== 0) return -1
+      if (!b && b !== 0) return 1
+      return a === b ? 0 : a > b ? 1 : -1
+    }
+    function directed_sort(p, desc = /^-/.test(p)) {
+      p = ('' + p).replace(/^[+-]/, '')
+      return (a, b) => default_sort(access(a, p), access(b, p)) * (!desc || -1)
+    }
+    function multi_sort(p) {
+      return (a, b) => {
+        for (const k of p) {
+          const z = directed_sort(k)(a, b)
+          if (z) return z
         }
       }
-    },
-  },
-]
+    }
+  }
+  args[1] = f(args[1])
+  return fn(...args)
+}
+raw.format = (fn, ...args) => {
+  if (['Invalid Date', 'NaN'].includes('' + args[0])) return '-'
+  return fn(...args)
+}
 raw()
 raw.extend = true

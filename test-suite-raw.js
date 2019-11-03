@@ -35,6 +35,9 @@ arr.map('name').sort()
 // ['Jane Doe', 'Janette Doe'] //
 arr.map('name').filter(/Ja/)
 
+// arr //
+arr.filter('name')
+
 // { name: 'Jane Doe', age: 22 } //
 arr.find({ name: /Ja/ })
 
@@ -209,11 +212,14 @@ date.start('month').toISOString()
 // '2019-12-31T22:59:59.000Z' //
 date.end('year').toISOString()
 
-// 'Sun (month: Jan)' //
-date.format('mon, wday')
+// 'Sun (month: Jan), 10 AM' //
+date.format('mon, wday, hour')
 
 // '10:09:08' //
 date.format('hour, minute, second')
+
+// '-' //
+new Date('Invalid').format('mon, wday, hour, minute')
 
 // 'A.B' //
 'a.b'.upper()
