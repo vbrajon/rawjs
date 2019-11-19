@@ -189,7 +189,13 @@ Date.getQuarter(new Date('2018-04-01'))
 new Date('2019-05-31').minus('3 month').format()
 
 // '2019-02-28' //
+new Date('2019-05-31').plus('-3 month').format()
+
+// '2019-02-28' //
 new Date('2019-01-31').plus('1 month').format()
+
+// '2019-02-28' //
+new Date('2019-01-31').minus('-1 month').format()
 
 // '2017-02-28' //
 new Date('2016-02-29').plus('1 year').format()

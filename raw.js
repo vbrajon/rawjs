@@ -18,7 +18,7 @@ Array.median = arr => {
   return arr.length % 2 ? nums[mid] : (nums[mid - 1] + nums[mid]) / 2
 }
 
-Function.wrap = (fn, wrap) => (...args) => wrap(fn, ...args)
+Function.wrap = (fn, wrap) => Object.assign((...args) => wrap(fn, ...args), { fn, wrap })
 Function.partial = (fn, ...outer) => (...inner) => fn(...outer.map((a, i) => (a === null ? inner.shift() : a)).concat(inner))
 Function.every = (fn, ms = 0, repeat = Infinity, immediate = true) => {
   fn.start = () => fn.id = fn.id || setInterval(() => {
@@ -142,12 +142,12 @@ Date.modify = (date, str, sign) => {
     fn = i => names.slice(0, i).reverse().map(name => d['set' + name](typeof last[name] === 'number' ? last[name] : last[name](d)))
   }
   str
-    .replace(/(\d*)\s*seconds?/, (m, n) => fn(0, +n || 1 - (n === '0')))
-    .replace(/(\d*)\s*minutes?/, (m, n) => fn(1, +n || 1 - (n === '0')))
-    .replace(/(\d*)\s*hours?/, (m, n) => fn(2, +n || 1 - (n === '0')))
-    .replace(/(\d*)\s*days?/, (m, n) => fn(3, +n || 1 - (n === '0')))
-    .replace(/(\d*)\s*months?/, (m, n) => fn(4, +n || 1 - (n === '0')))
-    .replace(/(\d*)\s*years?/, (m, n) => fn(5, +n || 1 - (n === '0')))
+    .replace(/([-\d]*)\s*seconds?/, (m, n) => fn(0, +n || 1 - (n === '0')))
+    .replace(/([-\d]*)\s*minutes?/, (m, n) => fn(1, +n || 1 - (n === '0')))
+    .replace(/([-\d]*)\s*hours?/, (m, n) => fn(2, +n || 1 - (n === '0')))
+    .replace(/([-\d]*)\s*days?/, (m, n) => fn(3, +n || 1 - (n === '0')))
+    .replace(/([-\d]*)\s*months?/, (m, n) => fn(4, +n || 1 - (n === '0')))
+    .replace(/([-\d]*)\s*years?/, (m, n) => fn(5, +n || 1 - (n === '0')))
   d.setMilliseconds(0)
   if (['-', '+'].includes(sign) && /(year|month)/.test(str) && !/day/.test(str) && date.getDate() !== d.getDate()) return d.start('month').minus('second')
   return d
@@ -258,7 +258,7 @@ raw.sort = (fn, ...args) => {
   return fn(...args)
 }
 raw.format = (fn, ...args) => {
-  if (['Invalid Date', 'NaN'].includes('' + args[0])) return '-'
+  if (['Invalid Date', 'NaN', 'null', 'undefined'].includes('' + args[0])) return '-'
   return fn(...args)
 }
 raw()
