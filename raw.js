@@ -54,10 +54,10 @@ Function.memoize = (fn, hash = JSON.stringify) => {
 }
 
 String.format = (str, ...args) => {
-  let n = 0, fn = (m, n) => args[m] || args[n]
-  if (typeof args[0] === 'object') fn = (m, n) => args[0][m] || args[0][n]
+  let i = 0, fn = m => args[m]
+  if (typeof args[0] === 'object') fn = m => args[0][m]
   if (typeof args[0] === 'function') fn = args.shift()
-  return str.replace(/\{[^}]*\}/g, m => fn(m.slice(1, -1), n++) || '')
+  return str.replace(/\{[^}]*\}/g, m => fn(m.length === 2 ? i : m.slice(1, -1), i++) || '')
 }
 String.lower = str => str.toLowerCase()
 String.upper = str => str.toUpperCase()
