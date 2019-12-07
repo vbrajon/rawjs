@@ -1,4 +1,5 @@
 import './raw.js'
+Array.shuffle = (arr, r) => (arr.forEach((v, i) => ((r = Math.floor(Math.random() * i)), ([arr[i], arr[r]] = [arr[r], arr[i]]))), arr)
 raw()
 arr = [{ name: 'Jane Doe', age: 22 }, { name: 'John Doe', age: 29, birthdate: new Date('1989-11-14') }, { name: 'Janette Doe', age: 22 }, { name: 'Johnny Doe', age: 71, birthdate: new Date('Feb 26, 1932') }]
 obj = arr[0]
@@ -43,6 +44,12 @@ arr.find({ name: /Ja/ })
 
 // arr.sort('age').map('age') //
 arr.sort(d => d.age).map(d => d.age)
+
+// [[null, 1], [null, 2], [1, 3], [null, 4]].sort((a, b) => a[0] > b[0] ? -1 : 1) //
+[[null, 1], [null, 2], [1, 3], [null, 4]].sort((a, b) => a[0] > b[0] ? -1 : 1).sort((a, b) => a[0] > b[0] ? -1 : 1)
+
+// [[null, 1], [null, 2], [1, 3], [null, 4]].sort([0]) //
+[[null, 1], [null, 2], [1, 3], [null, 4]].sort([0]).sort([0])
 
 // [[71, 'Johnny Doe'], [29, 'John Doe'], [22, 'Jane Doe'], [22, 'Janette Doe']] //
 arr.sort(['-age', 'name']).map(d => [d.age, d.name])
@@ -281,8 +288,11 @@ raw(Object, 'notdefined')
 // { a: 2 } //
 [{ a: 1 }, { a: 2 }].find({ a: [2, 3] })
 
-// 19 //
-[undefined, null, { a: { b: /c/ }, c: [{ d: 1 }] }, [], x => x, /a/gi, new Date('2020'), '', '&', 'A', false, true, NaN, -Infinity, -1, -0, 0, 1, Infinity].sort().length
+// ['', '&', 'A', false, true, -Infinity, -1, -0, NaN, 0, 1, Infinity].shuffle().sort() //
+['', '&', 'A', false, true, -Infinity, -1, -0, NaN, 0, 1, Infinity].sort()
+
+// [undefined, null, x => x, /a/gi, '', '&', 'A', false, true, NaN, -Infinity, -1, -0, 0, 1, Infinity].shuffle().sort() //
+[undefined, null, x => x, /a/gi, '', '&', 'A', false, true, NaN, -Infinity, -1, -0, 0, 1, Infinity].sort()
 
 // [1, 2]
 [].map.call({ 0: 1, 1: 2 }, x => x)

@@ -174,7 +174,7 @@ window.access = (x, path) => {
     if (!path) return x
     if (x[path]) return typeof x[path] === 'function' ? x[path]() : x[path]
     return path
-      .replace(/\[[^\]]*\]/g, m => '.' + m.replace(/^[\['"\s]+/, '').replace(/['"\s\]]+$/, ''))
+      .replace(/\[[^\]]*\]/g, m => '.' + m.replace(/^[['"\s]+/, '').replace(/['"\s]]+$/, ''))
       .split('.')
       .reduce((x, p) => typeof x[p] === 'function' ? x[p]() : x[p], x)
   } catch (e) {}
@@ -236,9 +236,9 @@ raw.sort = (fn, ...args) => {
     if (a instanceof Function && a.length === 2) return a
     return directed_sort(a)
     function default_sort(a, b) {
-      if (typeof a !== typeof b) return typeof a > typeof b ? -1 : 1
-      if (!a && a !== 0) return -1
-      if (!b && b !== 0) return 1
+      if (typeof a !== typeof b) return typeof a > typeof b ? 1 : -1
+      if (!a && a !== 0) return a === b ? 0 : -1
+      if (!b && b !== 0) return a === b ? 0 : 1
       return a === b ? 0 : a > b ? 1 : -1
     }
     function directed_sort(p, desc = /^-/.test(p)) {
