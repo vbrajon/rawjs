@@ -39,6 +39,9 @@ arr.map('name').filter(/Ja/)
 // arr //
 arr.filter('name')
 
+// arr //
+arr.group(d => !!d.name)[true]
+
 // { name: 'Jane Doe', age: 22 } //
 arr.find({ name: /Ja/ })
 
@@ -57,8 +60,19 @@ arr.sort(['-age', 'name']).map(d => [d.age, d.name])
 // { 22: ['Jane Doe', 'Janette Doe'], 29: ['John Doe'], 71: ['Johnny Doe'] } //
 arr.group('age').map(g => g.map('name'))
 
-// { 22: { 'Jane Doe': [], 'Janette Doe': [] }, 29: { 'John Doe': [] }, 71: { 'Johnny Doe': [] } }
-// arr.group(['age', 'name']).map(g => g.map(g => g.map('birthdate')))
+// { '22,Jane Doe': 1, '22,Janette Doe': 1, '29,John Doe': 1, '71,Johnny Doe': 1 } //
+arr.group(['age', 'name']).map(g => g.length)
+
+// { 22: { 'Jane Doe': 1, 'Janette Doe': 1 }, 29: { 'John Doe': 1 }, 71: { 'Johnny Doe': 1 } } //
+raw.group = (fn, ...args) => {
+  if (args[1] instanceof Array) return args[0].reduce((acc, v) => {
+    args[1].reduce((a, p, i, ds) => a[v[p]] = i === ds.length - 1 ? (a[v[p]] || []).concat([v]) : a[v[p]] || {}, acc)
+    return acc
+  }, {})
+  return fn(...args)
+}
+raw()
+arr.group(['age', 'name']).map(g => g.map('length'))
 
 // [22, 29, 71] //
 arr.map('age').unique()
@@ -293,6 +307,3 @@ raw(Object, 'notdefined')
 
 // [undefined, null, x => x, /a/gi, '', '&', 'A', false, true, NaN, -Infinity, -1, -0, 0, 1, Infinity].shuffle().sort() //
 [undefined, null, x => x, /a/gi, '', '&', 'A', false, true, NaN, -Infinity, -1, -0, 0, 1, Infinity].sort()
-
-// [1, 2]
-[].map.call({ 0: 1, 1: 2 }, x => x)

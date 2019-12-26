@@ -4,7 +4,7 @@ It let you do:
 
 ```javascript
 timeserie.filter((v, k) => k > '2010' && v > 80)
-users.sort('-age').find({ name: /^J/ }).age
+users.sort('-age').find({ name: /^J/ }).age
 users.group('age').map('length')
 (() => console.log(new Date())).throttle(2000).every(100)
 'Python {} this {}'.format('calls', 'f-string').join('snake')
@@ -45,10 +45,10 @@ It works:
 ```javascript
 <script src="https://vbrajon.github.io/rawjs/raw.js"></script>
 <script>
-  String.format('{} rocks!', 'RawJS')
+  String.format('{} rocks!', 'RawJS')
   // OR extending prototypes
   raw()
-  '{} rocks!'.format('RawJS')
+  '{} rocks!'.format('RawJS')
 </script>
 ```
 - in node:
@@ -56,7 +56,7 @@ It works:
 // npm i git+https://git@github.com/vbrajon/rawjs.git
 require('rawjs')
 raw()
-'{} rocks!'.format('RawJS')
+'{} rocks!'.format('RawJS')
 ```
 - in the terminal:
 ```bash

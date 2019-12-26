@@ -209,12 +209,13 @@ raw.map = (fn, ...args) => {
   const f = a => {
     if (a == null) return x => x
     if (a instanceof Function) return a
+    if (a instanceof Array) return x => a.map(b => access(x, b))
     return x => access(x, a)
   }
   args[1] = f(args[1])
   return fn(...args)
 }
-raw.filter = (fn, ...args) => {
+raw.filter = raw.find = raw.findIndex = (fn, ...args) => {
   const f = a => {
     if (a == null) return x => x
     if (a instanceof Function) return a
@@ -226,8 +227,6 @@ raw.filter = (fn, ...args) => {
   args[1] = f(args[1])
   return fn(...args)
 }
-raw.find = raw.filter
-raw.findIndex = raw.filter
 raw.sort = (fn, ...args) => {
   const f = a => {
     if (a == null) return default_sort

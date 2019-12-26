@@ -27,10 +27,9 @@ async function run_test(test) {
     const start = performance.now()
     const output = await fn()
     time = performance.now() - start
-    if (test.match(/^\/\/(.*)\/\//)) {
-      const expected = eval('(' + (test.match(/^\/\/(.*)\/\//)[1] || 'null') + ')')
-      equal(output, expected)
-    }
+    if (!test.match(/^\/\/(.*)\/\//) || test.split('\n').every(l => l.startsWith('//'))) return {}
+    const expected = eval('(' + (test.match(/^\/\/(.*)\/\//)[1] || 'null') + ')')
+    equal(output, expected)
   } catch(e) {
     error = e
   }
@@ -58,7 +57,6 @@ async function download_tests(url, download = window.download || (async file => 
     .replace(/(^|\n)(\w+\s*=)/g, '$1window.$2')
     .split('\n\n')
     .map(t => t.trim())
-    .filter(t => t && !t.split('\n').every(l => l.startsWith('//')))
 }
 
 async function run_file(url) {
@@ -67,10 +65,11 @@ async function run_file(url) {
   const results = await run_tests(tests)
   const time = performance.now() - start
   const passed = results.filter(d => d.test && !d.error)
-  const errored = results.filter(d => !d.test || d.error)
-  const [clear, red, green, yellow, blue] = [0, 31, 32, 33, 34].map(n => `\x1b[${n}m`)
-  if (errored.length) console.error(errored)
-  console.log(`${blue}${url}${clear} | ${yellow}${time > 1000 ? +(time / 1000).toPrecision(2) + 's' : +(time).toPrecision(2) + 'ms'}${clear}: ${green}${passed.length} passed${clear}, ${red}${errored.length} errored${clear}`)
+  const skipped = results.filter(d => !d.test)
+  const errored = results.filter(d => d.error)
+  const [clear, red, green, yellow, blue, pink] = [0, 31, 32, 33, 34, 35].map(n => `\x1b[${n}m`)
+  if (errored.length) console.dir([errored], { depth: null })
+  console.log(`${blue}${url}${clear} | ${yellow}${time > 1000 ? +(time / 1000).toPrecision(2) + 's' : +(time).toPrecision(2) + 'ms'}${clear}: ${green}${passed.length} passed${clear}, ${red}${errored.length} errored${clear}, ${pink}${skipped.length - 1} skipped${clear}`)
   return results
 }
 
