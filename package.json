@@ -11,10 +11,8 @@
     "test:watch": "node -r esm test-runner.js test-suite-raw.js --watch"
   },
   "devDependencies": {
-    "benchmark": "^2.1.4",
     "esm": "^3.2.25",
     "lodash": "^4.17.15",
-    "sugar": "^2.0.6",
-    "tape": "^4.11.0"
+    "sugar": "^2.0.6"
   }
 }

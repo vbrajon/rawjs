@@ -4,7 +4,7 @@ raw()
 arr = [{ name: 'Jane Doe', age: 22 }, { name: 'John Doe', age: 29, birthdate: new Date('1989-11-14') }, { name: 'Janette Doe', age: 22 }, { name: 'Johnny Doe', age: 71, birthdate: new Date('Feb 26, 1932') }]
 obj = arr[0]
 str = 'i am: The1\nAND\t,_L?on*e%ly.'
-date = new Date('2019-01-20T09:09:08Z')
+date = new Date('2019-01-20T10:09:08')
 
 // [ 'name', 'age' ] //
 obj.keys()
@@ -152,8 +152,8 @@ str.join('pascal')
 // '66 pears x 4 apples' //
 '{66} pears x {3} apples'.format((x, i) => +x + i)
 
-// 0.3 //
-(.1 * 3).format()
+// 300 //
+(.1 * 3 * 1000).format()
 
 // '-100µ' //
 (-.000123456789).format(1)
@@ -209,6 +209,9 @@ Date.getWeek(new Date('2018-02-26'))
 // 2 //
 Date.getQuarter(new Date('2018-04-01'))
 
+// '2019-01-01T08:12:00' //
+new Date('2019-01-01').plus(.1 * 3 + ' day').format('YYYY-MM-DDThh:mm:ss')
+
 // '2019-02-28' //
 new Date('2019-05-31').minus('3 month').format()
 
@@ -216,7 +219,7 @@ new Date('2019-05-31').minus('3 month').format()
 new Date('2019-05-31').plus('-3 month').format()
 
 // '2019-02-28' //
-new Date('2019-01-31').plus('1 month').format()
+new Date('2019-01-31').plus('1 Month').format()
 
 // '2019-02-28' //
 new Date('2019-01-31').minus('-1 month').format()
@@ -233,14 +236,14 @@ new Date('2018-12-31').plus('1 month').format()
 // '2018-11-30' //
 new Date('2018-12-31').minus('1 month').format()
 
-// '2017-12-19T08:07:58.000Z' // DEPRECATED
-date.minus('1 year, 1 month, 1 day, hour, minute and 10 seconds').toISOString()
+// '2017-12-19T09:07:58' // DEPRECATED
+date.minus('1 year, 1 month, 1 day, hour, minute and 10 seconds').format('YYYY-MM-DDThh:mm:ss')
 
-// '2018-12-31T23:00:00.000Z' //
-date.start('month').toISOString()
+// '2019-01-01T00:00:00' //
+date.start('month').format('YYYY-MM-DDThh:mm:ss')
 
-// '2019-12-31T22:59:59.000Z' //
-date.end('year').toISOString()
+// '2019-12-31T23:59:59' //
+date.end('year').format('YYYY-MM-DDThh:mm:ss')
 
 // 'Sun (month: Jan), 10 AM' //
 date.format('mon, wday, hour')
@@ -278,8 +281,8 @@ new Date().plus('2 hours').relative()
 // { a: { b: 1 }} //
 access({ a: { b: 1 }})
 
-// 1 //
-access({ a: { b: 1 }}, 'a.b')
+// 3 //
+access({ a: { b: [1,2,3] }}, 'a.b.length')
 
 // access({ a: { 'b-c': 1 }}, "a['b-c']") //
 access({ a: { 'b-c': 1 }}, 'a.b-c')

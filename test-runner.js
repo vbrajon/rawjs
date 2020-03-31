@@ -41,7 +41,7 @@ async function run_performance(test) {
   const start = performance.now()
   while (performance.now() - start < 1000) tests.push(await run_test(test))
   const time = performance.now() - start
-  console.log(test.split('\n').slice(-1)[0], +tests.length.toPrecision(1))
+  console.log(test.split('\n').slice(-1)[0], +tests.length.toPrecision(2))
   return { test, time, error: (tests.find(t => t.error) || {}).error, runs: tests.length }
 }
 
