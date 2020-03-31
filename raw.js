@@ -14,20 +14,23 @@ Array.sum = arr => arr.reduce((acc, v) => acc + v, 0)
 Array.mean = arr => arr.reduce((acc, v) => acc + v, 0) / arr.length
 Array.median = arr => {
   const mid = Math.floor(arr.length / 2)
-  const nums = [...arr].sort((a, b) => a - b)
+  const nums = arr.slice().sort((a, b) => a - b)
   return arr.length % 2 ? nums[mid] : (nums[mid - 1] + nums[mid]) / 2
 }
 
 Function.wrap = (fn, wrap) => Object.assign((...args) => wrap(fn, ...args), { fn, wrap })
 Function.partial = (fn, ...outer) => (...inner) => fn(...outer.map((a, i) => (a === null ? inner.shift() : a)).concat(inner))
 Function.every = (fn, ms = 0, repeat = Infinity, immediate = true) => {
-  fn.start = () => fn.id = fn.id || setInterval(() => {
-    if (--repeat < 1 + immediate) fn.stop()
-    fn.r ? fn.r(fn()) : fn()
-    delete fn.r
-  }, ms)
+  fn.start = () => {
+    if (fn.id) return
+    fn.id = setInterval(() => {
+      if (--repeat < 1 + immediate) fn.stop()
+      fn.r ? fn.r(fn()) : fn()
+      delete fn.r
+    }, ms)
+  }
   fn.stop = () => (clearInterval(fn.id), delete fn.id, delete fn.then)
-  fn.then = r => fn.r = r
+  fn.then = r => (fn.r = r)
   fn.start()
   if (immediate) fn()
   return fn
@@ -54,7 +57,8 @@ Function.memoize = (fn, hash = JSON.stringify) => {
 }
 
 String.format = (str, ...args) => {
-  let i = 0, fn = m => args[m]
+  let i = 0,
+    fn = m => args[m]
   if (typeof args[0] === 'object') fn = m => args[0][m]
   if (typeof args[0] === 'function') fn = args.shift()
   return str.replace(/\{[^}]*\}/g, m => fn(m.length === 2 ? i : m.slice(1, -1), i++) || '')
@@ -88,7 +92,7 @@ Number.duration = num => {
 Number.format = (num, fmt) => {
   if (typeof fmt === 'string') return new Intl.NumberFormat(fmt).format(num)
   if (typeof fmt === 'number') return (+num.toPrecision(fmt)).toExponential().replace(/([+-\d.]+)e([+-\d]+)/, (m, n, e) => +(n + 'e' + (e - Math.floor(e / 3) * 3)) + (['mµnpfazy', 'kMGTPEZY'][+(e > 0)].split('')[Math.abs(Math.floor(e / 3)) - 1] || ''))
-  return +num.toPrecision(16)
+  return +num.toPrecision(15)
 }
 Object.getOwnPropertyNames(Math)
   .filter(k => typeof Math[k] === 'function')
@@ -99,9 +103,9 @@ Date.getWeek = (date, soy = new Date(date.getFullYear(), 0, 0)) => Math.floor(((
 Date.getQuarter = date => Math.ceil((date.getMonth() + 1) / 3)
 Date.getLastDate = date => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
 Date.format = (date, fmt = 'YYYY-MM-DD', lang = 'en') => {
-  const intl = option => date.toLocaleString(lang, option)
+  const intl = options => date.toLocaleString(lang, options)
   const parts = fmt.split(',').map(s => s.trim())
-  if (!parts.filter(d => !['year', 'month', 'mon', 'day', 'weekday', 'wday', 'hour', 'minute', 'second'].includes(d)).length) {
+  if (!parts.filter(v => !['year', 'month', 'mon', 'day', 'weekday', 'wday', 'hour', 'minute', 'second'].includes(v)).length) {
     const options = {}
     if (parts.includes('second')) options.second = '2-digit'
     if (parts.includes('minute')) options.minute = '2-digit'
@@ -112,7 +116,7 @@ Date.format = (date, fmt = 'YYYY-MM-DD', lang = 'en') => {
     if (parts.includes('mon')) options.month = 'short'
     if (parts.includes('month')) options.month = 'long'
     if (parts.includes('year')) options.year = 'numeric'
-    if (!options.day && !options.month && !options.year) return Date.format(date, [options.hour && 'hh', options.minute && 'mm', options.second && 'ss'].filter(d => d).join(':'))
+    if (!options.day && !options.month && !options.year) return Date.format(date, [options.hour && 'hh', options.minute && 'mm', options.second && 'ss'].filter(v => v).join(':'))
     return intl(options)
   }
   const letters = { s: 'Seconds', m: 'Minutes', h: 'Hours', D: 'Date', W: 'Week', M: 'Month', Q: 'Quarter', Y: 'FullYear' }
@@ -131,25 +135,30 @@ Date.format = (date, fmt = 'YYYY-MM-DD', lang = 'en') => {
   return fmt
 }
 Date.modify = (date, str, sign) => {
-  const d = new Date(date)
+  let d = new Date(date)
   const names = ['Seconds', 'Minutes', 'Hours', 'Date', 'Month', 'FullYear']
+  const durations = [1000, 60000, 3600000, 86400000]
   let fn
-  if (sign === '+') fn = (i, n) => d['set' + names[i]](d['get' + names[i]]() + n)
-  if (sign === '-') fn = (i, n) => d['set' + names[i]](d['get' + names[i]]() - n)
+  if (sign === '+') fn = (i, n) => (durations[i] ? (d = new Date(+d + durations[i] * n)) : d['set' + names[i]](d['get' + names[i]]() + n))
+  if (sign === '-') fn = (i, n) => (durations[i] ? (d = new Date(+d - durations[i] * n)) : d['set' + names[i]](d['get' + names[i]]() - n))
   if (sign === '<') fn = (i, n) => names.slice(0, i).map(name => d['set' + name](name === 'Date' ? 1 : 0))
   if (sign === '>') {
     const last = { Seconds: 59, Minutes: 59, Hours: 23, Date: Date.getLastDate, Month: 11 }
-    fn = i => names.slice(0, i).reverse().map(name => d['set' + name](typeof last[name] === 'number' ? last[name] : last[name](d)))
+    fn = i =>
+      names
+        .slice(0, i)
+        .reverse()
+        .map(name => d['set' + name](typeof last[name] === 'number' ? last[name] : last[name](d)))
   }
   str
-    .replace(/([-\d]*)\s*seconds?/, (m, n) => fn(0, +n || 1 - (n === '0')))
-    .replace(/([-\d]*)\s*minutes?/, (m, n) => fn(1, +n || 1 - (n === '0')))
-    .replace(/([-\d]*)\s*hours?/, (m, n) => fn(2, +n || 1 - (n === '0')))
-    .replace(/([-\d]*)\s*days?/, (m, n) => fn(3, +n || 1 - (n === '0')))
-    .replace(/([-\d]*)\s*months?/, (m, n) => fn(4, +n || 1 - (n === '0')))
-    .replace(/([-\d]*)\s*years?/, (m, n) => fn(5, +n || 1 - (n === '0')))
+    .replace(/([+-\.\d]*)\s*seconds?/i, (m, n) => fn(0, +n || 1 - (n === '0')))
+    .replace(/([+-\.\d]*)\s*minutes?/i, (m, n) => fn(1, +n || 1 - (n === '0')))
+    .replace(/([+-\.\d]*)\s*hours?/i, (m, n) => fn(2, +n || 1 - (n === '0')))
+    .replace(/([+-\.\d]*)\s*days?/i, (m, n) => fn(3, +n || 1 - (n === '0')))
+    .replace(/([+-\.\d]*)\s*months?/i, (m, n) => fn(4, +n || 1 - (n === '0')))
+    .replace(/([+-\.\d]*)\s*years?/i, (m, n) => fn(5, +n || 1 - (n === '0')))
   d.setMilliseconds(0)
-  if (['-', '+'].includes(sign) && /(year|month)/.test(str) && !/day/.test(str) && date.getDate() !== d.getDate()) return d.start('month').minus('second')
+  if (['-', '+'].includes(sign) && /(year|month)/i.test(str) && !/day/i.test(str) && date.getDate() !== d.getDate()) return d.start('month').minus('second')
   return d
 }
 Date.plus = (date, str) => date.modify(str, '+')
@@ -176,7 +185,7 @@ window.access = (x, path) => {
     return path
       .replace(/\[[^\]]*\]/g, m => '.' + m.replace(/^[['"\s]+/, '').replace(/['"\s]]+$/, ''))
       .split('.')
-      .reduce((x, p) => typeof x[p] === 'function' ? x[p]() : x[p], x)
+      .reduce(access, x)
   } catch (e) {}
 }
 window.raw = (primitive, fname) => {
@@ -191,12 +200,15 @@ window.raw = (primitive, fname) => {
     const native = primitive.prototype['_' + fname]
     const shortcut = Object.keys(raw).includes(fname)
     primitive[fname] = shortcut ? Function.wrap(fn, raw[fname]) : fn
-    if (raw.extend) Object.defineProperty(primitive.prototype, fname, {
-      enumerable: false,
-      configurable: true,
-      writable: true,
-      value: function(...args) { return primitive[fname](this, ...args) },
-    })
+    if (raw.extend)
+      Object.defineProperty(primitive.prototype, fname, {
+        enumerable: false,
+        configurable: true,
+        writable: true,
+        value: function(...args) {
+          return primitive[fname](this, ...args)
+        },
+      })
     return primitive.name + '.' + fname + (native ? '#native' : '') + (shortcut ? '#shortcut' : '')
   }
   if (primitive) return Array.unique(Object.keys(primitive).concat(raw[primitive.name] || [])).map(fname => raw(primitive, fname))
