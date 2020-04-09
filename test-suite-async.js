@@ -1,5 +1,5 @@
 import './raw.js'
-raw()
+Object.extend(true)
 
 // 1 //
 await (() => 1).wait(100)

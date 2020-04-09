@@ -2,7 +2,7 @@
 
 // USAGE: echo '{"range":[1, 2]}' | raw '.range.sum()'
 require('./raw.js')
-raw()
+Object.extend(true)
 let x = ''
 const stdin = process.stdin
 const stdout = process.stdout

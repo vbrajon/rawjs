@@ -47,7 +47,7 @@ It works:
 <script>
   String.format('{} rocks!', 'RawJS')
   // OR extending prototypes
-  raw()
+  Object.extend(true)
   '{} rocks!'.format('RawJS')
 </script>
 ```
@@ -55,7 +55,7 @@ It works:
 ```javascript
 // npm i git+https://git@github.com/vbrajon/rawjs.git
 require('rawjs')
-raw()
+Object.extend(true)
 '{} rocks!'.format('RawJS')
 ```
 - in the terminal:

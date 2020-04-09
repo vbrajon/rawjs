@@ -1,10 +1,11 @@
 import './raw.js'
-Array.shuffle = (arr, r) => (arr.forEach((v, i) => ((r = Math.floor(Math.random() * i)), ([arr[i], arr[r]] = [arr[r], arr[i]]))), arr)
-raw()
 arr = [{ name: 'Jane Doe', age: 22 }, { name: 'John Doe', age: 29, birthdate: new Date('1989-11-14') }, { name: 'Janette Doe', age: 22 }, { name: 'Johnny Doe', age: 71, birthdate: new Date('Feb 26, 1932') }]
 obj = arr[0]
 str = 'i am: The1\nAND\t,_L?on*e%ly.'
 date = new Date('2019-01-20T10:09:08')
+
+// ['Object.map#shortcut', 'Object.reduce', 'Object.filter#shortcut', 'Object.find#shortcut', 'Object.eq', 'Object.access', 'Object.extend#core', 'Object.keys', 'Object.values', 'Array.group', 'Array.unique', 'Array.min', 'Array.max', 'Array.sum', 'Array.mean', 'Array.median', 'Array.map#native#shortcut', 'Array.reduce#native', 'Array.filter#native#shortcut', 'Array.find#native#shortcut', 'Array.findIndex#native#shortcut', 'Array.sort#native#shortcut', 'Array.reverse#native', 'Function.wrap', 'Function.partial', 'Function.every', 'Function.wait', 'Function.debounce', 'Function.throttle', 'Function.memoize', 'String.format#shortcut', 'String.lower', 'String.upper', 'String.capitalize', 'String.words', 'String.join', 'Number.duration', 'Number.format#shortcut', 'Number.abs', 'Number.acos', 'Number.acosh', 'Number.asin', 'Number.asinh', 'Number.atan', 'Number.atanh', 'Number.atan2', 'Number.ceil', 'Number.cbrt', 'Number.expm1', 'Number.clz32', 'Number.cos', 'Number.cosh', 'Number.exp', 'Number.floor', 'Number.fround', 'Number.hypot', 'Number.imul', 'Number.log', 'Number.log1p', 'Number.log2', 'Number.log10', 'Number.max', 'Number.min', 'Number.pow', 'Number.random', 'Number.round', 'Number.sign', 'Number.sin', 'Number.sinh', 'Number.sqrt', 'Number.tan', 'Number.tanh', 'Number.trunc', 'Date.relative', 'Date.getWeek', 'Date.getQuarter', 'Date.getLastDate', 'Date.format#shortcut', 'Date.modify', 'Date.plus', 'Date.minus', 'Date.start', 'Date.end', 'RegExp.escape', 'RegExp.plus', 'RegExp.minus'] //
+Object.extend(true)
 
 // [ 'name', 'age' ] //
 obj.keys()
@@ -62,17 +63,6 @@ arr.group('age').map(g => g.map('name'))
 
 // { '22,Jane Doe': 1, '22,Janette Doe': 1, '29,John Doe': 1, '71,Johnny Doe': 1 } //
 arr.group(['age', 'name']).map(g => g.length)
-
-// { 22: { 'Jane Doe': 1, 'Janette Doe': 1 }, 29: { 'John Doe': 1 }, 71: { 'Johnny Doe': 1 } } //
-raw.group = (fn, ...args) => {
-  if (args[1] instanceof Array) return args[0].reduce((acc, v) => {
-    args[1].reduce((a, p, i, ds) => a[v[p]] = i === ds.length - 1 ? (a[v[p]] || []).concat([v]) : a[v[p]] || {}, acc)
-    return acc
-  }, {})
-  return fn(...args)
-}
-raw()
-arr.group(['age', 'name']).map(g => g.map('length'))
 
 // [22, 29, 71] //
 arr.map('age').unique()
@@ -278,23 +268,26 @@ new Date().plus('2 hours').relative()
 // '' //
 /QwErTy/.minus('i').flags
 
-// { a: { b: 1 }} //
-access({ a: { b: 1 }})
+// { a: { b: [1,2,3] }} //
+({ a: { b: [1,2,3] }}).access()
 
 // 3 //
-access({ a: { b: [1,2,3] }}, 'a.b.length')
+({ a: { b: [1,2,3] }}).access('a.b.length')
 
-// access({ a: { 'b-c': 1 }}, "a['b-c']") //
-access({ a: { 'b-c': 1 }}, 'a.b-c')
+// 3 //
+([{ a: { b: [1,2,3] }}]).access('0.a.b.length')
+
+// Object.access({ a: { 'b-c': 1 }}, "a['b-c']") //
+({ a: { 'b-c': 1 }}).access('a.b-c')
 
 // true //
-eq([undefined, null, { a: { b: /c/ }, c: [{ d: 1 }] }, [], x => x, /a/gi, new Date('2020'), '', '&', 'A', false, true, NaN, -Infinity, -1, -0, 0, 1, Infinity], [undefined, null, { a: { b: /c/ }, c: [{ d: 1 }] }, [], x => x, /a/gi, new Date('2020'), '', '&', 'A', false, true, NaN, -Infinity, -1, -0, 0, 1, Infinity])
+Object.eq([undefined, null, { a: { b: /c/ }, c: [{ d: 1 }] }, [], x => x, /a/gi, new Date('2020'), '', '&', 'A', false, true, NaN, -Infinity, -1, -0, 0, 1, Infinity], [undefined, null, { a: { b: /c/ }, c: [{ d: 1 }] }, [], x => x, /a/gi, new Date('2020'), '', '&', 'A', false, true, NaN, -Infinity, -1, -0, 0, 1, Infinity])
 
 // false //
-eq([null], [null, undefined])
+Object.eq([null], [null, undefined])
 
 // undefined //
-raw(Object, 'notdefined')
+Object.extend(Object, 'notdefined')
 
 // { a: 1 } //
 [{ a: 1 }].find({ a: 1 })
@@ -306,7 +299,20 @@ raw(Object, 'notdefined')
 [{ a: 1 }, { a: 2 }].find({ a: [2, 3] })
 
 // ['', '&', 'A', false, true, -Infinity, -1, -0, NaN, 0, 1, Infinity].shuffle().sort() //
+Array.shuffle = (arr, r) => (arr.forEach((v, i) => ((r = Math.floor(Math.random() * i)), ([arr[i], arr[r]] = [arr[r], arr[i]]))), arr)
+Object.extend()
 ['', '&', 'A', false, true, -Infinity, -1, -0, NaN, 0, 1, Infinity].sort()
 
 // [undefined, null, x => x, /a/gi, '', '&', 'A', false, true, NaN, -Infinity, -1, -0, 0, 1, Infinity].shuffle().sort() //
 [undefined, null, x => x, /a/gi, '', '&', 'A', false, true, NaN, -Infinity, -1, -0, 0, 1, Infinity].sort()
+
+// { 22: { 'Jane Doe': 1, 'Janette Doe': 1 }, 29: { 'John Doe': 1 }, 71: { 'Johnny Doe': 1 } } //
+Object.extend.group = (fn, ...args) => {
+  if (args[1] instanceof Array) return args[0].reduce((acc, v) => {
+    args[1].reduce((a, p, i, ds) => a[v[p]] = i === ds.length - 1 ? (a[v[p]] || []).concat([v]) : a[v[p]] || {}, acc)
+    return acc
+  }, {})
+  return fn(...args)
+}
+Object.extend()
+arr.group(['age', 'name']).map(g => g.map('length'))

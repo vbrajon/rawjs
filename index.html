@@ -56,10 +56,10 @@
 <script async defer src="https://buttons.github.io/buttons.js"></script>
 <main>
   <section class="sidebar">
-    <header @click="pname = fname = null"><div style="background: linear-gradient(to right, #f34, #fd0);-webkit-background-clip: text;-webkit-text-fill-color: transparent;">RawJS</div><div style="margin-left: auto;opacity: .7;font-size: 16px;">{{ raw.version }}</div></header>
+    <header @click="pname = fname = null"><div style="background: linear-gradient(to right, #f34, #fd0);-webkit-background-clip: text;-webkit-text-fill-color: transparent;">RawJS</div><div style="margin-left: auto;opacity: .7;font-size: 16px;">{{ Object.extend.version }}</div></header>
     <div class="primitive" :class="{ open: primitive.name === pname }" v-for="primitive in [Object, Array, Function, String, Number, Date, RegExp]">
-      <div :class="[{ active: pname === primitive.name }, primitive.name]" @click="pname = primitive.name;fname = (raw[primitive.name] || []).concat(Object.keys(primitive)).unique()[0]">{{ primitive.name }}</div>
-      <div :class="[{ active: fname === fn }, primitive.name, fn]" @click="pname = primitive.name;fname = fn" v-for="fn in (raw[primitive.name] || []).concat(Object.keys(primitive)).unique().filter(fn => !Object.getOwnPropertyNames(Math).includes(fn))">.{{ fn }}</div>
+      <div :class="[{ active: pname === primitive.name }, primitive.name]" @click="pname = primitive.name;fname = (Object.extend[primitive.name] || []).concat(Object.keys(primitive)).unique()[0]">{{ primitive.name }}</div>
+      <div :class="[{ active: fname === fn }, primitive.name, fn]" @click="pname = primitive.name;fname = fn" v-for="fn in (Object.extend[primitive.name] || []).concat(Object.keys(primitive)).unique().filter(fn => !Object.getOwnPropertyNames(Math).includes(fn))">.{{ fn }}</div>
     </div>
     <div class="sidebar-info">
       <!-- <a class="github-button" href="https://github.com/sponsors/vbrajon" data-icon="octicon-heart" aria-label="Sponsor @vbrajon on GitHub">Sponsor</a> -->
@@ -70,7 +70,7 @@
   <!-- <section class="demo">
     <header :class="pname">{{ pname }}</header>
     <template v-for="primitive in [Object, Array, Function, String, Number, Date, RegExp]">
-      <div :class="primitive.name" @click="pname = primitive.name;fname = fn" v-for="fn in (raw[primitive.name] || []).concat(Object.keys(primitive)).unique().filter(fn => !Object.getOwnPropertyNames(Math).includes(fn))">{{ primitive.name }}.{{ fn }}{{ primitive.prototype['_' + fn] || primitive[fn].toString().includes('[native code]') ? ' #native' : '' }}{{ primitive[fn].fn ? ' #shortcut' : '' }}</div>
+      <div :class="primitive.name" @click="pname = primitive.name;fname = fn" v-for="fn in (Object.extend[primitive.name] || []).concat(Object.keys(primitive)).unique().filter(fn => !Object.getOwnPropertyNames(Math).includes(fn))">{{ primitive.name }}.{{ fn }}{{ primitive.prototype['_' + fn] || primitive[fn].toString().includes('[native code]') ? ' #native' : '' }}{{ primitive[fn].fn ? ' #shortcut' : '' }}</div>
     </template>
   </section> -->
   <section class="info">
@@ -81,10 +81,9 @@
   </section>
 </main>
 <script>
-  raw()
+  Object.extend(true)
   Vue.prototype.window = window
   Vue.prototype.Function = Function
-  Vue.prototype.raw = raw
   Vue.prototype.Prism = Prism
   Vue.component('markdown', {
     props: ['file'],
