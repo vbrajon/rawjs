@@ -61,8 +61,6 @@ Object.extend(true)
 - in the terminal:
 ```bash
 npm i -g git+https://git@github.com/vbrajon/rawjs.git
-echo "1+2+3+4+5" | raw # returns evaluated result if it is valid javascript
-echo "[1,2,3,4,5]" | raw ".sum()"
-echo 1.2.3.4.5 | raw ".split('.').map(d => +d).sum()"
-cat users.json | raw ".group('age').map('length')"
+raw # this will prompt the help
+echo [1,2,3,4,5] | raw .length
 ```

@@ -4,7 +4,7 @@ import Sugar from 'Sugar'
 a = Array(10000).fill().map((_, i) => ({ name: 'John', age: i }))
 
 // 'vanilla'
-a.map(d => d.age)
+a.map(v => v.age)
 
 // 'raw ' + raw.version
 Array.map(a, 'age')

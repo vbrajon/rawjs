@@ -41,13 +41,13 @@ arr.map('name').filter(/Ja/)
 arr.filter('name')
 
 // arr //
-arr.group(d => !!d.name)[true]
+arr.group(v => !!v.name)[true]
 
 // { name: 'Jane Doe', age: 22 } //
 arr.find({ name: /Ja/ })
 
 // arr.sort('age').map('age') //
-arr.sort(d => d.age).map(d => d.age)
+arr.sort(v => v.age).map(v => v.age)
 
 // [[null, 1], [null, 2], [1, 3], [null, 4]].sort((a, b) => a[0] > b[0] ? -1 : 1) //
 [[null, 1], [null, 2], [1, 3], [null, 4]].sort((a, b) => a[0] > b[0] ? -1 : 1).sort((a, b) => a[0] > b[0] ? -1 : 1)
@@ -56,7 +56,7 @@ arr.sort(d => d.age).map(d => d.age)
 [[null, 1], [null, 2], [1, 3], [null, 4]].sort([0]).sort([0])
 
 // [[71, 'Johnny Doe'], [29, 'John Doe'], [22, 'Jane Doe'], [22, 'Janette Doe']] //
-arr.sort(['-age', 'name']).map(d => [d.age, d.name])
+arr.sort(['-age', 'name']).map(v => [v.age, v.name])
 
 // { 22: ['Jane Doe', 'Janette Doe'], 29: ['John Doe'], 71: ['Johnny Doe'] } //
 arr.group('age').map(g => g.map('name'))

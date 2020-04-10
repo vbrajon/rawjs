@@ -64,9 +64,9 @@ async function run_file(url) {
   const start = performance.now()
   const results = await run_tests(tests)
   const time = performance.now() - start
-  const passed = results.filter(d => d.test && !d.error)
-  const skipped = results.filter(d => !d.test)
-  const errored = results.filter(d => d.error)
+  const passed = results.filter(v => v.test && !v.error)
+  const skipped = results.filter(v => !v.test)
+  const errored = results.filter(v => v.error)
   const [clear, red, green, yellow, blue, pink] = [0, 31, 32, 33, 34, 35].map(n => `\x1b[${n}m`)
   if (errored.length) console.dir([errored], { depth: null })
   console.log(`${blue}${url}${clear} | ${yellow}${time > 1000 ? +(time / 1000).toPrecision(2) + 's' : +(time).toPrecision(2) + 'ms'}${clear}: ${green}${passed.length} passed${clear}, ${red}${errored.length} errored${clear}, ${pink}${skipped.length - 1} skipped${clear}`)
@@ -75,8 +75,8 @@ async function run_file(url) {
 
 if (typeof global !== 'undefined') {
   const [ok, ko, crash] = ['Bottle', 'Ping', 'Sosumi'].map(k => () => require('child_process').spawn('afplay', ['/System/Library/Sounds/' + k + '.aiff'], { detached: true, stdio: 'ignore' }).unref())
-  const options = process.argv.slice(2).filter(d => d.startsWith('--')).reduce((acc, v) => (acc[v.slice(2)] = true, acc), {})
-  const files = process.argv.slice(2).filter(d => !d.startsWith('--'))
+  const options = process.argv.slice(2).filter(v => v.startsWith('--')).reduce((acc, v) => (acc[v.slice(2)] = true, acc), {})
+  const files = process.argv.slice(2).filter(v => !v.startsWith('--'))
   window = global
   window.perf = options.perf || options.performance || options.benchmark
   window.performance = require('perf_hooks').performance
@@ -85,10 +85,10 @@ if (typeof global !== 'undefined') {
   window.watch = file => require('fs').watch(file, () => require('child_process').execSync([process.argv[0], '-r esm'].concat(process.argv.slice(1)).join(' ').replace('--watch', '--child'), { stdio: 'inherit', cwd: process.cwd() }))
   window.run_cli = async () => {
     const results = (await Promise.map(files, run_file)).flat()
-    results.some(d => d.error) ? ko() : ok()
+    results.some(v => v.error) ? ko() : ok()
     if (options.child) return
     if (options.watch) Object.keys(require('module')._cache).concat(files).filter(f => !/esm.js$/.test(f)).map(watch)
-    else results.some(d => d.error) && process.exit(1)
+    else results.some(v => v.error) && process.exit(1)
   }
   run_cli()
 }

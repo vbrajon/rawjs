@@ -19,7 +19,7 @@ Object.access = (x, path) => {
     return path
       .replace(/\[[^\]]*\]/g, m => '.' + m.replace(/^[['"\s]+/, '').replace(/['"\s]]+$/, ''))
       .split('.')
-      .reduce(Object.access, x)
+      .reduce((x, path) => typeof x[path] === 'function' ? x[path]() : x[path], x)
   } catch (e) {}
 }
 
@@ -111,9 +111,6 @@ Number.format = (num, fmt) => {
   if (typeof fmt === 'number') return (+num.toPrecision(fmt)).toExponential().replace(/([+-\d.]+)e([+-\d]+)/, (m, n, e) => +(n + 'e' + (e - Math.floor(e / 3) * 3)) + (['mµnpfazy', 'kMGTPEZY'][+(e > 0)].split('')[Math.abs(Math.floor(e / 3)) - 1] || ''))
   return +num.toPrecision(15)
 }
-Object.getOwnPropertyNames(Math)
-  .filter(k => typeof Math[k] === 'function')
-  .forEach(k => (Number[k] = Math[k]))
 
 Date.relative = (date, d2 = new Date()) => (date - d2).duration().replace(/^(-?)(.*)/, (m, sign, d) => d + (sign === '-' ? ' ago' : ' from now'))
 Date.getWeek = (date, soy = new Date(date.getFullYear(), 0, 0)) => Math.floor(((date - soy) / 86400000 + 6 - soy.getDay()) / 7)
