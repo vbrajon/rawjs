@@ -14,14 +14,14 @@ EXEMPLE:
 INTERACTIVE:
 
     curl -s https://api.github.com/users/vbrajon | raw
-    > .login
+    > .login // autocompletion is on, you can enter ".l" then "tab"
     vbrajon
     > .access(['followers', 'following']).sum()
     100
     > = x.name
     Valentin Brajon
-    > .length
-    15
+    > .words()
+    ['Valentin', 'Brajon']
 
 WEBSITE: https://vbrajon.github.io/rawjs
 
@@ -47,8 +47,17 @@ async function run() {
   if (process.argv.length > 2) process.exit(0)
   stdin = new (require('tty')).ReadStream(require('fs').openSync('/dev/tty', 'r'))
 
+  const completer = line => {
+    let completions = Object.keys(x.constructor).filter(fn => x[fn]).map(fn => `.${fn}(`)// x.constructor[fn].split('=>')[0]
+    if (x instanceof Array) completions = completions.concat(Object.keys(x).map(k => `[${k}]`))
+    else if (x instanceof Object) completions = completions.concat(Object.keys(x).map(k => `.${k}`))
+    const hits = completions.filter(c => c.startsWith(line))
+    return [(hits.length ? hits : completions).slice(0, 50), line]
+  }
   stdout.write('> ')
-  for await (const line of readline.createInterface(stdin, stdout)) {
+  const rl = readline.createInterface(stdin, stdout, completer)
+  rl.on('SIGINT', () => process.exit(0))
+  for await (const line of rl) {
     try { console.log(eval('x' + line)) } catch(e) { console.error('\x1b[31m%s\x1b[0m', e.message) }
     stdout.write('> ')
   }

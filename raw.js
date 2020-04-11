@@ -14,6 +14,7 @@ Object.eq = (a, b) => {
 }
 Object.access = (x, path) => {
   try {
+    if (path instanceof Object) return path.map(p => Object.access(x, p))
     if (!path) return x
     if (x[path]) return typeof x[path] === 'function' ? x[path]() : x[path]
     return path

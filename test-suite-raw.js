@@ -4,8 +4,11 @@ obj = arr[0]
 str = 'i am: The1\nAND\t,_L?on*e%ly.'
 date = new Date('2019-01-20T10:09:08')
 
-// ['Object.map#shortcut', 'Object.reduce', 'Object.filter#shortcut', 'Object.find#shortcut', 'Object.eq', 'Object.access', 'Object.extend#core', 'Object.keys', 'Object.values', 'Array.group', 'Array.unique', 'Array.min', 'Array.max', 'Array.sum', 'Array.mean', 'Array.median', 'Array.map#native#shortcut', 'Array.reduce#native', 'Array.filter#native#shortcut', 'Array.find#native#shortcut', 'Array.findIndex#native#shortcut', 'Array.sort#native#shortcut', 'Array.reverse#native', 'Function.wrap', 'Function.partial', 'Function.every', 'Function.wait', 'Function.debounce', 'Function.throttle', 'Function.memoize', 'String.format#shortcut', 'String.lower', 'String.upper', 'String.capitalize', 'String.words', 'String.join', 'Number.duration', 'Number.format#shortcut', 'Number.abs', 'Number.acos', 'Number.acosh', 'Number.asin', 'Number.asinh', 'Number.atan', 'Number.atanh', 'Number.atan2', 'Number.ceil', 'Number.cbrt', 'Number.expm1', 'Number.clz32', 'Number.cos', 'Number.cosh', 'Number.exp', 'Number.floor', 'Number.fround', 'Number.hypot', 'Number.imul', 'Number.log', 'Number.log1p', 'Number.log2', 'Number.log10', 'Number.max', 'Number.min', 'Number.pow', 'Number.random', 'Number.round', 'Number.sign', 'Number.sin', 'Number.sinh', 'Number.sqrt', 'Number.tan', 'Number.tanh', 'Number.trunc', 'Date.relative', 'Date.getWeek', 'Date.getQuarter', 'Date.getLastDate', 'Date.format#shortcut', 'Date.modify', 'Date.plus', 'Date.minus', 'Date.start', 'Date.end', 'RegExp.escape', 'RegExp.plus', 'RegExp.minus'] //
+// ['Object.map#shortcut', 'Object.reduce', 'Object.filter#shortcut', 'Object.find#shortcut', 'Object.eq', 'Object.access', 'Object.extend#core', 'Object.keys', 'Object.values', 'Array.group', 'Array.unique', 'Array.min', 'Array.max', 'Array.sum', 'Array.mean', 'Array.median', 'Array.map#native#shortcut', 'Array.reduce#native', 'Array.filter#native#shortcut', 'Array.find#native#shortcut', 'Array.findIndex#native#shortcut', 'Array.sort#native#shortcut', 'Array.reverse#native', 'Function.wrap', 'Function.partial', 'Function.every', 'Function.wait', 'Function.debounce', 'Function.throttle', 'Function.memoize', 'String.format#shortcut', 'String.lower', 'String.upper', 'String.capitalize', 'String.words', 'String.join', 'Number.duration', 'Number.format#shortcut', 'Date.relative', 'Date.getWeek', 'Date.getQuarter', 'Date.getLastDate', 'Date.format#shortcut', 'Date.modify', 'Date.plus', 'Date.minus', 'Date.start', 'Date.end', 'RegExp.escape', 'RegExp.plus', 'RegExp.minus'] //
 Object.extend(true)
+
+// 51 //
+Object.extend(true).length
 
 // [ 'name', 'age' ] //
 obj.keys()
@@ -158,6 +161,10 @@ str.join('pascal')
 (1010.01010).format('fr')
 
 // 3 //
+Object.getOwnPropertyNames(Math)
+  .filter(k => typeof Math[k] === 'function')
+  .forEach(k => (Number[k] = Math[k]))
+Object.extend(true)
 (3.1415).floor()
 
 // -1 //
@@ -273,6 +280,12 @@ new Date().plus('2 hours').relative()
 
 // 3 //
 ({ a: { b: [1,2,3] }}).access('a.b.length')
+
+// [[1,2,3], 3] //
+({ a: { b: [1,2,3] }}).access(['a.b', 'a.b.length'])
+
+// { a: [1,2,3], b: 3 } //
+({ a: { b: [1,2,3] }}).access({ a: 'a.b', b: 'a.b.length' })
 
 // 3 //
 ([{ a: { b: [1,2,3] }}]).access('0.a.b.length')
