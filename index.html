@@ -1,116 +1,139 @@
-<meta charset="utf-8">
-<link rel="icon" href="data:,">
-<style>
-  /* Prism - Raw theme */
-  pre { overflow: auto;margin: .5em 0;padding: 1em;background: rgba(0,0,0,.2);color: #ccc; }
-  pre, code[class*="language-"] { border-radius: .3em;font: 400 1em/1.5 Menlo, monospace;white-space: pre;tab-size: 2;hyphens: none; }
-  :not(pre) > code[class*="language-"] { padding: .1em; }
-  .token.comment { color: #555; }
-  .token.class-name { color: #fd0; }
-  .token.keyword { color: #f6e; }
-  .token.property-access { color: #f34; }
-  .token.boolean, .token.number { color: #fa3; }
-  .token.string, .token.regex { color: #7d0; }
-  .token.function, .token.method { color: #39f; }
-  .token.operator { color: #3df; }
-  [id] { cursor: pointer; }
-  [id]:hover { background: linear-gradient(to right,#03f,#0bf);-webkit-background-clip: text;-webkit-text-fill-color: transparent; }
-</style>
-<style>
-  * { box-sizing: border-box; }
-  ::-webkit-scrollbar { width: 1px;height: 1px;background-color: transparent; }
-  ::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,.3); }
-  ::-webkit-scrollbar-track { background-color: rgba(0,0,0,.65); }
-  body { margin: 0;color: white;background: #252423;font: 400 18px/1.4 sans-serif;-webkit-font-smoothing: antialiased; }
-  main { width: 100%;height: 100%;display: flex; }
-  .sidebar { width: 240px; }
-  .demo { width: 340px; }
-  .info { flex: 1; }
-  .info header { width: 100%; }
-  section { display: flex;flex-direction: column;padding: 80px 20px 20px;overflow-y: scroll; }
-  section div { cursor: pointer;transition: all .3s cubic-bezier(.4,0,.2,1); }
-  header { z-index: 1;position: fixed;display: flex;align-items: center;width: inherit;height: 60px;margin: -80px -20px 20px -20px;padding: 0 20px;font-size: 20px;font-weight: 600;text-transform: uppercase; }
-  header:before { z-index: -1;content: "";position: absolute;top: 0;bottom: 0;left: 0;right: 1px;background: #252423;border-bottom: 1px solid rgb(0,0,0,.65); }
-  .sidebar .primitive { text-transform: uppercase; }
-  .sidebar .sidebar-info { margin-top: auto;padding-top: 20px; }
-  .sidebar > div:not(.open) > div:not(:first-child) { display: none; }
-  section > div > div:first-child { opacity: .4;color: white; }
-  section > div > div:not(:first-child) { position: relative;opacity: .7;padding: 4px 10px;font-size: 14px;line-height: 1; }
-  section > div > div:not(:first-child):before { z-index: -1;content: "";position: absolute;top: 4px;bottom: 4px;left: 0;border-left: 1px solid currentColor; }
-  section > div > div:hover { opacity: 1; }
-  .active { opacity: 1!important;font-weight: 600; }
-  .Object { color: #f34; }
-  .Array { color: #fd0; }
-  .Function { color: #39f; }
-  .String { color: #7d0; }
-  .Number { color: #fa3; }
-  .Date { color: #f6e; }
-  .RegExp { color: #3df; }
-</style>
-<script src="raw.js"></script>
-<script src="https://unpkg.com/vue@2.6.10/dist/vue.js"></script>
-<script src="https://unpkg.com/marked@0.6.1/lib/marked.js"></script>
-<script src="https://unpkg.com/prismjs@1.16.0/prism.js"></script>
-<script src="https://unpkg.com/prismjs@1.16.0/components/prism-markdown.js"></script>
-<script src="https://unpkg.com/prismjs@1.16.0/components/prism-js-extras.js"></script>
-<script async defer src="https://buttons.github.io/buttons.js"></script>
-<main>
-  <section class="sidebar">
-    <header @click="pname = fname = null"><div style="background: linear-gradient(to right, #f34, #fd0);-webkit-background-clip: text;-webkit-text-fill-color: transparent;">RawJS</div><div style="margin-left: auto;opacity: .7;font-size: 16px;">{{ Object.extend.version }}</div></header>
-    <div class="primitive" :class="{ open: primitive.name === pname }" v-for="primitive in [Object, Array, Function, String, Number, Date, RegExp]">
-      <div :class="[{ active: pname === primitive.name }, primitive.name]" @click="pname = primitive.name;fname = (Object.extend[primitive.name] || []).concat(Object.keys(primitive)).unique()[0]">{{ primitive.name }}</div>
-      <div :class="[{ active: fname === fn }, primitive.name, fn]" @click="pname = primitive.name;fname = fn" v-for="fn in (Object.extend[primitive.name] || []).concat(Object.keys(primitive)).unique().filter(fn => !Object.getOwnPropertyNames(Math).includes(fn))">.{{ fn }}</div>
-    </div>
-    <div class="sidebar-info">
-      <!-- <a class="github-button" href="https://github.com/sponsors/vbrajon" data-icon="octicon-heart" aria-label="Sponsor @vbrajon on GitHub">Sponsor</a> -->
-      <a class="github-button" href="https://github.com/vbrajon" aria-label="Follow @vbrajon on GitHub">Follow @vbrajon</a>
-      <a class="github-button" href="https://github.com/vbrajon/rawjs" data-show-count="true" aria-label="Star vbrajon/rawjs on GitHub">Star</a>
-    </div>
-  </section>
-  <!-- <section class="demo">
-    <header :class="pname">{{ pname }}</header>
-    <template v-for="primitive in [Object, Array, Function, String, Number, Date, RegExp]">
-      <div :class="primitive.name" @click="pname = primitive.name;fname = fn" v-for="fn in (Object.extend[primitive.name] || []).concat(Object.keys(primitive)).unique().filter(fn => !Object.getOwnPropertyNames(Math).includes(fn))">{{ primitive.name }}.{{ fn }}{{ primitive.prototype['_' + fn] || primitive[fn].toString().includes('[native code]') ? ' #native' : '' }}{{ primitive[fn].fn ? ' #shortcut' : '' }}</div>
-    </template>
-  </section> -->
-  <section class="info">
-    <header>{{ pname || 'README' }}<div :class="pname" v-if="pname">.{{ fname }}</div></header>
-    <markdown file="README.md" v-if="!pname"></markdown>
-    <pre v-if="pname && !window[pname].prototype['_' + fname] && !window[pname][fname].toString().includes('[native code]')"><code class="language-js" v-html="Prism.highlight('' + (window[pname][fname].fn || window[pname][fname]), Prism.languages.javascript, 'js')"></code></pre>
-    <pre v-if="pname && window[pname][fname].wrap !== (x => x).wrap"><code class="language-js" v-html="Prism.highlight(('' + window[pname][fname].wrap), Prism.languages.javascript, 'js')"></code></pre>
-  </section>
-</main>
-<script>
-  Object.extend(true)
-  Vue.prototype.window = window
-  Vue.prototype.Function = Function
-  Vue.prototype.Prism = Prism
-  Vue.component('markdown', {
-    props: ['file'],
-    data() {
-      marked.setOptions({ highlight: (code, lang) => Prism.highlight(code, Prism.languages[lang] || Prism.languages.html, lang) })
-      this.$watch('file', file => fetch(file).then(r => r.text()).then(marked).then(r => this.html = r), { immediate: true })
-      return {
-        html: '',
-      }
-    },
-    render(h) {
-      return this.html && h({ template: '<div>' + this.html + '</div>' })
-    },
-  })
-  new Vue({
-    el: 'main',
-    data() {
-      const [pname, fname] = location.hash.slice(1).split('.')
-      return {
-        readme: null,
-        pname,
-        fname,
-      }
-    },
-    created() {
-      import('./test-runner.js').then(() => download_tests('test-suite-raw.js')).then(r => window.tests = r)
-      this.$watch(() => [this.pname, this.fname], arr => window.history.replaceState({}, null, '#' + arr.filter().join('.')))
-    },
-  })
-</script>
+<!DOCTYPE html>
+<html lang="en" class="dark">
+  <head>
+    <title>RAW | ⛓ Utility Chain</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="A design system starter for evergreen browsers">
+    <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACAAQMAAAD58POIAAAACXBIWXMAAAsTAAALEwEAmpwYAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAGUExURR0dHf/dRNuTfs0AAAArSURBVEjHY/iPBhhGBYaOAAMUjArABKBhwzAqMJocRtPHqABpAqP1C70FAM5nOhvMJUGgAAAAAElFTkSuQmCC">
+    <link rel="stylesheet" href="//vbrajon.github.io/rawcss/raw.css">
+    <style>
+      * { border-radius: 0; }
+      html.dark { background: #1a1b1c; }
+      main { margin-left: 300px; }
+      aside { position: fixed;top: 0;left: 0;width: 300px;height: 100vh;padding: 20px;border-right: 1px solid var(--gray2); }
+      .github { margin: 8px -4px -8px; }
+      .github > span { display: flex;margin: 0 4px; }
+      :not(pre) > code { padding-bottom: 2px;font-size: 60%; }
+      h1 { background: linear-gradient(to right, #f34, #fd0);font-variant: small-caps;letter-spacing: -0.04em;-webkit-background-clip: text;-webkit-text-fill-color: transparent; }
+      [type="search"] { flex-shrink: 0;text-transform: uppercase; }
+      [type="search"]:focus { box-shadow: 0 0 0 1px #fa3 inset; }
+      .tag-list { margin: 20px 0;text-transform: uppercase;user-select: none; }
+      .fn-list { overflow: auto;flex: 1;margin: 0 -20px;user-select: none; }
+      .fn-item { cursor: pointer;flex-direction: row!important;height: 30px;padding: 0 20px;font-variant: small-caps; }
+      .fn-item:hover { background: var(--gray1); }
+      .fn-item .primitive { color: var(--text); }
+      .fn-item code { margin-left: 10px;color: var(--text);text-transform: uppercase; }
+      .fn-item.prim.prop, .prim.prop .fn-item { background: var(--gray2)!important;font-weight: 800; }
+      section { padding: 40px;border-top: 1px solid var(--gray2); }
+      .markdown { padding: 20px; }
+      .markdown p { margin-bottom: 10px; }
+      /* Prism - Raw theme */
+      pre { width: 100%;overflow: auto;margin: 0.5em 0;padding: 1em;color: #ccc;background: rgba(0, 0, 0, 0.2); }
+      pre, code[class*="language-"] { border-radius: 0.3em;font: 400 1em/1.5 Menlo, monospace;white-space: pre;hyphens: none;tab-size: 2; }
+      :not(pre) > code[class*="language-"] { padding: 0.1em; }
+      .token.comment { color: #555; }
+      .token.class-name { color: #fd0; }
+      .token.keyword { color: #f6e; }
+      .token.property-access { color: #f34; }
+      .token.boolean, .token.number { color: #fa3; }
+      .token.string, .token.regex { color: #7d0; }
+      .token.function, .token.method { color: #39f; }
+      .token.operator { color: #3df; }
+      /* Primitive colors */
+      .Object { color: #f34!important; }
+      .Array { color: #fd0!important; }
+      .Function { color: #39f!important; }
+      .String { color: #7d0!important; }
+      .Number { color: #fa3!important; }
+      .Date { color: #f6e!important; }
+      .RegExp { color: #3df!important; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <aside class="column nowrap">
+        <div class="row"><h1 @click.prevent="pname = fname = '';window.scrollTo(0, 0)">rawjs</h1><code style="margin: auto 0 auto auto">v1.1.1</code></div>
+        <input type="search" v-model="search">
+        <div class="tag-list row center"><code :style="search === tag && 'background: var(--gray2);'" @click="search = search === tag ? '' : tag" v-for="tag in ['core', 'native', 'shortcut', 'notag']">{{ tag }}</code></div>
+        <div class="fn-list">
+          <div class="fn-item row nowrap center left" :class="[item[0], item[1], { prim: pname === item[0], prop: fname === item[1] }]" @click="pname = item[0];fname = item[1];window.$('#' + item[0] + '-' + item[1]).scrollIntoView()" v-for="item in list">
+            <span class="primitive">{{ item[0] }}.</span>
+            <span class="function">{{ item[1] }}</span>
+            <code :style="search === tag && 'background: var(--gray2);'" v-for="tag in item.slice(2)">{{ tag }}</code>
+          </div>
+        </div>
+        <div class="github row">
+          <a class="github-button" href="https://github.com/vbrajon" aria-label="Follow @vbrajon on GitHub">Follow @vbrajon</a>
+          <a class="github-button" href="https://github.com/vbrajon/rawjs" data-show-count="true" aria-label="Star vbrajon/rawjs on GitHub">Star</a>
+        </div>
+      </aside>
+      <section class="column" :id="item.slice(0, 2).join('-')" class="row center left" :class="{ prim: pname === item[0], prop: fname === item[1] }" @click="pname = item[0];fname = item[1]" v-for="item in list">
+        <div class="fn-item row nowrap center left">
+          <span class="primitive">{{ item[0] }}.</span>
+          <span class="function" :class="[item[0], item[1]]">{{ item[1] }}</span>
+          <code @click.stop="search = tag" v-for="tag in item.slice(2)">{{ tag }}</code>
+        </div>
+        <markdown :file="'doc/' + item.slice(0, 2).join('-') + '.md'"></markdown>
+        <!-- <pre class="source" v-if="!item.includes('native')"><code class="language-js" v-html="Prism.highlight('' + (window[item[0]][item[1]].fn || window[item[0]][item[1]]), Prism.languages.javascript, 'js')"></code></pre> -->
+        <!-- <pre class="shortcut" v-if="item.includes('shortcut')"><code class="language-js" v-html="Prism.highlight(('' + window[item[0]][item[1]].wrap), Prism.languages.javascript, 'js')"></code></pre> -->
+      </section>
+    </main>
+    <script src="raw.js"></script>
+    <script src="https://unpkg.com/vue@2.6.10/dist/vue.js"></script>
+    <script src="https://unpkg.com/marked@0.6.1/lib/marked.js"></script>
+    <script src="https://unpkg.com/prismjs@1.16.0/prism.js"></script>
+    <script src="https://unpkg.com/prismjs@1.16.0/components/prism-markdown.js"></script>
+    <script src="https://unpkg.com/prismjs@1.16.0/components/prism-js-extras.js"></script>
+    <script async defer src="https://buttons.github.io/buttons.js"></script>
+    <script>
+      Object.extend(true)
+      window.$ = (s, start = document) => start.querySelector(s)
+      window.$$ = (s, start = document) => Array.from(start.querySelectorAll(s))
+      window.key = (letter, fn) => addEventListener('keydown', e => e.key.toLowerCase() === letter && fn(e))
+      addEventListener('keydown', () => $('[type=search]').focus())
+      Vue.prototype.window = window
+      Vue.prototype.Prism = Prism
+      Vue.component('markdown', {
+        props: ['file'],
+        data() {
+          marked.setOptions({ highlight: (code, lang) => Prism.highlight(code, Prism.languages[lang] || Prism.languages.html, lang) })
+          this.$watch('file', file => fetch(file).then(r => r.text()).then(marked).then(r => this.html = r), { immediate: true })
+          return {
+            html: '',
+          }
+        },
+        render(h) {
+          return this.html && h({ template: '<div class="markdown">' + this.html + '</div>' })
+        },
+      })
+      new Vue({
+        el: 'main',
+        data() {
+          const [pname, fname] = location.hash.slice(1).split('.')
+          return {
+            search: '',
+            pname,
+            fname,
+          }
+        },
+        computed: {
+          list() {
+            if (this.search === 'notag') return Object.extend(true).filter(v => !v.includes('#')).map(v => v.split(/[.#]/)).sort((a, b) => a[0] !== b[0] ? 0 : a[1] > b[1] ? 1 : -1)
+            return Object.extend(true).filter(v => RegExp(this.search.replace(/ /g, '.'), 'i').test(v)).map(v => v.split(/[.#]/)).sort((a, b) => a[0] !== b[0] ? 0 : a[1] > b[1] ? 1 : -1)
+          },
+        },
+        created() {
+          addEventListener('scroll', () => {
+            const el = $$('section').find(el => el.offsetTop + 70 > document.documentElement.scrollTop)
+            this.pname = el.id.split('-')[0]
+            this.fname = el.id.split('-')[1]
+            $('.' + el.id.replace('-', '.')).scrollIntoView()
+          })
+          key('/', e => (e.preventDefault(), this.search = ''))
+          this.$watch(() => '#' + [this.pname, this.fname].filter().join('-'), id => window.history.replaceState({}, null, id === '#' ? ' ' : id))
+        },
+      })
+    </script>
+  </body>
+</html>

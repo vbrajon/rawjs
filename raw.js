@@ -18,8 +18,10 @@ Object.access = (x, path) => {
     if (!path) return x
     if (x[path]) return typeof x[path] === 'function' ? x[path]() : x[path]
     return path
-      .replace(/\[[^\]]*\]/g, m => '.' + m.replace(/^[['"\s]+/, '').replace(/['"\s]]+$/, ''))
+      .replace(/\[["']?/g, '.')
+      .replace(/["']?\]/g, '')
       .split('.')
+      .filter()
       .reduce((x, path) => typeof x[path] === 'function' ? x[path]() : x[path], x)
   } catch (e) {}
 }
@@ -200,7 +202,7 @@ Object.extend = (primitive, fname) => {
   }
   if (typeof primitive[fname] !== 'function') return
   const fn = primitive[fname].fn || primitive[fname]
-  const native = primitive.prototype['_' + fname]
+  const native = (Object.extend[primitive.name] || []).includes(fname)
   const shortcut = Object.keys(Object.extend).includes(fname)
   primitive[fname] = shortcut ? Function.wrap(fn, Object.extend[fname]) : fn
   if (Object.extend.all)
@@ -212,7 +214,7 @@ Object.extend = (primitive, fname) => {
         return primitive[fname](this, ...args)
       },
     })
-  return primitive.name + '.' + fname + (native ? '#native' : '') + (shortcut ? '#shortcut' : '')
+  return primitive.name + '.' + fname + (native ? '#native' : '') + (shortcut ? '#shortcut' : '') + (['access', 'eq', 'modify'].includes(fname) ? '#core' : '')
 }
 Object.extend.version = '1.1.1'
 Object.extend.Object = ['keys', 'values']
