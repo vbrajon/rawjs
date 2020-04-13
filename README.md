@@ -1,66 +1,33 @@
-RawJS is a utility library to simplify data manipulation and formatting.
+**rawjs** is a utility library to improve data manipulation and formatting.  
+It is a simpler version of [lodash](https://github.com/lodash/lodash) or [sugar](https://github.com/andrewplummer/Sugar).
 
-It let you do:
-
-```javascript
-timeserie.filter((v, k) => k > '2010' && v > 80)
-users.sort('-age').find({ name: /^J/ }).age
-users.group('age').map('length')
-(() => console.log(new Date())).throttle(2000).every(100)
-'Python {} this {}'.format('calls', 'f-string').join('snake')
-(12345.6789).format('fr')
-new Date('2020').end('month').plus('2 days').format('year, month, day', 'ru')
-/The Matrix (1999)/.escape().plus('i').test('the matrix (1999)')
-```
-
-It is lightweight (<4k gzipped) and expose a simple API:
-
-```javascript
-| Object | Array     | Function | String     | Number   | Date        | RegExp |
-| ------ | --------- | -------- | ---------- | -------- | ----------- | ------ |
-| keys   | map       | wrap     | format     | duration | relative    | escape |
-| values | reduce    | partial  | lower      | format   | getWeek     | plus   |
-| map    | filter    | every    | upper      | -        | getQuarter  | minus  |
-| reduce | find      | wait     | capitalize | -        | getLastDate | -      |
-| filter | findIndex | debounce | words      | -        | format      | -      |
-| find   | sort      | throttle | join       | -        | modify      | -      |
-| -      | reverse   | memoize  | -          | -        | plus        | -      |
-| -      | group     | -        | -          | -        | minus       | -      |
-| -      | unique    | -        | -          | -        | start       | -      |
-| -      | sum       | -        | -          | -        | end         | -      |
-| -      | mean      | -        | -          | -        | -           | -      |
-| -      | median    | -        | -          | -        | -           | -      |
-```
-
-It is easily extensible:
-
-```javascript
-Array.first = arr => arr[0]
-Array.last = arr => arr.slice(-1)[0]
-```
-
-It works:
-
-- in the browser:
-```javascript
+Installation:
+```html
 <script src="https://vbrajon.github.io/rawjs/raw.js"></script>
-<script>
-  String.format('{} rocks!', 'RawJS')
-  // OR extending prototypes
-  Object.extend(true)
-  '{} rocks!'.format('RawJS')
-</script>
+<script>Object.extend(true)</script>
 ```
-- in node:
-```javascript
-// npm i git+https://git@github.com/vbrajon/rawjs.git
-require('rawjs')
-Object.extend(true)
-'{} rocks!'.format('RawJS')
-```
-- in the terminal:
-```bash
+
+It brings:
+- **functions**: <code><span class="token known-class-name class-name">Object</span><span class="token punctuation">.</span><span class="token property-access">map</span></code>, <code><span class="token known-class-name class-name">Array</span><span class="token punctuation">.</span><span class="token property-access">group</span></code>, <code><span class="token known-class-name class-name">Function</span><span class="token punctuation">.</span><span class="token property-access">throttle</span></code>, <code><span class="token known-class-name class-name">Date</span><span class="token punctuation">.</span><span class="token property-access">plus</span></code> and more
+- **shortcuts**: <code><span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">.</span><span class="token method function property-access">find</span><span class="token punctuation">(</span><span class="token regex">/Jo/</span><span class="token punctuation">)</span></code>
+ equals <code><span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">.</span><span class="token method function property-access">find</span><span class="token punctuation">(</span><span class="token parameter">v</span> <span class="token arrow operator">=&gt;</span> <span class="token regex">/Jo/</span><span class="token punctuation">.</span><span class="token method function property-access">test</span><span class="token punctuation">(</span>v<span class="token punctuation">)</span><span class="token punctuation">)</span></code>
+- **chaining**: <code><span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">.</span><span class="token method function property-access">map</span><span class="token punctuation">(</span><span class="token string">'name.length'</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token method function property-access">filter</span><span class="token punctuation">(</span><span class="token parameter">v</span> <span class="token arrow operator">=&gt;</span> v <span class="token operator">&gt;</span> <span class="token number">5</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token method function property-access">sum</span><span class="token punctuation">(</span><span class="token punctuation">)</span></code>
+- **immutability**: including <code><span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">.</span><span class="token method function property-access">sort</span><span class="token punctuation">(</span><span class="token punctuation">)</span></code> and <code><span class="token punctuation">[</span><span class="token punctuation">]</span><span class="token punctuation">.</span><span class="token method function property-access">reverse</span><span class="token punctuation">(</span><span class="token punctuation">)</span></code>
+
+It is:
+- **easy to learn**: \~50 functions / no dependencies / [\~250 lines codebase](https://github.com/vbrajon/rawjs/blob/master/raw.js)
+- **lightweight**: [\~4k gzipped](raw.js)
+- **extensible**: <code><span class="token known-class-name class-name">Array</span><span class="token punctuation">.</span><span class="token method-variable function-variable method function property-access">first</span> <span class="token operator">=</span> <span class="token parameter">arr</span> <span class="token arrow operator">=&gt;</span> arr<span class="token punctuation">[</span><span class="token number">0</span><span class="token punctuation">]</span></code> then <code><span class="token known-class-name class-name">Object</span><span class="token punctuation">.</span><span class="token method function property-access">extend</span><span class="token punctuation">(</span><span class="token boolean">true</span><span class="token punctuation">)</span></code>
+
+<!-- Additionally, rawjs brings an interactive commandline.
+```sh
 npm i -g git+https://git@github.com/vbrajon/rawjs.git
-raw # this will prompt the help
-echo [1,2,3,4,5] | raw .length
-```
+raw --help
+curl -s https://api.github.com/users/torvalds | raw ".access(['followers', 'following']).sum()"
+``` -->
+
+<!-- It works in:
+- evergreen browsers: chrome / firefox / safari
+- old browsers: IE6 with [this build]()
+- node
+- the commandline -->

@@ -324,10 +324,7 @@ Object.extend()
 
 // { 22: { 'Jane Doe': 1, 'Janette Doe': 1 }, 29: { 'John Doe': 1 }, 71: { 'Johnny Doe': 1 } } //
 Object.extend.group = (fn, ...args) => {
-  if (args[1] instanceof Array) return args[0].reduce((acc, v) => {
-    args[1].reduce((a, p, i, ds) => a[v[p]] = i === ds.length - 1 ? (a[v[p]] || []).concat([v]) : a[v[p]] || {}, acc)
-    return acc
-  }, {})
+  if (args[1] instanceof Array) return args[0].reduce((acc, v) => (args[1].reduce((a, p, i, ds) => a[Object.access(v, p)] = i === ds.length - 1 ? (a[Object.access(v, p)] || []).concat([v]) : a[Object.access(v, p)] || {}, acc), acc), {})
   return fn(...args)
 }
 Object.extend()

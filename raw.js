@@ -12,17 +12,17 @@ Object.eq = (a, b) => {
   if (Object.keys(a).length !== Object.keys(b).length) return false
   return Object.keys(a).every(k => a[k] === a || Object.eq(a[k], b[k]))
 }
-Object.access = (x, path) => {
+Object.access = (a, str) => {
   try {
-    if (path instanceof Object) return path.map(p => Object.access(x, p))
-    if (!path) return x
-    if (x[path]) return typeof x[path] === 'function' ? x[path]() : x[path]
-    return path
+    if (str instanceof Object) return str.map(p => Object.access(a, p))
+    if (!str) return a
+    if (a[str]) return typeof a[str] === 'function' ? a[str]() : a[str]
+    return str
       .replace(/\[["']?/g, '.')
       .replace(/["']?\]/g, '')
       .split('.')
       .filter()
-      .reduce((x, path) => typeof x[path] === 'function' ? x[path]() : x[path], x)
+      .reduce((a, str) => typeof a[str] === 'function' ? a[str]() : a[str], a)
   } catch (e) {}
 }
 
