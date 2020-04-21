@@ -1,3 +1,6 @@
+process.env.NODE_NO_WARNINGS = 1
+Promise.map = async (arr, fn) => await arr.reduce(async (acc, v) => ((await acc).push(await fn(v)), acc), Promise.resolve([]))
+
 function equal(a, b) {
   class AssertionError extends Error {
     constructor(a, b) {
@@ -23,12 +26,16 @@ function equal(a, b) {
 async function run_test(test) {
   let error, time = 0
   try {
-    const fn = eval('(async function eval_string() {\n' + test.replace(/(.*)\s*$/, 'return $1') + '\n})')
+    const [left, right] = test
+      .replace(/import ([^'"]*)["']([^'"]*)['"]/g, (m, a, b) => `${a.trim() ? `window.${a.replace(/(.* as )?(.* from )/, (m, a, b) => b.slice(0, -5).trim())} = ` : ''}(await import("${b}")).default`)
+      .replace(/(^|\n)const (\w+\s*=)/g, '$1window.$2')
+      .split('>>')
+    const fn = eval('(async function eval_string() {\n' + left.replace(/;?(.*)\s*$/, 'return $1') + '\n})')
     const start = performance.now()
     const output = await fn()
     time = performance.now() - start
-    if (!test.match(/^\/\/(.*)\/\//) || test.split('\n').every(l => l.startsWith('//'))) return {}
-    const expected = eval('(' + (test.match(/^\/\/(.*)\/\//)[1] || 'null') + ')')
+    if (/>> setup/i.test(test) || test.split('\n').every(l => l.startsWith('//'))) return {}
+    const expected = eval('(' + (right || 'null') + ')')
     equal(output, expected)
   } catch(e) {
     error = e
@@ -45,24 +52,24 @@ async function run_performance(test) {
   return { test, time, error: (tests.find(t => t.error) || {}).error, runs: tests.length }
 }
 
-Promise.map = async (arr, fn) => await arr.reduce(async (acc, v) => ((await acc).push(await fn(v)), acc), Promise.resolve([]))
-async function run_tests(tests) {
-  if (window.perf) return [await run_test(tests[0]), await Promise.map(tests.slice(1), run_performance)].flat()
-  return [await run_test(tests[0]), await Promise.all(tests.slice(1).map(run_test))].flat()
-}
-
-async function download_tests(url, download = window.download || (async file => await (await fetch(file)).text())) {
+async function download_suite(url, download = window.download || (async file => await (await fetch(file)).text())) {
   return (await download(url))
-    .replace(/import ([^'"]*)["']([^'"]*)['"]/g, (m, a, b) => `${a.trim() ? `window.${a.replace(/(.* as )?(.* from )/, (m, a, b) => b.slice(0, -5).trim())} = ` : ''}(await import("${b}")).default`)
-    .replace(/(^|\n)(\w+\s*=)/g, '$1window.$2')
-    .split('\n\n')
-    .map(t => t.trim())
+    .split('\n')
+    .reduce((acc, v) => {
+      acc.slice(-1)[0].push(v)
+      if (v.includes('>>')) acc.push([])
+      return acc
+    }, [[]])
+    .map(v => v.join('\n').trim().replace(/^;/, ''))
+    .filter(x => x)
 }
 
-async function run_file(url) {
-  const tests = await download_tests(url)
+async function run_suite(url) {
+  const tests = await download_suite(url)
   const start = performance.now()
-  const results = await run_tests(tests)
+  const results = window.perf
+    ? [await run_test(tests[0]), await Promise.map(tests.slice(1), run_performance)].flat()
+    : [await run_test(tests[0]), await Promise.all(tests.slice(1).map(run_test))].flat()
   const time = performance.now() - start
   const passed = results.filter(v => v.test && !v.error)
   const skipped = results.filter(v => !v.test)
@@ -74,25 +81,27 @@ async function run_file(url) {
 }
 
 if (typeof global !== 'undefined') {
-  const [ok, ko, crash] = ['Bottle', 'Ping', 'Sosumi'].map(k => () => require('child_process').spawn('afplay', ['/System/Library/Sounds/' + k + '.aiff'], { detached: true, stdio: 'ignore' }).unref())
-  const options = process.argv.slice(2).filter(v => v.startsWith('--')).reduce((acc, v) => (acc[v.slice(2)] = true, acc), {})
-  const files = process.argv.slice(2).filter(v => !v.startsWith('--'))
-  window = global
-  window.perf = options.perf || options.performance || options.benchmark
-  window.performance = require('perf_hooks').performance
-  window.equal = require('assert').deepStrictEqual
-  window.download = async file => require('fs').promises.readFile(file, 'utf-8')
-  window.watch = file => require('fs').watch(file, () => require('child_process').execSync([process.argv[0], '-r esm'].concat(process.argv.slice(1)).join(' ').replace('--watch', '--child'), { stdio: 'inherit', cwd: process.cwd() }))
+  global.window = global
   window.run_cli = async () => {
-    const results = (await Promise.map(files, run_file)).flat()
+    const fs = await import('fs')
+    const module = await import('module')
+    const child_process = await import('child_process')
+    window.performance = (await import('perf_hooks')).performance
+    const equal = (await import('assert')).deepStrictEqual
+    const [ok, ko, crash] = ['Bottle', 'Ping', 'Sosumi'].map(k => () => child_process.spawn('afplay', ['/System/Library/Sounds/' + k + '.aiff'], { detached: true, stdio: 'ignore' }).unref())
+    const options = process.argv.slice(2).filter(v => v.startsWith('--')).reduce((acc, v) => (acc[v.slice(2)] = true, acc), {})
+    const files = process.argv.slice(2).filter(v => !v.startsWith('--'))
+    const perf = options.perf || options.performance || options.benchmark
+    window.download = async file => fs.promises.readFile(file, 'utf8')
+    const watch = file => fs.watch(file, () => child_process.execSync([process.argv[0]].concat(process.argv.slice(1)).join(' ').replace('--watch', '--child'), { stdio: 'inherit', cwd: process.cwd() }))
+    const results = (await Promise.map(files, run_suite)).flat()
     results.some(v => v.error) ? ko() : ok()
     if (options.child) return
-    if (options.watch) Object.keys(require('module')._cache).concat(files).filter(f => !/esm.js$/.test(f)).map(watch)
+    if (options.watch) Object.keys(module._cache).concat(files).filter(f => !/esm.js$/.test(f)).map(watch)
     else results.some(v => v.error) && process.exit(1)
   }
   run_cli()
 }
 window.run_test = run_test
-window.run_tests = run_tests
-window.download_tests = download_tests
-window.run_file = run_file
+window.run_suite = run_suite
+window.download_suite = download_suite

@@ -33,7 +33,7 @@
   .editor .wrapper pre { position: relative;pointer-events: none;margin: 0px;padding: 0;background: none;border: 0px;white-space: pre-wrap; }
 </style>
 <main>
-  <h1>{{ location.search.slice(1) || 'test-suite.js' }}</h1>
+  <h1>{{ location.search.slice(1) || 'test-suite.js' }}</h1>
   <testarea :value="test" @input="Vue.set(tests, i, $event)" v-for="test, i in tests"></testarea>
 </main>
 <script src="https://unpkg.com/vue@2.6.10/dist/vue.min.js"></script>
@@ -71,7 +71,7 @@
   new Vue({
     el: 'main',
     data() {
-      import('./test-runner.js').then(() => download_tests(location.search.slice(1) || 'test-suite.js')).then(r => run_test(r[0]).then(() => this.tests = r))
+      import('./test-runner.js').then(() => download_suite(location.search.slice(1) || 'test-suite.js')).then(r => run_test(r[0]).then(() => this.tests = r))
       return {
         tests: [],
       }

@@ -32,9 +32,11 @@ GITHUB: https://github.com/vbrajon/rawjs
 
 run()
 async function run() {
-  require('./raw.js')
+  await import('./raw.js')
   Object.extend(true)
-  const readline = require('readline')
+  const readline = await import('readline')
+  const tty = await import('tty')
+  const fs = await import('fs')
 
   let x, stdin = process.stdin, stdout = process.stdout
   const lines = []
@@ -45,7 +47,7 @@ async function run() {
   try { x = eval('x' + process.argv.slice(2).join('')) } catch(e) {}
   console.log(x)
   if (process.argv.length > 2) process.exit(0)
-  stdin = new (require('tty')).ReadStream(require('fs').openSync('/dev/tty', 'r'))
+  stdin = new tty.ReadStream(fs.openSync('/dev/tty', 'r'))
 
   const completer = line => {
     let completions = Object.keys(x.constructor).filter(fn => x[fn]).map(fn => `.${fn}(`)// x.constructor[fn].split('=>')[0]

@@ -2,16 +2,16 @@
   "name": "rawjs",
   "version": "1.1.1",
   "main": "raw.js",
+  "type": "module",
   "bin": {
     "raw": "cli.js"
   },
   "scripts": {
-    "test": "node -r esm test-runner.js test-suite*",
-    "test:perf": "node -r esm test-runner.js test-suite-perf.js --perf",
-    "test:watch": "node -r esm test-runner.js test-suite-raw.js --watch"
+    "test": "node test-runner.js test-suite*",
+    "test:perf": "node test-runner.js test-suite-perf.js --perf",
+    "test:watch": "node test-runner.js test-suite.js --watch"
   },
   "devDependencies": {
-    "esm": "^3.2.25",
     "lodash": "^4.17.15",
     "sugar": "^2.0.6"
   }

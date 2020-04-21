@@ -248,27 +248,27 @@ Object.extend.sort = (fn, ...args) => {
     if (a instanceof Function && a.length === 1) return (x, y) => default_sort(a(x), a(y))
     if (a instanceof Function && a.length === 2) return a
     return directed_sort(a)
-    function default_sort(a, b) {
-      if (typeof a !== typeof b) return typeof a > typeof b ? 1 : -1
-      if (!a && a !== 0) return a === b ? 0 : -1
-      if (!b && b !== 0) return a === b ? 0 : 1
-      return a === b ? 0 : a > b ? 1 : -1
-    }
-    function directed_sort(p, desc = /^-/.test(p)) {
-      p = ('' + p).replace(/^[+-]/, '')
-      return (a, b) => default_sort(Object.access(a, p), Object.access(b, p)) * (!desc || -1)
-    }
-    function multi_sort(p) {
-      return (a, b) => {
-        for (const k of p) {
-          const z = directed_sort(k)(a, b)
-          if (z) return z
-        }
-      }
-    }
   }
   args[1] = f(args[1])
   return fn(...args)
+  function default_sort(a, b) {
+    if (typeof a !== typeof b) return typeof a > typeof b ? 1 : -1
+    if (!a && a !== 0) return a === b ? 0 : -1
+    if (!b && b !== 0) return a === b ? 0 : 1
+    return a === b ? 0 : a > b ? 1 : -1
+  }
+  function directed_sort(p, desc = /^-/.test(p)) {
+    p = ('' + p).replace(/^[+-]/, '')
+    return (a, b) => default_sort(Object.access(a, p), Object.access(b, p)) * (!desc || -1)
+  }
+  function multi_sort(p) {
+    return (a, b) => {
+      for (const k of p) {
+        const z = directed_sort(k)(a, b)
+        if (z) return z
+      }
+    }
+  }
 }
 Object.extend.format = (fn, ...args) => {
   if (['Invalid Date', 'NaN', 'null', 'undefined'].includes('' + args[0])) return '-'
