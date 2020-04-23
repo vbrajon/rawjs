@@ -1,4 +1,3 @@
-process.env.NODE_NO_WARNINGS = 1
 Promise.map = async (arr, fn) => await arr.reduce(async (acc, v) => ((await acc).push(await fn(v)), acc), Promise.resolve([]))
 
 function equal(a, b) {
@@ -35,7 +34,7 @@ async function run_test(test) {
     const output = await fn()
     time = performance.now() - start
     if (/>> setup/i.test(test) || test.split('\n').every(l => l.startsWith('//'))) return {}
-    const expected = eval('(' + (right || 'null') + ')')
+    const expected = eval('(' + (right || 'null').split('//')[0] + ')')
     equal(output, expected)
   } catch(e) {
     error = e
@@ -52,7 +51,7 @@ async function run_performance(test) {
   return { test, time, error: (tests.find(t => t.error) || {}).error, runs: tests.length }
 }
 
-async function download_suite(url, download = window.download || (async file => await (await fetch(file)).text())) {
+async function download_suite(url) {
   return (await download(url))
     .split('\n')
     .reduce((acc, v) => {
@@ -81,6 +80,7 @@ async function run_suite(url) {
 }
 
 if (typeof global !== 'undefined') {
+  process.env.NODE_NO_WARNINGS = 1
   global.window = global
   window.run_cli = async () => {
     const fs = await import('fs')
@@ -104,4 +104,5 @@ if (typeof global !== 'undefined') {
 }
 window.run_test = run_test
 window.run_suite = run_suite
+window.download = async file => await (await fetch(file)).text()
 window.download_suite = download_suite

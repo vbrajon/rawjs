@@ -7,10 +7,12 @@ Access a property **deep** via a dot object notation on any kind of Object.
 This function is used internally to implement shortcut notations for `.map` / `.filter` / `.find` / `.findIndex` / `.sort`
 
 ```javascript
-const user = await (await fetch('https://api.github.com/users/torvalds')).json()
-const repos = await (await fetch('https://api.github.com/users/torvalds/repos')).json()
+user = await (await fetch('https://api.github.com/users/torvalds')).json()
+repos = await (await fetch('https://api.github.com/users/torvalds/repos')).json()
+
+Object.access(user, 'name')
 // Accessing Object
-user.access('name') === Object.access(user, 'name')
+user.access('name')
 // Accessing Array
 repos.access('0.owner.id')
 // Warning: can't access a property containing either a `.` or a `[]`
@@ -27,9 +29,10 @@ This function is used internally to implement shortcut notations for `.filter` /
 
 ```javascript
 const a = [null, { a: { b: /c/ }, c: [{ d: 1 }] }, new Date('2020')]
-const b = [null, { a: { b: /c/i }, c: [{ d: 1 }] }, new Date('2020')]
-Object.eq(a, b) === false
-JSON.stringify(a) === JSON.stringify(b) // should be false
+const b = a
+b[1].a.b = /diff/
+Object.eq(a, b) // false
+JSON.stringify(a) === JSON.stringify(b) // true
 ```
 
 ### Object.extend
@@ -42,26 +45,24 @@ This is the core function:
 
 ```javascript
 // Adding a function and extending
-Array.first = arr => arr[0]
 Array.last = arr => arr.slice(-1)[0]
 Object.extends(true)
 [1, 2, 3].last() === 3
 
 // Adding a shortcut without extending
-Object.extend.group = (fn, ...args) => {
-  if (args[1] instanceof Array) return args[0].reduce((acc, v) => (args[1].reduce((a, p, i, ds) => a[Object.access(v, p)] = i === ds.length - 1 ? (a[Object.access(v, p)] || []).concat([v]) : a[Object.access(v, p)] || {}, acc), acc), {})
+Object.extend.shortcuts.max = (fn, ...args) => {
+  if (args[1] === true) args[0] = args[0].filter(v => typeof v === 'number')
   return fn(...args)
 }
-Array.group(repos, ['fork', 'licence.key']) // returns an object of depth 1
 Object.extend()
-Array.group(repos, ['fork', 'licence.key']) // returns an object of depth 2
+[1, 2, '3'].max(true)
 ```
 
 ### Object.filter
 
 `filter :: Object (Any) -> Object`
 
-Create a new object with properties that pass the test implemented by the provided function or shortcut.
+Create a new object with properties that pass the test implemented by the function or shortcut.
 
 ```javascript
 user.filter(/Li/i)
@@ -73,25 +74,35 @@ user.filter((v, k) => v > 1000 || k === 'name')
 
 `find :: Object (Any) -> String|null`
 
-Get the first object property that passes the test implemented by the provided function or shortcut.
+Returns the value of the first element in the object that satisfies the testing function.
 
 ```javascript
-user.find(/Li/) // returns 'name'
-user.find((v, k) => v > 1000 || k === 'name') // returns 'id'
+user.find(/Li/)
+user.find((v, k) => v > 1000 || k === 'name')
 ```
 
+### Object.find
+
+`find :: Object (Any) -> String|null`
+
+Returns the key of the first element in the object that satisfies the testing function.
+
+```javascript
+user.findIndex(/Li/)
+user.findIndex((v, k) => v > 1000 || k === 'name')
+```
 
 ### Object.keys
 
 `keys :: Object () -> Array`
 
-Return the object keys.
+Returns the object keys.
 
 ### Object.map
 
 `map :: Object (Any) -> Object`
 
-Create a new object with values passed thru the provided function or shortcut for each keys.
+Creates a new object with every values passed thru the mapping function.
 
 ```javascript
 user.map('length')
@@ -102,7 +113,7 @@ user.map((v, k) => Number(v) ? v * 100 : k)
 
 `reduce :: Object (Function, Any) -> Any`
 
-Executes a reducer function on each element of the object, resulting in a single output value.
+Executes a reducer function on each properties of the object, resulting in a single output value.
 
 ```javascript
 user.reduce((acc, v, k) => {
@@ -116,25 +127,32 @@ user.reduce((acc, v, k) => {
 
 `values :: Object () -> Array`
 
-Return the object values.
+Returns the object values.
 
 ### Array.filter
 
 `filter :: Array (Any) -> Array`
 
+Creates a new array with all elements that pass the test implemented by the function.
+
 ```javascript
 repos.filter(v => v.forks > 50)
+[1, '3', 2].filter(Number) // [1, 2] // TODO
 ```
 
 ### Array.find
 
 `find :: Array (Any) -> Any`
 
+Returns the value of the first element in the array that satisfies the testing function.
+
 ```javascript
 repos.find(v => v.forks > 50)
 ```
 
 ### Array.findIndex
+
+Returns the index of the first element in the array that satisfies the testing function.
 
 `findIndex :: Array (Any) -> Number|null`
 
@@ -146,11 +164,15 @@ repos.findIndex({ name: /linux/i })
 
 `group :: Array (Any) -> Any`
 
+Creates a new object with keys equals to elements passed thru the grouping function and values an array of elements.
+
 ```javascript
 repos.group('fork')
 ```
 
 ### Array.map
+
+Creates a new array with every elements passed thru the mapping function.
 
 `map :: Array (Any) -> Array`
 
@@ -160,6 +182,8 @@ repos.map({ name: 'name', fame: 'forks' })
 ```
 
 ### Array.max
+
+Returns the max
 
 `max :: Array () -> Number`
 
@@ -224,29 +248,59 @@ repos.map('forks').min()
 `debounce :: Function (Number) -> Void`
 
 ```javascript
-const sleep = () => console.log('After 1 sec ?')
-sleep.debounce(1000)
+const log = () => console.log('It will never be called')
+setInterval(log.debounce(1000), 100)
 ```
 
 ### Function.every
 
 `every :: Function (Number, Number, Boolean) -> This`
 
+```javascript
+const log = () => console.log('It will never be called')
+log.every(100)
+```
+
 ### Function.memoize
 
 `memoize :: Function (Function) -> Function`
+
+```javascript
+const log = () => console.log('It will be called once only with the same signature')
+const logmem = log.memoize()
+logmem(1)
+logmem(1)
+```
 
 ### Function.partial
 
 `partial :: Function (Any[]) -> Function`
 
+```javascript
+const log = (a, b, c) => console.log(a, b, c)
+const logp = log.partial('a!', null, 'c!')
+logp(1) // a! 1 c!
+```
+
 ### Function.wait
 
 `wait :: Function (Number) -> This`
 
+```javascript
+const log = () => console.log('It will be called once after a delay')
+log.wait(1000)
+```
+
 ### Function.wrap
 
 `wrap :: Function (Function) -> Function`
+
+```javascript
+const log = () => console.log('It will be called if first argument is true')
+const logwrap = log.wrap((fn, ...args) => args[0] && fn())
+logwrap()
+logwrap(true)
+```
 
 ### String.capitalize
 

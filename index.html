@@ -10,8 +10,8 @@
     <link rel="stylesheet" href="//vbrajon.github.io/rawcss/raw.css">
     <style>
       * { border-radius: 0; }
-      html.dark { background: #282c34; }
-      main { margin-left: 300px; }
+      html.dark { background: rgb(40, 44, 52); }
+      main { margin: -1px 0 -1px 300px; }
       aside { position: fixed;top: 0;left: 0;width: 300px;height: 100vh;padding: 20px;border-right: 1px solid var(--gray2); }
       .github { margin: 8px -4px -8px; }
       .github > span { display: flex;margin: 0 4px; }
@@ -28,9 +28,16 @@
       .fn.prim.prop, .prim.prop .fn { background: var(--gray2)!important;font-weight: 800; }
       section { padding: 40px;border-top: 1px solid var(--gray2); }
       .markdown { width: 100%;font-size: 18px; }
-      .markdown p, .markdown ul, .markdown code { margin-bottom: 10px; }
+      .markdown > :first-child { margin: 20px 0; }
+      .markdown > :last-child { margin-bottom: 0; }
+      .markdown ul, .markdown pre { margin-bottom: 30px; }
       /* Prism - Raw theme */
-      pre { width: 100%;overflow: auto;margin: 0.5em 0;padding: 1em;color: #ccc;background: rgba(0, 0, 0, 0.2); }
+      :root { --gray05: rgb(0,0,0, .25);--gray1: rgb(0,0,0, .35);--gray2: rgb(0,0,0, .4);--gray3: rgb(0,0,0, .5); }
+      pre, :not(pre) > code { color: #def;background: rgba(0, 0, 0, 0.25); }
+      pre { position: relative; }
+      code[class*="language-"]::before { position: absolute;top: 6px;right: 6px;font-size: 60%;font-weight: 800; }
+      code.language-javascript::before { content: "JS"; }
+      pre { width: 100%;overflow: auto;margin: 0.5em 0;padding: 1em; }
       pre, code[class*="language-"] { border-radius: 0.3em;font: 400 1em/1.5 Menlo, monospace;white-space: pre;hyphens: none;tab-size: 2; }
       :not(pre) > code[class*="language-"] { padding: 0.1em; }
       .token.comment { color: #555; }
@@ -54,14 +61,14 @@
   <body>
     <main>
       <aside class="column nowrap">
-        <div class="row"><h1 @click.prevent="pname = fname = '';window.scrollTo(0, 0)">rawjs</h1><code style="margin: auto 0 auto auto">v1.1.1</code></div>
+        <div class="row"><h1 @click.prevent="pname = fname = '';window.scrollTo(0, 0)">rawjs</h1><code style="margin: auto 0 auto auto">{{ Object.extend.version }}</code></div>
         <input type="search" v-model="search">
-        <div class="tags row center"><code :style="search === tag && 'background: var(--gray2);'" @click="search = search === tag ? '' : tag" v-for="tag in ['core', 'native', 'shortcut', 'notag']">{{ tag }}</code></div>
+        <div class="tags row center"><code :style="search === tag && 'background: rgb(255, 255, 255, .2);'" @click="search = search === tag ? '' : tag" v-for="tag in ['core', 'native', 'shortcut', 'notag']">{{ tag }}</code></div>
         <div class="fns">
           <div class="fn" :class="[item[0], item[1], { prim: pname === item[0], prop: fname === item[1] }]" @click="pname = item[0];fname = item[1];window.$('#' + item[0] + '-' + item[1]).scrollIntoView()" v-for="item in list">
             <span class="primitive">{{ item[0] }}.</span>
             <span class="function">{{ item[1] }}</span>
-            <code :style="search === tag && 'background: var(--gray2);'" v-for="tag in item.slice(2)">{{ tag }}</code>
+            <code :style="search === tag && 'background: rgb(255, 255, 255, .2);'" v-for="tag in item.slice(2)">{{ tag }}</code>
           </div>
         </div>
         <div class="github row">
@@ -78,11 +85,11 @@
         </div>
         <markdown :data="docs[item.slice(0, 2).join('-')]"></markdown>
         <div class="tags row">
-          <code class="tag" @click="toggle = toggle === item.slice(0, 2).join('-') + '-source' ? '' : item.slice(0, 2).join('-') + '-source'" v-if="!item.includes('native')">source</code>
-          <code class="tag" @click="toggle = toggle === item.slice(0, 2).join('-') + '-shortcut' ? '' : item.slice(0, 2).join('-') + '-shortcut'" v-if="item.includes('shortcut')">shortcut</code>
+          <code :style="toggle === item.slice(0, 2).join('-') + '-source' && 'background: rgb(255, 255, 255, .2);'" @click="toggle = toggle === item.slice(0, 2).join('-') + '-source' ? '' : item.slice(0, 2).join('-') + '-source'" v-if="!item.includes('native')">source</code>
+          <code :style="toggle === item.slice(0, 2).join('-') + '-shortcut' && 'background: rgb(255, 255, 255, .2);'" @click="toggle = toggle === item.slice(0, 2).join('-') + '-shortcut' ? '' : item.slice(0, 2).join('-') + '-shortcut'" v-if="item.includes('shortcut')">shortcut</code>
         </div>
-        <pre class="source" v-if="toggle === item.slice(0, 2).join('-') + '-source'"><code class="language-js" v-html="Prism.highlight('' + (window[item[0]][item[1]].fn || window[item[0]][item[1]]), Prism.languages.javascript, 'js')"></code></pre>
-        <pre class="shortcut" v-if="toggle === item.slice(0, 2).join('-') + '-shortcut'"><code class="language-js" v-html="Prism.highlight(('' + window[item[0]][item[1]].wrap), Prism.languages.javascript, 'js')"></code></pre>
+        <pre class="source" v-if="toggle === item.slice(0, 2).join('-') + '-source'"><code class="language-js" v-html="highlight(window[item[0]][item[1]].fn || window[item[0]][item[1]])"></code></pre>
+        <pre class="shortcut" v-if="toggle === item.slice(0, 2).join('-') + '-shortcut'"><code class="language-js" v-html="highlight(window[item[0]][item[1]].wrap)"></code></pre>
       </section>
     </main>
     <script src="raw.js"></script>
@@ -99,15 +106,15 @@
       window.key = (letter, fn) => addEventListener('keydown', e => e.key.toLowerCase() === letter && fn(e))
       addEventListener('keydown', e => !e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey && $('[type=search]').focus())
       Vue.prototype.window = window
-      Vue.prototype.Prism = Prism
+      Vue.prototype.highlight = window.highlight = (code, lang = 'js') => Prism.highlight(String(code), Prism.languages[lang], lang)
+      marked.setOptions({ highlight })
       Vue.component('markdown', {
         props: ['data'],
         render(h) {
-          marked.setOptions({ highlight: (code, lang) => Prism.highlight(code, Prism.languages[lang] || Prism.languages.html, lang) })
           return this.data && h({ template: '<div class="markdown">' + marked(this.data) + '</div>' })
         },
       })
-      new Vue({
+      window.$root = new Vue({
         el: 'main',
         data() {
           const [pname, fname] = location.hash.slice(1).split('.')
