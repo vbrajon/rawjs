@@ -3,12 +3,15 @@ const arr = [{ name: 'Jane Doe', age: 22 }, { name: 'John Doe', age: 29, birthda
 const obj = arr[0]
 const str = 'i am: The1\nAND\t,_L?on*e%ly.'
 const date = new Date('2019-01-20T10:09:08')
-//>> setup
-JSON.parse(await download('./package.json')).version >> Object.extend.version
-[!!obj.map, !!date.plus] >> [false, false]
-Object.extend([Date])
-[!!obj.map, !!date.plus] >> [false, true]
-Object.extend(true) >> ['Object.map#shortcut', 'Object.reduce', 'Object.filter#shortcut', 'Object.find#shortcut', 'Object.findIndex#shortcut', 'Object.eq', 'Object.access', 'Object.extend#core', 'Object.keys#native', 'Object.values#native', 'Array.group#shortcut', 'Array.unique', 'Array.min', 'Array.max', 'Array.sum', 'Array.mean', 'Array.median', 'Array.map#native#shortcut', 'Array.reduce#native', 'Array.filter#native#shortcut', 'Array.find#native#shortcut', 'Array.findIndex#native#shortcut', 'Array.sort#native#shortcut', 'Array.reverse#native', 'Function.wrap', 'Function.partial', 'Function.every', 'Function.wait', 'Function.debounce', 'Function.throttle', 'Function.memoize', 'String.format#shortcut', 'String.lower', 'String.upper', 'String.capitalize', 'String.words', 'String.join', 'Number.duration', 'Number.format#shortcut', 'Date.relative', 'Date.getWeek', 'Date.getQuarter', 'Date.getLastDate', 'Date.format#shortcut', 'Date.modify', 'Date.plus', 'Date.minus', 'Date.start', 'Date.end', 'RegExp.escape', 'RegExp.plus', 'RegExp.minus']
+Object.extend.version >> JSON.parse(await download('./package.json')).version
+Object.access({ i: 0 }, 'i') >> 0
+Array.map([{ i: 0 }, { i: 1 }], 'i') >> [0, 1]
+// TODO: Object.extend(false) remove extended prototypes
+// [!!obj.map, !!date.plus] >> [false, false]
+// Object.extend([Date])
+// [!!obj.map, !!date.plus] >> [false, true]
+// Object.extend(true) >> ['Object.map#shortcut', 'Object.reduce', 'Object.filter#shortcut', 'Object.find#shortcut', 'Object.findIndex#shortcut', 'Object.equal', 'Object.access', 'Object.extend#core', 'Object.keys#native', 'Object.values#native', 'Array.group#shortcut', 'Array.unique', 'Array.min', 'Array.max', 'Array.sum', 'Array.mean', 'Array.median', 'Array.map#native#shortcut', 'Array.reduce#native', 'Array.filter#native#shortcut', 'Array.find#native#shortcut', 'Array.findIndex#native#shortcut', 'Array.sort#native#shortcut', 'Array.reverse#native', 'Function.wrap', 'Function.partial', 'Function.every', 'Function.wait', 'Function.debounce', 'Function.throttle', 'Function.memoize', 'String.lower', 'String.upper', 'String.capitalize', 'String.words', 'String.format#shortcut', 'Number.duration', 'Number.format#shortcut', 'Date.relative', 'Date.getWeek', 'Date.getQuarter', 'Date.getLastDate', 'Date.format#shortcut', 'Date.modify', 'Date.plus', 'Date.minus', 'Date.start', 'Date.end', 'RegExp.escape', 'RegExp.plus', 'RegExp.minus']
+Object.extend(true)
 obj.keys() >> ['name', 'age']
 obj.values() >> ['Jane Doe', 22]
 obj.map(v => v * 2 || v) >> { name: 'Jane Doe', age: 44 }
@@ -36,7 +39,6 @@ arr.map('age').min() >> 22
 arr.map('age').max() >> 71
 arr.map('age').mean() >> 36
 arr.map('age').median() >> 25.5
-;[{ a: { b: 'one' } }, { a: { b: 'two' } }].map('a.b.capitalize') >> ['One', 'Two']
 ;((a, b) => [a, b]).partial(null, 2)(1) >> [1, 2]
 ;(x => x).wrap((fn, x) => fn(x / 2) / 2)(4) >> 1
 const mem = (x => x / 2).memoize()
@@ -44,13 +46,13 @@ mem(2)
 mem(2)
 mem.cache['[2]'] >> 1
 str.words() >> ['i', 'am', 'The', '1', 'AND', 'Lonely']
-str.join() >> 'i am The 1 AND Lonely'
-str.join('title') >> 'I Am The 1 And Lonely'
-str.join('-') >> 'i-am-The-1-AND-Lonely'
-str.join('dash') >> 'i-am-the-1-and-lonely'
-str.join('underscore') >> 'i_am_the_1_and_lonely'
-str.join('camel') >> 'iAmThe1AndLonely'
-str.join('pascal') >> 'IAmThe1AndLonely'
+str.format() >> 'I Am The 1 And Lonely'
+str.format('title') >> 'I Am The 1 And Lonely'
+str.format('dash') >> 'i-am-the-1-and-lonely'
+str.format('underscore') >> 'i_am_the_1_and_lonely'
+str.format('camel') >> 'iAmThe1AndLonely'
+str.format('pascal') >> 'IAmThe1AndLonely'
+'{}{}{}'.format(0, 1, 2) >> '012'
 '{}{}{}'.format('a', 'b') >> 'ab'
 '{}{}{}'.format(['a', 'b']) >> 'ab'
 '{1}{1}{1}{0}{0}'.format('a', 'b') >> 'bbbaa'
@@ -111,8 +113,8 @@ new Date().plus('2 hours').relative() >> '2 hours from now'
 ;({ a: { b: [1,2,3] }}).access({ a: 'a.b', b: 'a.b.length' }) >> { a: [1,2,3], b: 3 }
 ;([{ a: { b: [1,2,3] }}]).access('0.a.b.length') >> 3
 ;({ a: { 'b-c': 1 }}).access('a.b-c') >> Object.access({ a: { 'b-c': 1 }}, "a['b-c']")
-Object.eq([undefined, null, { a: { b: /c/ }, c: [{ d: 1 }] }, [], x => x, /a/gi, new Date('2020'), '', '&', 'A', false, true, NaN, -Infinity, -1, -0, 0, 1, Infinity], [undefined, null, { a: { b: /c/ }, c: [{ d: 1 }] }, [], x => x, /a/gi, new Date('2020'), '', '&', 'A', false, true, NaN, -Infinity, -1, -0, 0, 1, Infinity]) >> true
-Object.eq([null], [null, undefined]) >> false
+Object.equal([undefined, null, { a: { b: /c/ }, c: [{ d: 1 }] }, [], x => x, /a/gi, new Date('2020'), '', '&', 'A', false, true, NaN, -Infinity, -1, -0, 0, 1, Infinity], [undefined, null, { a: { b: /c/ }, c: [{ d: 1 }] }, [], x => x, /a/gi, new Date('2020'), '', '&', 'A', false, true, NaN, -Infinity, -1, -0, 0, 1, Infinity]) >> true
+Object.equal([null], [null, undefined]) >> false
 Object.extend(Object, 'notdefined') >> undefined
 ;[{ a: 1 }].find({ a: 1 }) >> { a: 1 }
 ;[{ a: 1 }].find([{ a: 1 }]) >> { a: 1 }

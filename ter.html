@@ -63,15 +63,15 @@
         this.run = {}
         if (!this.value) return
         const r = ++run
-        const result = await run_test(this.value)
+        const result = await run_test(this.value, $root.tests[0])
         if (r === run) this.run = result
       }, { immediate: true })
     },
   })
-  new Vue({
+  window.$root = new Vue({
     el: 'main',
     data() {
-      import('./test-runner.js').then(() => download_suite(location.search.slice(1) || 'test-suite.js')).then(r => run_test(r[0]).then(() => this.tests = r))
+      import('./ter.js').then(() => download_suite(location.search.slice(1) || 'test-suite.js')).then(r => run_test(r[0]).then(() => this.tests = r))
       return {
         tests: [],
       }

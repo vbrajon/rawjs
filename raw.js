@@ -6,25 +6,25 @@ Object.filter = (obj, fn) =>
     .reduce((acc, k) => ((acc[k] = obj[k]), acc), {})
 Object.find = (obj, fn) => obj[Object.keys(obj).find((k, i) => fn(obj[k], k, i, obj))]
 Object.findIndex = (obj, fn) => Object.keys(obj).find((k, i) => fn(obj[k], k, i, obj))
-Object.eq = (a, b) => {
+Object.equal = (a, b) => {
   if (a == null || b == null) return a === b
   if (a.__proto__ !== b.__proto__) return false
   if (![Object.prototype.toString, Array.prototype.toString].includes(a.toString)) return a === b || a.toString() === b.toString()
   if (Object.keys(a).length !== Object.keys(b).length) return false
-  return Object.keys(a).every(k => a[k] === a || Object.eq(a[k], b[k]))
+  return Object.keys(a).every(k => a[k] === a || Object.equal(a[k], b[k]))
 }
-Object.access = (a, str) => {
+Object.access = (obj, path) => {
   try {
-    if (str instanceof Object) return str.map(p => Object.access(a, p))
-    if (!str) return a
-    if (a[str]) return typeof a[str] === 'function' ? a[str]() : a[str]
-    return str
+    if (path == null) return obj
+    if (obj[path] != null) return obj[path]
+    if (path instanceof Object) return path.map(p => Object.access(obj, p))
+    return path
       .replace(/\[["']?/g, '.')
       .replace(/["']?\]/g, '')
       .split('.')
       .filter()
-      .reduce((a, str) => (typeof a[str] === 'function' ? a[str]() : a[str]), a)
-  } catch (e) {}
+      .reduce((a, p) => a[p], obj)
+  } catch(e) {}
 }
 
 Array.group = (arr, fn) => arr.map(fn).reduce((acc, v, i) => ((acc[v] = (acc[v] || []).concat([arr[i]])), acc), {})
@@ -77,13 +77,6 @@ Function.memoize = (fn, hash = JSON.stringify) => {
   return f
 }
 
-String.format = (str, ...args) => {
-  let i = 0,
-    fn = m => args[m]
-  if (typeof args[0] === 'object') fn = m => args[0][m]
-  if (typeof args[0] === 'function') fn = args.shift()
-  return str.replace(/\{[^}]*\}/g, m => fn(m.length === 2 ? i : m.slice(1, -1), i++) || '')
-}
 String.lower = str => str.toLowerCase()
 String.upper = str => str.toUpperCase()
 String.capitalize = str => str.replace(/./, c => c.toUpperCase())
@@ -94,15 +87,23 @@ String.words = (str, sep = /[-_,.\s]/) =>
     .replace(/([a-z])([A-Z\d])/g, '$1 $2')
     .split(sep)
     .filter(Boolean)
-String.join = (str, sep = ' ') => {
-  let words = str.words()
-  if (sep === 'title') return words.map('lower.capitalize').join(' ')
-  if (sep === 'pascal') return words.map('lower.capitalize').join('')
-  if (sep === 'camel') return str.join('pascal').replace(/./, c => c.toLowerCase())
-  if (['dash', 'list', 'kebab', 'underscore', 'snake'].includes(sep)) words = words.map('lower')
-  if (['dash', 'list', 'kebab'].includes(sep)) sep = '-'
-  if (['underscore', 'snake'].includes(sep)) sep = '_'
-  return words.join(sep)
+String.format = (str, ...args) => {
+  if (!args.length) args = ['title']
+  if (['title', 'pascal', 'camel', 'dash', 'list', 'kebab', 'underscore', 'snake'].includes(args[0])) {
+    let words = String.words(str).map(v => v.toLowerCase())
+    let sep = ' '
+    if (args[0] === 'camel') return str.format('pascal').replace(/./, c => c.toLowerCase())
+    if (['title', 'pascal'].includes(args[0])) words = words.map(v => v.replace(/./, c => c.toUpperCase()))
+    if (['pascal'].includes(args[0])) sep = ''
+    if (['dash', 'list', 'kebab'].includes(args[0])) sep = '-'
+    if (['underscore', 'snake'].includes(args[0])) sep = '_'
+    return words.join(sep)
+  }
+  let i = 0
+  let fn = m => args[m] == null ? '' : String(args[m])
+  if (typeof args[0] === 'object') fn = m => args[0][m]
+  if (typeof args[0] === 'function') fn = args.shift()
+  return str.replace(/\{[^}]*\}/g, m => fn(m.length === 2 ? i : m.slice(1, -1), i++) || '')
 }
 
 Number.duration = num => {
@@ -188,6 +189,8 @@ RegExp.escape = r => RegExp(r.source.replace(/([\\/'*+?|()[\]{}.^$-])/g, '\\$1')
 RegExp.plus = (r, f) => RegExp(r.source, r.flags.replace(f, '') + f)
 RegExp.minus = (r, f) => RegExp(r.source, r.flags.replace(f, ''))
 
+Promise.map = async (arr, fn) => await arr.reduce(async (acc, v) => ((await acc).push(await fn(v)), acc), Promise.resolve([]))
+
 // RAW Core functions
 Object.extend = (primitive, fname) => {
   if (primitive === true) return Object.extend([Object, Array, Function, String, Number, Date, RegExp])
@@ -237,10 +240,10 @@ Object.extend.shortcuts = {
     const f = a => {
       if (a == null) return x => x
       if (a instanceof Function) return a
-      if (a instanceof Array) return x => a.some(v => Object.eq(x, v))
+      if (a instanceof Array) return x => a.some(v => Object.equal(x, v))
       if (a instanceof RegExp) return x => a.test(x)
       if (a instanceof Object) return x => Object.keys(a).every(k => f(a[k])(x[k]))
-      return x => Object.eq(x, a) || Object.access(x, a)
+      return x => Object.equal(x, a) || Object.access(x, a)
     }
     args[1] = f(args[1])
     return fn(...args)

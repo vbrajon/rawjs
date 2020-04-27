@@ -1,3 +1,4 @@
+#!/usr/bin/env node --no-warnings
 Promise.map = async (arr, fn) => await arr.reduce(async (acc, v) => ((await acc).push(await fn(v)), acc), Promise.resolve([]))
 
 function equal(a, b) {
@@ -25,30 +26,21 @@ function equal(a, b) {
 async function run_test(test) {
   let error, time = 0
   try {
-    const [left, right] = test
-      .replace(/import ([^'"]*)["']([^'"]*)['"]/g, (m, a, b) => `${a.trim() ? `window.${a.replace(/(.* as )?(.* from )/, (m, a, b) => b.slice(0, -5).trim())} = ` : ''}(await import("${b}")).default`)
+    test = test
+      .replace(/import ([^'"]*)["']([^'"]*)['"]/g, (m, a, b) => `${a.trim() ? `window.${a.replace(/(.* as )?(.* from )/, (m, a, b) => b.slice(0, -5).trim())} = ` : ''}(await import("${b}?cache=${++download_cache}")).default`)
       .replace(/(^|\n)const (\w+\s*=)/g, '$1window.$2')
-      .split('>>')
-    const fn = eval('(async function eval_string() {\n' + left.replace(/;?(.*)\s*$/, 'return $1') + '\n})')
+    const [left, right] = test.split('>>')
+    const code = left.replace(/;?(.*)\s*$/, 'return $1')
     const start = performance.now()
-    const output = await fn()
+    const output = await eval(`(async () => {\n${code}\n})()`)
     time = performance.now() - start
-    if (/>> setup/i.test(test) || test.split('\n').every(l => l.startsWith('//'))) return {}
-    const expected = eval('(' + (right || 'null').split('//')[0] + ')')
+    if (test.split('\n').every(l => l.startsWith('//'))) return {}
+    const expected = await eval(`(async () => {\nreturn ${right}\n})()`)
     equal(output, expected)
   } catch(e) {
     error = e
   }
   return { test, time, error }
-}
-
-async function run_performance(test) {
-  const tests = []
-  const start = performance.now()
-  while (performance.now() - start < 1000) tests.push(await run_test(test))
-  const time = performance.now() - start
-  console.log(test.split('\n').slice(-1)[0], +tests.length.toPrecision(2))
-  return { test, time, error: (tests.find(t => t.error) || {}).error, runs: tests.length }
 }
 
 async function download_suite(url) {
@@ -66,43 +58,56 @@ async function download_suite(url) {
 async function run_suite(url) {
   const tests = await download_suite(url)
   const start = performance.now()
-  const results = window.perf
-    ? [await run_test(tests[0]), await Promise.map(tests.slice(1), run_performance)].flat()
-    : [await run_test(tests[0]), await Promise.all(tests.slice(1).map(run_test))].flat()
+  await run_test(tests[0])
+  const results = await Promise.all(tests.slice(1).map(run_test))
   const time = performance.now() - start
   const passed = results.filter(v => v.test && !v.error)
   const skipped = results.filter(v => !v.test)
   const errored = results.filter(v => v.error)
   const [clear, red, green, yellow, blue, pink] = [0, 31, 32, 33, 34, 35].map(n => `\x1b[${n}m`)
   if (errored.length) console.dir([errored], { depth: null })
-  console.log(`${blue}${url}${clear} | ${yellow}${time > 1000 ? +(time / 1000).toPrecision(2) + 's' : +(time).toPrecision(2) + 'ms'}${clear}: ${green}${passed.length} passed${clear}, ${red}${errored.length} errored${clear}, ${pink}${skipped.length - 1} skipped${clear}`)
+  console.log(`${blue}${url}${clear} | ${yellow}${time > 1000 ? +(time / 1000).toPrecision(2) + 's' : +(time).toPrecision(2) + 'ms'}${clear}: ${green}${passed.length} passed${clear}, ${red}${errored.length} errored${clear}, ${pink}${skipped.length} skipped${clear}`)
   return results
 }
 
 if (typeof global !== 'undefined') {
-  process.env.NODE_NO_WARNINGS = 1
   global.window = global
   window.run_cli = async () => {
     const fs = await import('fs')
-    const module = await import('module')
+    const vm = await import('vm')
     const child_process = await import('child_process')
-    window.performance = (await import('perf_hooks')).performance
     const equal = (await import('assert')).deepStrictEqual
     const [ok, ko, crash] = ['Bottle', 'Ping', 'Sosumi'].map(k => () => child_process.spawn('afplay', ['/System/Library/Sounds/' + k + '.aiff'], { detached: true, stdio: 'ignore' }).unref())
     const options = process.argv.slice(2).filter(v => v.startsWith('--')).reduce((acc, v) => (acc[v.slice(2)] = true, acc), {})
-    const files = process.argv.slice(2).filter(v => !v.startsWith('--'))
-    const perf = options.perf || options.performance || options.benchmark
+    const file = process.argv.slice(2).find(v => !v.startsWith('--')) || 'test-suite.js'
+    const run = async () => (await run_suite(file)).some(v => v.error) ? ko() : ok()
+    const watch = file => fs.watchFile(file, { interval: 100 }, run)
     window.download = async file => fs.promises.readFile(file, 'utf8')
-    const watch = file => fs.watch(file, () => child_process.execSync([process.argv[0]].concat(process.argv.slice(1)).join(' ').replace('--watch', '--child'), { stdio: 'inherit', cwd: process.cwd() }))
-    const results = (await Promise.map(files, run_suite)).flat()
-    results.some(v => v.error) ? ko() : ok()
-    if (options.child) return
-    if (options.watch) Object.keys(module._cache).concat(files).filter(f => !/esm.js$/.test(f)).map(watch)
-    else results.some(v => v.error) && process.exit(1)
+    window.performance = (await import('perf_hooks')).performance
+    // TODO: eval in sandbox for each test
+    // window.evil = code => vm.runInNewContext(code, Object.keys(global).filter(k => k !== 'global').reduce((acc, k) => (acc[k] = global[k], acc), {}))
+    await run()
+    // TEMP: waiting for equivalent of require.cache to be available in node esm (module._cache is always empty, maybe due to async import)
+    window.module_cache = fs.readFileSync(file, 'utf8').split('\n').filter(v => v.startsWith('import')).map(l => l.replace(/import ([^'"]*)["']([^'"]*)['"]/g, (m, a, b) => b))
+    window.module_cache.concat(file).map(watch)
   }
   run_cli()
 }
-window.run_test = run_test
-window.run_suite = run_suite
+// TEMP: waiting for API to invalidate module.cache > https://github.com/nodejs/help/issues/1399
+window.download_cache = 0
+// window.evil = async code => {
+//   const iframe = document.createElement('iframe')
+//   iframe.style.display = 'none'
+//   document.body.appendChild(iframe)
+//   const iwin = iframe.contentWindow
+//   const ieval = iwin.eval.bind(iwin)
+//   try {
+//     return await ieval(code)
+//   } finally {
+//     document.body.removeChild(iframe)
+//   }
+// }
 window.download = async file => await (await fetch(file)).text()
 window.download_suite = download_suite
+window.run_suite = run_suite
+window.run_test = run_test

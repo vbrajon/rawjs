@@ -19,9 +19,9 @@ repos.access('0.owner.id')
 Object.access({ 'a.b': 1 }, 'a.b')
 ```
 
-### Object.eq
+### Object.equal
 
-`eq :: Any (Any) -> Boolean`
+`equal :: Any (Any) -> Boolean`
 
 Compare any kind of object together, returns true in case of **deep** equality.
 
@@ -309,10 +309,6 @@ logwrap(true)
 ### String.format
 
 `format :: String (Any[]) -> String`
-
-### String.join
-
-`join :: String (String) -> String`
 
 ### String.lower
 

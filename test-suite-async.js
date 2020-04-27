@@ -1,28 +1,24 @@
 import './raw.js'
 Object.extend(true)
+//>> setup
 
-// 1 //
-await (() => 1).wait(100)
+await (() => 1).wait(100) >> 1
 
-// 5 //
 let n = 0, inc = () => n++
 inc.every(50, 5)
-await (() => n).wait(500)
+await (() => n).wait(500) >> 5
 
-// 1 //
 let n = 0, inc = () => n++
 inc.debounce(75).every(50, 5)
-await (() => n).wait(500)
+await (() => n).wait(500) >> 1
 
-// 3 //
 let n = 0, inc = () => n++
 inc.throttle(75).every(50, 5)
-await (() => n).wait(500)
+await (() => n).wait(500) >> 3
 
-// true //
 let n = 0, inc = () => n++
 inc.every()
 inc.stop.wait(10)
 inc.debounce()
 inc.throttle()
-await (() => n > 0).wait(500)
+await (() => n > 0).wait(500) >> true
