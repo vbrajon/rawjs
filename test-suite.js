@@ -29,8 +29,10 @@ arr.group('age').map(g => g.map('name')) >> { 22: ['Jane Doe', 'Janette Doe'], 2
 arr.group(['age', 'name']).map(g => g.map(g2 => g2.length)) >> { '22': { 'Jane Doe': 1, 'Janette Doe': 1 }, '29': { 'John Doe': 1 }, '71': { 'Johnny Doe': 1 } }
 arr.group(['age', 'name']).map(g => g.map('length')) >> { 22: { 'Jane Doe': 1, 'Janette Doe': 1 }, 29: { 'John Doe': 1 }, 71: { 'Johnny Doe': 1 } }
 arr.map('name').sort() >> ['Jane Doe', 'Janette Doe', 'John Doe', 'Johnny Doe']
+;[['b', {}], ['c', {}], ['a', {}]].sort([1, 0]) >> [['a', {}], ['b', {}], ['c', {}]]
 arr.sort(v => v.age).map(v => v.age) >> arr.sort('age').map('age')
-;[[null, 1], [null, 2], [1, 3], [null, 4]].sort((a, b) => a[0] > b[0] ? -1 : 1).sort((a, b) => a[0] > b[0] ? -1 : 1) >> [[null, 1], [null, 2], [1, 3], [null, 4]].sort((a, b) => a[0] > b[0] ? -1 : 1)
+;['10 arbres', '3 arbres', 'réservé', 'Cliché', 'Premier', 'communiqué', 'café', 'Adieu'].sort() >> ['3 arbres', '10 arbres', 'Adieu', 'café', 'Cliché', 'communiqué', 'Premier', 'réservé']
+;[[null, 1], [null, 2], [1, 3], [null, 4]].sort((a, b) => (a[0] > b[0] ? -1 : 1)).sort((a, b) => (a[0] > b[0] ? -1 : 1)) >> [[null, 1], [null, 2], [1, 3], [null, 4]].sort((a, b) => (a[0] > b[0] ? -1 : 1))
 ;[[null, 1], [null, 2], [1, 3], [null, 4]].sort([0]).sort([0]) >> [[null, 1], [null, 2], [1, 3], [null, 4]].sort([0])
 arr.sort(['-age', 'name']).map(v => [v.age, v.name]) >> [[71, 'Johnny Doe'], [29, 'John Doe'], [22, 'Jane Doe'], [22, 'Janette Doe']]
 arr.map('age').unique() >> [22, 29, 71]
@@ -60,11 +62,14 @@ str.format('pascal') >> 'IAmThe1AndLonely'
 '{}{}{}{1}{1}{1}{0}{0}'.format('a', 'b') >> 'abbbbaa'
 '{k2}{k2}{k3}'.format({ k1: 'a', k2: 'b' }) >> 'bb'
 '{66} pears x {3} apples'.format((x, i) => +x + i) >> '66 pears x 4 apples'
-;(.1 * 3 * 1000).format() >> 300
-;(-.000123456789).format(1) >> '-100µ'
+;(0.1 * 3 * 1000).format() >> 300
+;(-0.000123456789).format(1) >> '-100µ'
 ;(123456789000).format(2) >> '120G'
-;(1010.01010).format('en') >> '1,010.01'
-;(1010.01010).format('fr') >> '1 010,01'
+;(1234.43210).format('en') >> '1,234.432'
+;(1234.43210).format('fr') >> '1 234,432'
+;(1234.43210).format('en', { style: 'currency', currency: 'JPY' }) >> '¥1,234'
+;(1234.43210).format('ja', { style: 'unit', unit: 'kilometer-per-hour', unitDisplay: 'narrow', maximumSignificantDigits: 3 }) >> '1,230km/h'
+;Math.floor(1234.43210 * 100).format('en', { style: 'unit', unit: 'percent' }) >> '123,443%'
 Object.getOwnPropertyNames(Math)
   .filter(k => typeof Math[k] === 'function')
   .forEach(k => (Number[k] = Math[k]))
@@ -83,7 +88,7 @@ date.plus('day').format() >> '2019-01-21'
 Date.getWeek(new Date('2015-02-26')) >> 8
 Date.getWeek(new Date('2018-02-26')) >> 9
 Date.getQuarter(new Date('2018-04-01')) >> 2
-new Date('2019-01-01').plus(.1 * 3 + ' day').format('YYYY-MM-DDThh:mm:ss') >> '2019-01-01T08:12:00'
+new Date('2019-01-01').plus(0.1 * 3 + ' day').format('YYYY-MM-DDThh:mm:ss') >> '2019-01-01T08:12:00'
 new Date('2019-05-31').minus('3 month').format() >> '2019-02-28'
 new Date('2019-05-31').plus('-3 month').format() >> '2019-02-28'
 new Date('2019-01-31').plus('1 Month').format() >> '2019-02-28'
@@ -92,6 +97,7 @@ new Date('2016-02-29').plus('1 year').format() >> '2017-02-28'
 new Date('2016-02-29').end('1 year').format() >> '2016-12-31'
 new Date('2018-12-31').plus('1 month').format() >> '2019-01-31'
 new Date('2018-12-31').minus('1 month').format() >> '2018-11-30'
+new Date('2019-10-27').plus('1 day').format() >> '2019-10-28'
 date.minus('1 year, 1 month, 1 day, hour, minute and 10 seconds').format('YYYY-MM-DDThh:mm:ss') >> '2017-12-19T09:07:58' // DEPRECATED //
 date.start('month').format('YYYY-MM-DDThh:mm:ss') >> '2019-01-01T00:00:00'
 date.end('year').format('YYYY-MM-DDThh:mm:ss') >> '2019-12-31T23:59:59'
@@ -106,13 +112,13 @@ new Date().plus('2 hours').relative() >> '2 hours from now'
 ;/john@gmail.com/.escape().source >> 'john@gmail\\.com'
 ;/QwErTy/.plus('i').flags >> 'i'
 ;/QwErTy/.minus('i').flags >> ''
-;({ a: { b: [1,2,3] }}).access() >> { a: { b: [1,2,3] }}
-;({ a: { b: [1,2,3] }}).access('a.b.length') >> 3
-;({ a: { b: [1,2,3] }}).access('.a.b.length') >> 3
-;({ a: { b: [1,2,3] }}).access(['a.b', 'a.b.length']) >> [[1,2,3], 3]
-;({ a: { b: [1,2,3] }}).access({ a: 'a.b', b: 'a.b.length' }) >> { a: [1,2,3], b: 3 }
-;([{ a: { b: [1,2,3] }}]).access('0.a.b.length') >> 3
-;({ a: { 'b-c': 1 }}).access('a.b-c') >> Object.access({ a: { 'b-c': 1 }}, "a['b-c']")
+;{ a: { b: [1, 2, 3] } }.access() >> { a: { b: [1, 2, 3] } }
+;{ a: { b: [1, 2, 3] } }.access('a.b.length') >> 3
+;{ a: { b: [1, 2, 3] } }.access('.a.b.length') >> 3
+;{ a: { b: [1, 2, 3] } }.access(['a.b', 'a.b.length']) >> [[1, 2, 3], 3]
+;{ a: { b: [1, 2, 3] } }.access({ a: 'a.b', b: 'a.b.length' }) >> { a: [1, 2, 3], b: 3 }
+;[{ a: { b: [1, 2, 3] } }].access('0.a.b.length') >> 3
+;{ a: { 'b-c': 1 } }.access('a.b-c') >> Object.access({ a: { 'b-c': 1 } }, "a['b-c']")
 Object.equal([undefined, null, { a: { b: /c/ }, c: [{ d: 1 }] }, [], x => x, /a/gi, new Date('2020'), '', '&', 'A', false, true, NaN, -Infinity, -1, -0, 0, 1, Infinity], [undefined, null, { a: { b: /c/ }, c: [{ d: 1 }] }, [], x => x, /a/gi, new Date('2020'), '', '&', 'A', false, true, NaN, -Infinity, -1, -0, 0, 1, Infinity]) >> true
 Object.equal([null], [null, undefined]) >> false
 Object.extend(Object, 'notdefined') >> undefined
@@ -122,5 +128,5 @@ Object.extend(Object, 'notdefined') >> undefined
 
 Array.shuffle = (arr, r) => (arr.forEach((v, i) => ((r = Math.floor(Math.random() * i)), ([arr[i], arr[r]] = [arr[r], arr[i]]))), arr)
 Object.extend(true)
-;['', '&', 'A', false, true, -Infinity, -1, -0, NaN, 0, 1, Infinity].sort() >> ['', '&', 'A', false, true, -Infinity, -1, -0, NaN, 0, 1, Infinity].shuffle().sort()
-;[undefined, null, x => x, /a/gi, '', '&', 'A', false, true, NaN, -Infinity, -1, -0, 0, 1, Infinity].sort() >> [undefined, null, x => x, /a/gi, '', '&', 'A', false, true, NaN, -Infinity, -1, -0, 0, 1, Infinity].shuffle().sort()
+;[undefined, null, x => x, '', '&', 'A', false, true, NaN, -Infinity, -1, -0, 0, 1, Infinity].sort() >> [undefined, null, x => x, '', '&', 'A', false, true, NaN, -Infinity, -1, -0, 0, 1, Infinity].shuffle().sort()
+;['A', '&', '', true, false, Infinity, -1, -0, NaN, 0, 1, -Infinity].sort() >> [false, true, NaN, -Infinity, -1, -0, 0, 1, Infinity, '', '&', 'A']

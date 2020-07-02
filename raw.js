@@ -62,10 +62,12 @@ Function.debounce = (fn, ms = 0) => (...args) => {
   fn.id = setTimeout(() => fn(...args), ms)
 }
 Function.throttle = (fn, ms = 0) => (...args) => {
-  if (fn.flag) return
-  fn.flag = true
-  setTimeout(() => delete fn.flag, ms)
-  fn(...args)
+  const run = () => {
+    fn.id = setTimeout(() => (delete fn.id, fn.next && fn.next(), delete fn.next), ms)
+    fn(...args)
+  }
+  if (fn.id) return fn.next = run
+  run()
 }
 Function.memoize = (fn, hash = JSON.stringify) => {
   const f = (...args) => {
@@ -111,9 +113,9 @@ Number.duration = num => {
   const i = n.findIndex(v => v <= Math.abs(num))
   return Math.round(num / n[i]) + ' ' + ['year', 'month', 'week', 'day', 'hour', 'minute', 'second', 'millisecond'][i] + (Math.abs(num) / n[i] > 1.5 ? 's' : '')
 }
-Number.format = (num, fmt) => {
-  if (typeof fmt === 'string') return Intl.NumberFormat(fmt).format(num)
-  if (typeof fmt === 'number') return (+num.toPrecision(fmt)).toExponential().replace(/([+-\d.]+)e([+-\d]+)/, (m, n, e) => +(n + 'e' + (e - Math.floor(e / 3) * 3)) + (['mµnpfazy', 'kMGTPEZY'][+(e > 0)].split('')[Math.abs(Math.floor(e / 3)) - 1] || ''))
+Number.format = (num, format, options) => {
+  if (typeof format === 'string') return Intl.NumberFormat(format, options).format(num)
+  if (typeof format === 'number') return (+num.toPrecision(format)).toExponential().replace(/([+-\d.]+)e([+-\d]+)/, (m, n, e) => +(n + 'e' + (e - Math.floor(e / 3) * 3)) + (['mµnpfazy', 'kMGTPEZY'][+(e > 0)].split('')[Math.abs(Math.floor(e / 3)) - 1] || ''))
   return +num.toPrecision(15)
 }
 
@@ -121,9 +123,9 @@ Date.relative = (date, d2 = new Date()) => (date - d2).duration().replace(/^(-?)
 Date.getWeek = (date, soy = new Date(date.getFullYear(), 0, 0)) => Math.floor(((date - soy) / 86400000 + 6 - soy.getDay()) / 7)
 Date.getQuarter = date => Math.ceil((date.getMonth() + 1) / 3)
 Date.getLastDate = date => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
-Date.format = (date, fmt = 'YYYY-MM-DD', lang = 'en') => {
+Date.format = (date, format = 'YYYY-MM-DD', lang = 'en') => {
   const intl = options => date.toLocaleString(lang, options)
-  const parts = fmt.split(',').map(s => s.trim())
+  const parts = format.split(',').map(s => s.trim())
   if (!parts.filter(v => !['year', 'month', 'mon', 'day', 'weekday', 'wday', 'hour', 'minute', 'second'].includes(v)).length) {
     const options = {}
     if (parts.includes('second')) options.second = '2-digit'
@@ -141,7 +143,7 @@ Date.format = (date, fmt = 'YYYY-MM-DD', lang = 'en') => {
   const letters = { s: 'Seconds', m: 'Minutes', h: 'Hours', D: 'Date', W: 'Week', M: 'Month', Q: 'Quarter', Y: 'FullYear' }
   Object.keys(letters).map(letter => {
     const zeros = letter === 'Y' ? '0000' : '00'
-    fmt = fmt.replace(RegExp(letter + '+', 'g'), m => {
+    format = format.replace(RegExp(letter + '+', 'g'), m => {
       let int
       if (letter === 'W') int = 'W' + Date.getWeek(date)
       if (letter === 'M') int = date.getMonth() + 1
@@ -151,7 +153,7 @@ Date.format = (date, fmt = 'YYYY-MM-DD', lang = 'en') => {
       return (zeros + int).slice(-m.length)
     })
   })
-  return fmt
+  return format
 }
 Date.modify = (date, str, sign) => {
   let d = new Date(date)
@@ -180,16 +182,16 @@ Date.modify = (date, str, sign) => {
   if (['-', '+'].includes(sign) && /(year|month)/i.test(str) && !/day/i.test(str) && date.getDate() !== d.getDate()) return d.start('month').minus('second')
   return d
 }
-Date.plus = (date, str) => date.modify(str, '+')
-Date.minus = (date, str) => date.modify(str, '-')
-Date.start = (date, str) => date.modify(str, '<')
-Date.end = (date, str) => date.modify(str, '>')
+Date.plus = (date, str) => Date.modify(date, str, '+')
+Date.minus = (date, str) => Date.modify(date, str, '-')
+Date.start = (date, str) => Date.modify(date, str, '<')
+Date.end = (date, str) => Date.modify(date, str, '>')
 
 RegExp.escape = r => RegExp(r.source.replace(/([\\/'*+?|()[\]{}.^$-])/g, '\\$1'), r.flags)
 RegExp.plus = (r, f) => RegExp(r.source, r.flags.replace(f, '') + f)
 RegExp.minus = (r, f) => RegExp(r.source, r.flags.replace(f, ''))
 
-Promise.map = async (arr, fn) => await arr.reduce(async (acc, v) => ((await acc).push(await fn(v)), acc), Promise.resolve([]))
+Promise.map = async (arr, fn) => await arr.reduce(async (acc, v, i) => ((await acc).push(await fn(v, i)), acc), Promise.resolve([]))
 
 // RAW Core functions
 Object.extend = (primitive, fname) => {
@@ -260,8 +262,10 @@ Object.extend.shortcuts = {
     return fn(...args)
     function default_sort(a, b) {
       if (typeof a !== typeof b) return typeof a > typeof b ? 1 : -1
-      if (!a && a !== 0) return a === b ? 0 : -1
-      if (!b && b !== 0) return a === b ? 0 : 1
+      if (['object', 'function', 'undefined'].includes(typeof a)) return 0
+      if (a.localeCompare) return a.localeCompare(b, undefined, { numeric: true })
+      if (isNaN(a)) return -1
+      if (isNaN(b)) return 1
       return a === b ? 0 : a > b ? 1 : -1
     }
     function directed_sort(p, desc = /^-/.test(p)) {
