@@ -13,7 +13,7 @@
     "test:watch": "ter test-suite.js --watch"
   },
   "devDependencies": {
-    "lodash": "^4.17.15",
+    "lodash": "^4.17.19",
     "sugar": "^2.0.6"
   }
 }
