@@ -33,7 +33,6 @@ GITHUB: https://github.com/vbrajon/rawjs
 run()
 async function run() {
   await import('./raw.js')
-  Object.extend(true)
   const readline = await import('readline')
   const tty = await import('tty')
   const fs = await import('fs')

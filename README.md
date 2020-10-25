@@ -2,10 +2,9 @@
 It is a simpler version of [lodash](https://github.com/lodash/lodash) and [moment](https://github.com/moment/moment/).
 
 Installation:
-```html
-<script src="https://vbrajon.github.io/rawjs/raw.js"></script>
-<script>Object.extend(true)</script>
-```
+- in browser: `<script src="https://vbrajon.github.io/rawjs/raw.js"></script>`
+- in node: `npm i git+https://git@github.com/vbrajon/rawjs.git` then `import 'rawjs'` or `require('rawjs')`
+- in cli: `npm i -g git+https://git@github.com/vbrajon/rawjs.git` then ``
 
 It brings:
 - **functions**: <code><span class="token known-class-name class-name">Object</span><span class="token punctuation">.</span><span class="token property-access">map</span></code>, <code><span class="token known-class-name class-name">Array</span><span class="token punctuation">.</span><span class="token property-access">group</span></code>, <code><span class="token known-class-name class-name">Function</span><span class="token punctuation">.</span><span class="token property-access">throttle</span></code>, <code><span class="token known-class-name class-name">Date</span><span class="token punctuation">.</span><span class="token property-access">plus</span></code> and 50 more

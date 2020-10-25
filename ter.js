@@ -58,8 +58,7 @@ async function download_suite(url) {
 async function run_suite(url) {
   const tests = await download_suite(url)
   const start = performance.now()
-  const setup = await run_test(tests[0])
-  if (setup.error) return (console.log('ERROR IN SETUP', setup), [])
+  await run_test(tests[0])
   const results = await Promise.all(tests.slice(1).map(run_test))
   const time = performance.now() - start
   const passed = results.filter(v => v.test && !v.error)

@@ -195,13 +195,9 @@ Promise.map = async (arr, fn) => await arr.reduce(async (acc, v, i) => ((await a
 
 // RAW Core functions
 Object.extend = (primitive, fname) => {
-  if (primitive === true) return Object.extend([Object, Array, Function, String, Number, Date, RegExp])
-  if (primitive === false) return Object.extend([])
-  if (primitive instanceof Array) return (Object.extend.prototypes = primitive, Object.extend())
-  if (primitive === undefined) return [Object, Array, Function, String, Number, Date, RegExp].map(primitive => Object.extend(primitive)).flat()
-  const natives = Object.extend.natives.filter(v => v.startsWith(primitive.name)).map(v => v.split('.')[1])
-  if (!fname) return Array.unique(Object.keys(primitive).concat(natives)).map(fname => Object.extend(primitive, fname))
-  if (fname === 'extend') return 'Object.extend#core'
+  if (!primitive) return [Object, Array, Function, String, Number, Date, RegExp].map(primitive => Object.extend(primitive)).flat()
+  const natives = Object.natives.filter(v => v.startsWith(primitive.name)).map(v => v.split('.')[1])
+  if (!fname) return Array.unique(Object.keys(primitive).concat(natives)).filter(fname => primitive !== Object || !['extend', 'prototypes', 'natives', 'shortcuts'].includes(fname)).map(fname => Object.extend(primitive, fname))
   // Wrap function with shortcuts and extend prototype
   if (primitive.prototype[fname] && primitive.prototype[fname].toString().includes('[native code]')) {
     primitive.prototype['_' + fname] = primitive.prototype[fname]
@@ -211,9 +207,9 @@ Object.extend = (primitive, fname) => {
   if (typeof primitive[fname] !== 'function') return
   const fn = primitive[fname].fn || primitive[fname]
   const native = natives.includes(fname)
-  const shortcut = Object.keys(Object.extend.shortcuts).includes(fname)
-  primitive[fname] = shortcut ? Function.wrap(fn, Object.extend.shortcuts[fname]) : fn
-  if (Object.extend.prototypes.includes(primitive))
+  const shortcut = Object.keys(Object.shortcuts).includes(fname)
+  primitive[fname] = shortcut ? Function.wrap(fn, Object.shortcuts[fname]) : fn
+  if (Object.prototypes.includes(primitive))
     Object.defineProperty(primitive.prototype, fname, {
       enumerable: false,
       configurable: true,
@@ -224,10 +220,9 @@ Object.extend = (primitive, fname) => {
     })
   return primitive.name + '.' + fname + (native ? '#native' : '') + (shortcut ? '#shortcut' : '')
 }
-Object.extend.version = '1.0.0'
-Object.extend.natives = ['Object.keys', 'Object.values', 'Array.map', 'Array.reduce', 'Array.filter', 'Array.find', 'Array.findIndex', 'Array.sort', 'Array.reverse']
-Object.extend.prototypes = []
-Object.extend.shortcuts = {
+Object.prototypes = Object.prototypes || [Object, Array, Function, String, Number, Date, RegExp]
+Object.natives = Object.natives || ['Object.keys', 'Object.values', 'Array.map', 'Array.reduce', 'Array.filter', 'Array.find', 'Array.findIndex', 'Array.sort', 'Array.reverse']
+Object.shortcuts = Object.shortcuts || {
   map: (fn, ...args) => {
     const f = a => {
       if (a == null) return x => x
@@ -253,6 +248,7 @@ Object.extend.shortcuts = {
   sort: (fn, ...args) => {
     const f = a => {
       if (a == null) return default_sort
+      if (a instanceof String) return Intl.Collator(a, { numeric: true }).compare
       if (a instanceof Array) return multi_sort(a)
       if (a instanceof Function && a.length === 1) return (x, y) => default_sort(a(x), a(y))
       if (a instanceof Function && a.length === 2) return a
@@ -263,9 +259,6 @@ Object.extend.shortcuts = {
     function default_sort(a, b) {
       if (typeof a !== typeof b) return typeof a > typeof b ? 1 : -1
       if (['object', 'function', 'undefined'].includes(typeof a)) return 0
-      if (a.localeCompare) return a.localeCompare(b, undefined, { numeric: true })
-      if (isNaN(a)) return -1
-      if (isNaN(b)) return 1
       return a === b ? 0 : a > b ? 1 : -1
     }
     function directed_sort(p, desc = /^-/.test(p)) {
@@ -290,5 +283,5 @@ Object.extend.shortcuts = {
     return fn(...args)
   },
 }
-Object.extend.shortcuts.find = Object.extend.shortcuts.findIndex = Object.extend.shortcuts.filter
+Object.shortcuts.find = Object.shortcuts.findIndex = Object.shortcuts.filter
 Object.extend()

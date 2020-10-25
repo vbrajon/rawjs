@@ -61,7 +61,7 @@
   <body>
     <main>
       <aside class="column nowrap">
-        <div class="row"><h1 @click.prevent="pname = fname = '';window.scrollTo(0, 0)">rawjs</h1><code style="margin: auto 0 auto auto">{{ Object.extend.version }}</code></div>
+        <div class="row"><h1 @click.prevent="pname = fname = '';window.scrollTo(0, 0)">rawjs</h1><!--<code style="margin: auto 0 auto auto">{{ Object.extend.version }}</code>--></div>
         <input type="search" v-model="search">
         <div class="tags row center"><code :style="search === tag && 'background: rgb(255, 255, 255, .2);'" @click="search = search === tag ? '' : tag" v-for="tag in ['core', 'native', 'shortcut', 'notag']">{{ tag }}</code></div>
         <div class="fns">
@@ -100,7 +100,7 @@
     <script src="https://unpkg.com/prismjs@1.16.0/components/prism-js-extras.js"></script>
     <script async defer src="https://buttons.github.io/buttons.js"></script>
     <script>
-      Object.extend(true)
+      Object.extend()
       window.$ = (s, start = document) => start.querySelector(s)
       window.$$ = (s, start = document) => Array.from(start.querySelectorAll(s))
       window.key = (letter, fn) => addEventListener('keydown', e => e.key.toLowerCase() === letter && fn(e))
@@ -132,8 +132,8 @@
         },
         computed: {
           list() {
-            if (this.search === 'notag') return Object.extend(true).filter(v => !v.includes('#')).map(v => v.split(/[.#]/)).sort((a, b) => a[0] !== b[0] ? 0 : a[1] > b[1] ? 1 : -1)
-            return Object.extend(true).filter(v => RegExp(this.search.replace(/ /g, '.'), 'i').test(v)).map(v => v.split(/[.#]/)).sort((a, b) => a[0] !== b[0] ? 0 : a[1] > b[1] ? 1 : -1)
+            if (this.search === 'notag') return Object.extend().filter(v => !v.includes('#')).map(v => v.split(/[.#]/)).sort((a, b) => a[0] !== b[0] ? 0 : a[1] > b[1] ? 1 : -1)
+            return Object.extend().filter(v => RegExp(this.search.replace(/ /g, '.'), 'i').test(v)).map(v => v.split(/[.#]/)).sort((a, b) => a[0] !== b[0] ? 0 : a[1] > b[1] ? 1 : -1)
           },
         },
         created() {
