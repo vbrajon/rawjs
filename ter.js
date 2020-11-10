@@ -1,5 +1,4 @@
-#!/usr/bin/env node --no-warnings
-Promise.map = async (arr, fn) => await arr.reduce(async (acc, v) => ((await acc).push(await fn(v)), acc), Promise.resolve([]))
+#!/usr/bin/env node
 
 function equal(a, b) {
   class AssertionError extends Error {
@@ -74,27 +73,28 @@ if (typeof global !== 'undefined') {
   global.window = global
   window.run_cli = async () => {
     const fs = await import('fs')
-    const vm = await import('vm')
     const child_process = await import('child_process')
-    const equal = (await import('assert')).deepStrictEqual
     const [ok, ko, crash] = ['Bottle', 'Ping', 'Sosumi'].map(k => () => child_process.spawn('afplay', ['/System/Library/Sounds/' + k + '.aiff'], { detached: true, stdio: 'ignore' }).unref())
-    const options = process.argv.slice(2).filter(v => v.startsWith('--')).reduce((acc, v) => (acc[v.slice(2)] = true, acc), {})
-    const file = process.argv.slice(2).find(v => !v.startsWith('--')) || 'test-suite.js'
-    const run = async () => (await run_suite(file)).some(v => v.error) ? ko() : ok()
-    const watch = file => fs.watchFile(file, { interval: 100 }, run)
+    // const equal = (await import('assert')).deepStrictEqual
     window.download = async file => fs.promises.readFile(file, 'utf8')
     window.performance = (await import('perf_hooks')).performance
+
+    const files = fs.readdirSync('.').filter(file => /test.*.js/.test(file))
+    files.map(async file => {
+      const run = async () => (await run_suite(file)).some(v => v.error) ? ko() : ok()
+      const watch = file => fs.watchFile(file, { interval: 100 }, run)
+      // TEMP: waiting for equivalent of require.cache to be available in node esm (module._cache is always empty, maybe due to async import)
+      const module_cache = fs.readFileSync(file, 'utf8').split('\n').filter(v => v.startsWith('import')).map(l => l.replace(/import ([^'"]*)["']([^'"]*)['"]/g, (m, a, b) => b))
+      module_cache.concat(file).map(watch)
+      run()
+    })
     // TODO: eval in sandbox for each test
+    // const vm = await import('vm')
     // window.evil = code => vm.runInNewContext(code, Object.keys(global).filter(k => k !== 'global').reduce((acc, k) => (acc[k] = global[k], acc), {}))
-    await run()
-    // TEMP: waiting for equivalent of require.cache to be available in node esm (module._cache is always empty, maybe due to async import)
-    window.module_cache = fs.readFileSync(file, 'utf8').split('\n').filter(v => v.startsWith('import')).map(l => l.replace(/import ([^'"]*)["']([^'"]*)['"]/g, (m, a, b) => b))
-    window.module_cache.concat(file).map(watch)
   }
   run_cli()
 }
-// TEMP: waiting for API to invalidate module.cache > https://github.com/nodejs/help/issues/1399
-window.download_cache = 0
+// TODO: eval in sandbox for each test
 // window.evil = async code => {
 //   const iframe = document.createElement('iframe')
 //   iframe.style.display = 'none'
@@ -107,6 +107,8 @@ window.download_cache = 0
 //     document.body.removeChild(iframe)
 //   }
 // }
+// TEMP: waiting for API to invalidate module.cache > https://github.com/nodejs/help/issues/1399
+window.download_cache = 0
 window.download = async file => await (await fetch(file)).text()
 window.download_suite = download_suite
 window.run_suite = run_suite

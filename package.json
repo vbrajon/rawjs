@@ -12,7 +12,9 @@
     "test:watch": "ter test-suite.js --watch"
   },
   "devDependencies": {
-    "lodash": "^4.17.20",
-    "sugar": "^2.0.6"
+    "lodash": "*",
+    "moment": "*",
+    "underscore": "*",
+    "sugar": "*"
   }
 }

@@ -6,25 +6,20 @@ Object.filter = (obj, fn) =>
     .reduce((acc, k) => ((acc[k] = obj[k]), acc), {})
 Object.find = (obj, fn) => obj[Object.keys(obj).find((k, i) => fn(obj[k], k, i, obj))]
 Object.findIndex = (obj, fn) => Object.keys(obj).find((k, i) => fn(obj[k], k, i, obj))
-Object.equal = (a, b) => {
-  if (a == null || b == null) return a === b
-  if (a.__proto__ !== b.__proto__) return false
-  if (![Object.prototype.toString, Array.prototype.toString].includes(a.toString)) return a === b || a.toString() === b.toString()
-  if (Object.keys(a).length !== Object.keys(b).length) return false
-  return Object.keys(a).every(k => a[k] === a || Object.equal(a[k], b[k]))
-}
-Object.access = (obj, path) => {
+Object.access = (obj, path = []) => {
   try {
-    if (path == null) return obj
     if (obj[path] != null) return obj[path]
+    if (typeof path === 'string') return Object.access(obj, path.split(/(?:\.|\[["']?([^\]"']*)["']?\])/).filter(x => x))
+    if (path instanceof Array) return path.reduce((a, p) => a[p], obj)
     if (path instanceof Object) return path.map(p => Object.access(obj, p))
-    return path
-      .replace(/\[["']?/g, '.')
-      .replace(/["']?\]/g, '')
-      .split('.')
-      .filter()
-      .reduce((a, p) => a[p], obj)
-  } catch(e) {}
+  } catch (e) {}
+}
+Object.equal = (a, b) => {
+  if (a === b) return true
+  if (a == null || b == null || a.__proto__ !== b.__proto__) return false
+  if (![Object.prototype, Array.prototype].includes(a.__proto__)) return a.toString() === b.toString()
+  if (Object.keys(a).length !== Object.keys(b).length) return false
+  return Object.keys(a).every(k => Object.equal(a[k], b[k]))
 }
 
 Array.group = (arr, fn) => arr.map(fn).reduce((acc, v, i) => ((acc[v] = (acc[v] || []).concat([arr[i]])), acc), {})
@@ -102,10 +97,10 @@ String.format = (str, ...args) => {
     return words.join(sep)
   }
   let i = 0
-  let fn = m => args[m] == null ? '' : String(args[m])
-  if (typeof args[0] === 'object') fn = m => args[0][m]
+  let fn = m => Object.access(args, m)
+  if (typeof args[0] === 'object') fn = m => Object.access(args[0], m)
   if (typeof args[0] === 'function') fn = args.shift()
-  return str.replace(/\{[^}]*\}/g, m => fn(m.length === 2 ? i : m.slice(1, -1), i++) || '')
+  return str.replace(/\{[^{}]*\}/g, m => fn(m.length === 2 ? i : m.slice(1, -1), i++) || '')
 }
 
 Number.duration = num => {
@@ -123,8 +118,8 @@ Date.relative = (date, d2 = new Date()) => (date - d2).duration().replace(/^(-?)
 Date.getWeek = (date, soy = new Date(date.getFullYear(), 0, 0)) => Math.floor(((date - soy) / 86400000 + 6 - soy.getDay()) / 7)
 Date.getQuarter = date => Math.ceil((date.getMonth() + 1) / 3)
 Date.getLastDate = date => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
-Date.format = (date, format = 'YYYY-MM-DD', lang = 'en') => {
-  const intl = options => date.toLocaleString(lang, options)
+Date.getTimezone = (date, offset = date.getTimezoneOffset()) => `${offset > 0 ? '-' : '+'}${('0' + ~~Math.abs(offset / 60)).slice(-2)}:${('0' + Math.abs(offset % 60)).slice(-2)}`
+Date.format = (date, format = 'YYYY-MM-DDThh:mm:ssZ', lang = 'en') => {
   const parts = format.split(',').map(s => s.trim())
   if (!parts.filter(v => !['year', 'month', 'mon', 'day', 'weekday', 'wday', 'hour', 'minute', 'second'].includes(v)).length) {
     const options = {}
@@ -138,16 +133,17 @@ Date.format = (date, format = 'YYYY-MM-DD', lang = 'en') => {
     if (parts.includes('month')) options.month = 'long'
     if (parts.includes('year')) options.year = 'numeric'
     if (!options.day && !options.month && !options.year) return Date.format(date, [options.hour && 'hh', options.minute && 'mm', options.second && 'ss'].filter(v => v).join(':'))
-    return intl(options)
+    return date.toLocaleString(lang, options)
   }
-  const letters = { s: 'Seconds', m: 'Minutes', h: 'Hours', D: 'Date', W: 'Week', M: 'Month', Q: 'Quarter', Y: 'FullYear' }
+  const letters = { S: 'Milliseconds', s: 'Seconds', m: 'Minutes', h: 'Hours', D: 'Date', W: 'Week', M: 'Month', Q: 'Quarter', Y: 'FullYear', Z: 'Timezone' }
   Object.keys(letters).map(letter => {
-    const zeros = letter === 'Y' ? '0000' : '00'
+    const zeros = letter === 'Y' ? '0000' : letter === 'S' ? '000' : '00'
     format = format.replace(RegExp(letter + '+', 'g'), m => {
       let int
-      if (letter === 'W') int = 'W' + Date.getWeek(date)
+      if (letter === 'Z') return Date.getTimezone(date)
+      if (letter === 'W') return 'W' + Date.getWeek(date)
+      if (letter === 'Q') return 'Q' + Date.getQuarter(date)
       if (letter === 'M') int = date.getMonth() + 1
-      if (letter === 'Q') int = 'Q' + Date.getQuarter(date)
       if (!int) int = date['get' + letters[letter]]()
       if (m.length > zeros.length) return (zeros + int).slice(-zeros.length) + letter
       return (zeros + int).slice(-m.length)
@@ -158,19 +154,11 @@ Date.format = (date, format = 'YYYY-MM-DD', lang = 'en') => {
 Date.modify = (date, str, sign) => {
   let d = new Date(date)
   const names = ['Seconds', 'Minutes', 'Hours', 'Date', 'Month', 'FullYear']
-  const durations = [1000, 60000, 3600000, 86400000]
   let fn
-  if (sign === '+') fn = (i, n) => (durations[i] ? (d = new Date(+d + durations[i] * n)) : d['set' + names[i]](d['get' + names[i]]() + n))
-  if (sign === '-') fn = (i, n) => (durations[i] ? (d = new Date(+d - durations[i] * n)) : d['set' + names[i]](d['get' + names[i]]() - n))
-  if (sign === '<') fn = (i, n) => names.slice(0, i).map(name => d['set' + name](name === 'Date' ? 1 : 0))
-  if (sign === '>') {
-    const last = { Seconds: 59, Minutes: 59, Hours: 23, Date: Date.getLastDate, Month: 11 }
-    fn = i =>
-      names
-        .slice(0, i)
-        .reverse()
-        .map(name => d['set' + name](typeof last[name] === 'number' ? last[name] : last[name](d)))
-  }
+  if (sign === '+') fn = (i, n) => d['set' + names[i]](d['get' + names[i]]() + n)
+  if (sign === '-') fn = (i, n) => d['set' + names[i]](d['get' + names[i]]() - n)
+  if (sign === '<') fn = i => names.slice(0, i).map(name => d['set' + name](name === 'Date' ? 1 : 0))
+  if (sign === '>') fn = i => names.slice(0, i).reverse().map(name => d['set' + name]({ Month: 11, Date: Date.getLastDate(d), Hours: 23, Minutes: 59, Seconds: 59 }[name]))
   str
     .replace(/([+-\.\d]*)\s*seconds?/i, (m, n) => fn(0, +n || 1 - (n === '0')))
     .replace(/([+-\.\d]*)\s*minutes?/i, (m, n) => fn(1, +n || 1 - (n === '0')))
@@ -197,8 +185,8 @@ Promise.map = async (arr, fn) => await arr.reduce(async (acc, v, i) => ((await a
 Object.extend = (primitive, fname) => {
   if (!primitive) return [Object, Array, Function, String, Number, Date, RegExp].map(primitive => Object.extend(primitive)).flat()
   const natives = Object.natives.filter(v => v.startsWith(primitive.name)).map(v => v.split('.')[1])
-  if (!fname) return Array.unique(Object.keys(primitive).concat(natives)).filter(fname => primitive !== Object || !['extend', 'prototypes', 'natives', 'shortcuts'].includes(fname)).map(fname => Object.extend(primitive, fname))
-  // Wrap function with shortcuts and extend prototype
+  const fnames = Object.keys(primitive).filter(fname => primitive[fname] instanceof Function)
+  if (!fname) return Array.unique(fnames.concat(natives)).map(fname => Object.extend(primitive, fname))
   if (primitive.prototype[fname] && primitive.prototype[fname].toString().includes('[native code]')) {
     primitive.prototype['_' + fname] = primitive.prototype[fname]
     primitive[fname] = (x, ...args) => primitive.prototype['_' + fname].call(x, ...args)
@@ -221,7 +209,7 @@ Object.extend = (primitive, fname) => {
   return primitive.name + '.' + fname + (native ? '#native' : '') + (shortcut ? '#shortcut' : '')
 }
 Object.prototypes = Object.prototypes || [Object, Array, Function, String, Number, Date, RegExp]
-Object.natives = Object.natives || ['Object.keys', 'Object.values', 'Array.map', 'Array.reduce', 'Array.filter', 'Array.find', 'Array.findIndex', 'Array.sort', 'Array.reverse']
+Object.natives = Object.natives || ['Object.keys', 'Object.values', 'Object.entries', 'Object.fromEntries', 'Array.map', 'Array.reduce', 'Array.filter', 'Array.find', 'Array.findIndex', 'Array.sort', 'Array.reverse']
 Object.shortcuts = Object.shortcuts || {
   map: (fn, ...args) => {
     const f = a => {
@@ -248,10 +236,10 @@ Object.shortcuts = Object.shortcuts || {
   sort: (fn, ...args) => {
     const f = a => {
       if (a == null) return default_sort
-      if (a instanceof String) return Intl.Collator(a, { numeric: true }).compare
       if (a instanceof Array) return multi_sort(a)
       if (a instanceof Function && a.length === 1) return (x, y) => default_sort(a(x), a(y))
-      if (a instanceof Function && a.length === 2) return a
+      if (a instanceof Function) return a
+      if (typeof a === 'string' && typeof args[0][0] === 'string') return Intl.Collator(a, { numeric: true, ...args[2] }).compare
       return directed_sort(a)
     }
     args[1] = f(args[1])
