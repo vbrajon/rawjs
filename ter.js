@@ -2,28 +2,36 @@
 
 function equal(a, b) {
   class AssertionError extends Error {
-    constructor(a, b) {
+    constructor(a, b, difference) {
       super()
       if (Error.captureStackTrace) Error.captureStackTrace(this, AssertionError)
       this.name = 'AssertionError'
       this.message = 'Expected values to be strictly deep-equal'
       this.actual = a
       this.expected = b
+      this.difference = difference
     }
   }
-  function eq(a, b) {
-    if (a == null || b == null) return a === b
-    if (a.__proto__ !== b.__proto__) return false
-    if (![Object.prototype.toString, Array.prototype.toString].includes(a.toString)) return a === b || a.toString() === b.toString()
-    if (Object.keys(a).length !== Object.keys(b).length) return false
-    return Object.keys(a).every(k => a[k] === a || eq(a[k], b[k]))
+  Object.difference = (a, b, p = []) => {
+    if (a === b) return null
+    if (a == null || b == null || a.__proto__ !== b.__proto__) return [a, b]
+    if (![Object.prototype, Array.prototype].includes(a.__proto__)) return a.toString() === b.toString() ? null : [a, b]
+    return Object.keys({ ...a, ...b }).reduce((acc, k) => {
+      const difference = Object.difference(a[k], b[k], p.concat(k))
+      if (!difference || !difference.length) return acc
+      if (difference instanceof Array && (!difference[0] || !difference[0].path)) return acc.concat({ path: p.concat(k), difference })
+      if (difference instanceof Array) return acc.concat(difference)
+      if (difference instanceof Object) return difference
+    }, [])
   }
-  if (!eq(a, b)) throw new AssertionError(a, b)
+  const difference = Object.difference(a, b)
+  if (difference && difference.length) throw new AssertionError(a, b, difference)
   return true
 }
 
 async function run_test(test) {
-  let error, time = 0
+  let error,
+    time = 0
   try {
     test = test
       .replace(/import ([^'"]*)["']([^'"]*)['"]/g, (m, a, b) => `${a.trim() ? `window.${a.replace(/(.* as )?(.* from )/, (m, a, b) => b.slice(0, -5).trim())} = ` : ''}(await import("${b}?cache=${++download_cache}")).default`)
@@ -36,7 +44,7 @@ async function run_test(test) {
     if (test.split('\n').every(l => l.startsWith('//'))) return {}
     const expected = await eval(`(async () => {\nreturn ${right}\n})()`)
     equal(output, expected)
-  } catch(e) {
+  } catch (e) {
     error = e
   }
   return { test, time, error }
@@ -45,12 +53,20 @@ async function run_test(test) {
 async function download_suite(url) {
   return (await download(url))
     .split('\n')
-    .reduce((acc, v) => {
-      acc.slice(-1)[0].push(v)
-      if (v.includes('>>')) acc.push([])
-      return acc
-    }, [[]])
-    .map(v => v.join('\n').trim().replace(/^;/, ''))
+    .reduce(
+      (acc, v) => {
+        acc.slice(-1)[0].push(v)
+        if (v.includes('>>')) acc.push([])
+        return acc
+      },
+      [[]],
+    )
+    .map(v =>
+      v
+        .join('\n')
+        .trim()
+        .replace(/^;/, ''),
+    )
     .filter(x => x)
 }
 
@@ -65,7 +81,7 @@ async function run_suite(url) {
   const errored = results.filter(v => v.error)
   const [clear, red, green, yellow, blue, pink] = [0, 31, 32, 33, 34, 35].map(n => `\x1b[${n}m`)
   if (errored.length) console.dir([errored], { depth: null })
-  console.log(`${blue}${url}${clear} | ${yellow}${time > 1000 ? +(time / 1000).toPrecision(2) + 's' : +(time).toPrecision(2) + 'ms'}${clear}: ${green}${passed.length} passed${clear}, ${red}${errored.length} errored${clear}, ${pink}${skipped.length} skipped${clear}`)
+  console.log(`${blue}${url}${clear} | ${yellow}${time > 1000 ? +(time / 1000).toPrecision(2) + 's' : +time.toPrecision(2) + 'ms'}${clear}: ${green}${passed.length} passed${clear}, ${red}${errored.length} errored${clear}, ${pink}${skipped.length} skipped${clear}`)
   return results
 }
 
@@ -74,20 +90,26 @@ if (typeof global !== 'undefined') {
   window.run_cli = async () => {
     const fs = await import('fs')
     const child_process = await import('child_process')
-    const [ok, ko, crash] = ['Bottle', 'Ping', 'Sosumi'].map(k => () => child_process.spawn('afplay', ['/System/Library/Sounds/' + k + '.aiff'], { detached: true, stdio: 'ignore' }).unref())
+    const [ok, ko, crash] = ['Tink', 'Ping', 'Sosumi'].map(k => () => child_process.spawn('afplay', ['/System/Library/Sounds/' + k + '.aiff'], { detached: true, stdio: 'ignore' }).unref())
     // const equal = (await import('assert')).deepStrictEqual
-    window.download = async file => fs.promises.readFile(file, 'utf8')
+    window.download = async file => await fs.promises.readFile(file, 'utf8')
     window.performance = (await import('perf_hooks')).performance
 
-    const files = fs.readdirSync('.').filter(file => /test.*.js/.test(file))
-    files.map(async file => {
-      const run = async () => (await run_suite(file)).some(v => v.error) ? ko() : ok()
-      const watch = file => fs.watchFile(file, { interval: 100 }, run)
-      // TEMP: waiting for equivalent of require.cache to be available in node esm (module._cache is always empty, maybe due to async import)
-      const module_cache = fs.readFileSync(file, 'utf8').split('\n').filter(v => v.startsWith('import')).map(l => l.replace(/import ([^'"]*)["']([^'"]*)['"]/g, (m, a, b) => b))
-      module_cache.concat(file).map(watch)
-      run()
-    })
+    const files = await fs.promises.readdir('.')
+    files
+      .filter(file => /^test.*.js/.test(file))
+      .map(async file => {
+        const run = async () => ((await run_suite(file)).some(v => v.error) ? ko() : ok())
+        const watch = file => fs.watchFile(file, { interval: 100 }, run)
+        // TEMP: waiting for equivalent of require.cache to be available in node esm (module._cache is always empty, maybe due to async import)
+        const content = await fs.promises.readFile(file, 'utf8')
+        const module_cache = content
+          .split('\n')
+          .filter(l => l.startsWith('import'))
+          .map(l => l.replace(/import ([^'"]*)["']([^'"]*)['"]/g, (m, a, b) => b))
+        module_cache.concat(file).map(watch)
+        run()
+      })
     // TODO: eval in sandbox for each test
     // const vm = await import('vm')
     // window.evil = code => vm.runInNewContext(code, Object.keys(global).filter(k => k !== 'global').reduce((acc, k) => (acc[k] = global[k], acc), {}))

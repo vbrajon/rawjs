@@ -7,12 +7,10 @@ Object.filter = (obj, fn) =>
 Object.find = (obj, fn) => obj[Object.keys(obj).find((k, i) => fn(obj[k], k, i, obj))]
 Object.findIndex = (obj, fn) => Object.keys(obj).find((k, i) => fn(obj[k], k, i, obj))
 Object.access = (obj, path = []) => {
-  try {
-    if (obj[path] != null) return obj[path]
-    if (typeof path === 'string') return Object.access(obj, path.split(/(?:\.|\[["']?([^\]"']*)["']?\])/).filter(x => x))
-    if (path instanceof Array) return path.reduce((a, p) => a[p], obj)
-    if (path instanceof Object) return path.map(p => Object.access(obj, p))
-  } catch (e) {}
+  if (obj[path] != null) return obj[path]
+  if (typeof path === 'string') return Object.access(obj, path.split(/(?:\.|\[["']?([^\]"']*)["']?\])/).filter(x => x))
+  if (path instanceof Array) return path.reduce((a, p) => a && a[p] != null ? a[p] : null, obj)
+  if (path instanceof Object) return path.map(p => Object.access(obj, p))
 }
 Object.equal = (a, b) => {
   if (a === b) return true
@@ -83,7 +81,7 @@ String.words = (str, sep = /[-_,.\s]/) =>
     .replace(RegExp('[^A-z0-9' + sep.source.slice(1, -1) + ']', 'g'), '')
     .replace(/([a-z])([A-Z\d])/g, '$1 $2')
     .split(sep)
-    .filter(Boolean)
+    .filter(x => x)
 String.format = (str, ...args) => {
   if (!args.length) args = ['title']
   if (['title', 'pascal', 'camel', 'dash', 'list', 'kebab', 'underscore', 'snake'].includes(args[0])) {
@@ -100,7 +98,7 @@ String.format = (str, ...args) => {
   let fn = m => Object.access(args, m)
   if (typeof args[0] === 'object') fn = m => Object.access(args[0], m)
   if (typeof args[0] === 'function') fn = args.shift()
-  return str.replace(/\{[^{}]*\}/g, m => fn(m.length === 2 ? i : m.slice(1, -1), i++) || '')
+  return str.replace(/\{[^{}]*\}/g, m => String(fn(m.slice(1, -1) || i, i++)).replace(/^(null|undefined)$/, ''))
 }
 
 Number.duration = num => {
@@ -185,14 +183,13 @@ Promise.map = async (arr, fn) => await arr.reduce(async (acc, v, i) => ((await a
 Object.extend = (primitive, fname) => {
   if (!primitive) return [Object, Array, Function, String, Number, Date, RegExp].map(primitive => Object.extend(primitive)).flat()
   const natives = Object.natives.filter(v => v.startsWith(primitive.name)).map(v => v.split('.')[1])
-  const fnames = Object.keys(primitive).filter(fname => primitive[fname] instanceof Function)
-  if (!fname) return Array.unique(fnames.concat(natives)).map(fname => Object.extend(primitive, fname))
+  if (!fname) return Array.unique(Object.keys(primitive).concat(natives)).map(fname => Object.extend(primitive, fname)).filter(x => x)
   if (primitive.prototype[fname] && primitive.prototype[fname].toString().includes('[native code]')) {
     primitive.prototype['_' + fname] = primitive.prototype[fname]
     primitive[fname] = (x, ...args) => primitive.prototype['_' + fname].call(x, ...args)
     if (['sort', 'reverse'].includes(fname)) primitive[fname] = (x, ...args) => primitive.prototype['_' + fname].call(x.slice(), ...args)
   }
-  if (typeof primitive[fname] !== 'function') return
+  if (primitive[fname] === Object.extend || !(primitive[fname] instanceof Function)) return
   const fn = primitive[fname].fn || primitive[fname]
   const native = natives.includes(fname)
   const shortcut = Object.keys(Object.shortcuts).includes(fname)
@@ -246,7 +243,7 @@ Object.shortcuts = Object.shortcuts || {
     return fn(...args)
     function default_sort(a, b) {
       if (typeof a !== typeof b) return typeof a > typeof b ? 1 : -1
-      if (['object', 'function', 'undefined'].includes(typeof a)) return 0
+      if (a == null || a instanceof Object) return 0
       return a === b ? 0 : a > b ? 1 : -1
     }
     function directed_sort(p, desc = /^-/.test(p)) {

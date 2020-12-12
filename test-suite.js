@@ -119,6 +119,9 @@ new Date().plus('2 hours').relative() >> '2 hours from now'
 ;({ a: { b: [1, 2, 3] }}).access({ a: 'a.b', b: 'a.b.length' }) >> { a: [1, 2, 3], b: 3 }
 ;([{ a: { b: [1, 2, 3] }}]).access('0.a.b.length') >> 3
 ;({ a: { 'b.c': 1 }}).access('a["b.c"]') >> 1
+Object.access({ 'a': { 'b': 1 } }, 'a.b') >> 1
+Object.access({ 'a.b': 1 }, 'a.b') >> 1
+Object.access({ 'a.b': 1 }, ['a', 'b']) >> null
 Object.equal([undefined, null, { a: { b: /c/ }, c: [{ d: 1 }] }, [], x => x, /a/gi, new Date('2020'), '', '&', 'A', false, true, NaN, -Infinity, -1, -0, 0, 1, Infinity], [undefined, null, { a: { b: /c/ }, c: [{ d: 1 }] }, [], x => x, /a/gi, new Date('2020'), '', '&', 'A', false, true, NaN, -Infinity, -1, -0, 0, 1, Infinity]) >> true
 Object.equal([null], [null, undefined]) >> false
 Object.extend(Object, 'notdefined') >> undefined
