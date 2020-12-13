@@ -6,11 +6,6 @@
     "raw": "cli.js",
     "ter": "ter.js"
   },
-  "scripts": {
-    "test": "ter",
-    "test:perf": "ter test-suite-perf.js --perf",
-    "test:watch": "ter test-suite.js --watch"
-  },
   "devDependencies": {
     "lodash": "*",
     "moment": "*",

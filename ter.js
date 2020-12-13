@@ -81,7 +81,7 @@ async function run_suite(url) {
   const errored = results.filter(v => v.error)
   const [clear, red, green, yellow, blue, pink] = [0, 31, 32, 33, 34, 35].map(n => `\x1b[${n}m`)
   if (errored.length) console.dir([errored], { depth: null })
-  console.log(`${blue}${url}${clear} | ${yellow}${time > 1000 ? +(time / 1000).toPrecision(2) + 's' : +time.toPrecision(2) + 'ms'}${clear}: ${green}${passed.length} passed${clear}, ${red}${errored.length} errored${clear}, ${pink}${skipped.length} skipped${clear}`)
+  console.log(`${blue}${url}${clear} | ${yellow}${time > 1000 ? +(time / 1000).toPrecision(2) + 's' : +time.toPrecision(1) + 'ms'}${clear}: ${green}${passed.length} passed${clear}, ${red}${errored.length} errored${clear}, ${pink}${skipped.length} skipped${clear}`)
   return results
 }
 
@@ -95,21 +95,19 @@ if (typeof global !== 'undefined') {
     window.download = async file => await fs.promises.readFile(file, 'utf8')
     window.performance = (await import('perf_hooks')).performance
 
-    const files = await fs.promises.readdir('.')
-    files
-      .filter(file => /^test.*.js/.test(file))
-      .map(async file => {
-        const run = async () => ((await run_suite(file)).some(v => v.error) ? ko() : ok())
-        const watch = file => fs.watchFile(file, { interval: 100 }, run)
-        // TEMP: waiting for equivalent of require.cache to be available in node esm (module._cache is always empty, maybe due to async import)
-        const content = await fs.promises.readFile(file, 'utf8')
-        const module_cache = content
-          .split('\n')
-          .filter(l => l.startsWith('import'))
-          .map(l => l.replace(/import ([^'"]*)["']([^'"]*)['"]/g, (m, a, b) => b))
-        module_cache.concat(file).map(watch)
-        run()
-      })
+    const files = process.argv.length > 2 ? process.argv.slice(2) : (await fs.promises.readdir('.')).filter(file => /^test.*.js/.test(file))
+    files.map(async file => {
+      const run = async () => ((await run_suite(file)).some(v => v.error) ? ko() : ok())
+      const watch = file => fs.watchFile(file, { interval: 100 }, run)
+      // TEMP: waiting for equivalent of require.cache to be available in node esm (module._cache is always empty, maybe due to async import)
+      const content = await fs.promises.readFile(file, 'utf8')
+      const module_cache = content
+        .split('\n')
+        .filter(l => l.startsWith('import'))
+        .map(l => l.replace(/import ([^'"]*)["']([^'"]*)['"]/g, (m, a, b) => b))
+      module_cache.concat(file).map(watch)
+      run()
+    })
     // TODO: eval in sandbox for each test
     // const vm = await import('vm')
     // window.evil = code => vm.runInNewContext(code, Object.keys(global).filter(k => k !== 'global').reduce((acc, k) => (acc[k] = global[k], acc), {}))

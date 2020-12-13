@@ -1,16 +1,13 @@
-Object.map = (obj, fn) => Object.keys(obj).reduce((acc, k, i) => ((acc[k] = fn(obj[k], k, i, obj)), acc), {})
+Object.map = (obj, fn) => Object.keys(obj).reduce((acc, k, i) => (acc[k] = fn(obj[k], k, i, obj), acc), {})
 Object.reduce = (obj, fn, base) => Object.keys(obj).reduce((acc, k, i) => fn(acc, obj[k], k, i, obj), base)
-Object.filter = (obj, fn) =>
-  Object.keys(obj)
-    .filter((k, i) => fn(obj[k], k, i, obj))
-    .reduce((acc, k) => ((acc[k] = obj[k]), acc), {})
+Object.filter = (obj, fn) => Object.keys(obj).reduce((acc, k, i) => (fn(obj[k], k, i, obj) && (acc[k] = obj[k]), acc), {})
 Object.find = (obj, fn) => obj[Object.keys(obj).find((k, i) => fn(obj[k], k, i, obj))]
 Object.findIndex = (obj, fn) => Object.keys(obj).find((k, i) => fn(obj[k], k, i, obj))
 Object.access = (obj, path = []) => {
   if (obj[path] != null) return obj[path]
   if (typeof path === 'string') return Object.access(obj, path.split(/(?:\.|\[["']?([^\]"']*)["']?\])/).filter(x => x))
   if (path instanceof Array) return path.reduce((a, p) => a && a[p] != null ? a[p] : null, obj)
-  if (path instanceof Object) return path.map(p => Object.access(obj, p))
+  if (path instanceof Object) return Object.map(path, p => Object.access(obj, p))
 }
 Object.equal = (a, b) => {
   if (a === b) return true
@@ -20,7 +17,7 @@ Object.equal = (a, b) => {
   return Object.keys(a).every(k => Object.equal(a[k], b[k]))
 }
 
-Array.group = (arr, fn) => arr.map(fn).reduce((acc, v, i) => ((acc[v] = (acc[v] || []).concat([arr[i]])), acc), {})
+Array.group = (arr, fn) => Array.map(arr, fn).reduce((acc, v, i) => (acc[v] = (acc[v] || []).concat([arr[i]]), acc), {})
 Array.unique = arr => Array.from(new Set(arr))
 Array.min = arr => Math.min(...arr)
 Array.max = arr => Math.max(...arr)
@@ -87,7 +84,7 @@ String.format = (str, ...args) => {
   if (['title', 'pascal', 'camel', 'dash', 'list', 'kebab', 'underscore', 'snake'].includes(args[0])) {
     let words = String.words(str).map(v => v.toLowerCase())
     let sep = ' '
-    if (args[0] === 'camel') return str.format('pascal').replace(/./, c => c.toLowerCase())
+    if (args[0] === 'camel') return String.format(str, 'pascal').replace(/./, c => c.toLowerCase())
     if (['title', 'pascal'].includes(args[0])) words = words.map(v => v.replace(/./, c => c.toUpperCase()))
     if (['pascal'].includes(args[0])) sep = ''
     if (['dash', 'list', 'kebab'].includes(args[0])) sep = '-'
@@ -112,7 +109,7 @@ Number.format = (num, format, options) => {
   return +num.toPrecision(15)
 }
 
-Date.relative = (date, d2 = new Date()) => (date - d2).duration().replace(/^(-?)(.*)/, (m, sign, d) => d + (sign === '-' ? ' ago' : ' from now'))
+Date.relative = (date, d2 = new Date()) => Number.duration(date - d2).replace(/^(-?)(.*)/, (m, sign, d) => d + (sign === '-' ? ' ago' : ' from now'))
 Date.getWeek = (date, soy = new Date(date.getFullYear(), 0, 0)) => Math.floor(((date - soy) / 86400000 + 6 - soy.getDay()) / 7)
 Date.getQuarter = date => Math.ceil((date.getMonth() + 1) / 3)
 Date.getLastDate = date => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
@@ -165,7 +162,7 @@ Date.modify = (date, str, sign) => {
     .replace(/([+-\.\d]*)\s*months?/i, (m, n) => fn(4, +n || 1 - (n === '0')))
     .replace(/([+-\.\d]*)\s*years?/i, (m, n) => fn(5, +n || 1 - (n === '0')))
   d.setMilliseconds(0)
-  if (['-', '+'].includes(sign) && /(year|month)/i.test(str) && !/day/i.test(str) && date.getDate() !== d.getDate()) return d.start('month').minus('second')
+  if (['-', '+'].includes(sign) && /(year|month)/i.test(str) && !/day/i.test(str) && date.getDate() !== d.getDate()) return Date.minus(Date.start(d, 'month'), '1 day')
   return d
 }
 Date.plus = (date, str) => Date.modify(date, str, '+')
@@ -196,8 +193,6 @@ Object.extend = (primitive, fname) => {
   primitive[fname] = shortcut ? Function.wrap(fn, Object.shortcuts[fname]) : fn
   if (Object.prototypes.includes(primitive))
     Object.defineProperty(primitive.prototype, fname, {
-      enumerable: false,
-      configurable: true,
       writable: true,
       value: function(...args) {
         return primitive[fname](this, ...args)
