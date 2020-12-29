@@ -22,6 +22,8 @@ Object.access({ a: { 'b.c': 1 } }, 'a["b.c"]') >> 1
 Object.access({ a: { b: 1 } }, 'a.b') >> 1
 Object.access({ 'a.b': 1 }, 'a.b') >> 1
 Object.access({ 'a.b': 1 }, ['a', 'b']) >> null
+Object.access(3, null) >> undefined
+Object.access(null, 3) >> null
 Object.equal([null], [null, undefined]) >> false
 x = Object.equal(
   [undefined, null, { a: { b: /c/ }, c: [{ d: 1 }] }, [], x => x, /a/gi, new Date('2020'), '', '&', 'A', false, true, NaN, -Infinity, -1, -0, 0, 1, Infinity],
@@ -59,6 +61,7 @@ Array.find([{ a: 1 }, { a: 2 }], { a: [2, 3] }) >> { a: 2 }
 const shuffle = (arr, r) => (arr.forEach((v, i) => ((r = Math.floor(Math.random() * i)), ([arr[i], arr[r]] = [arr[r], arr[i]]))), arr)
 shuffle([undefined, x => x, /a/gi, '', '&', 'A', false, true, -Infinity, -1, 0, 1, Infinity]).sort() >> shuffle([undefined, x => x, /a/gi, '', '&', 'A', false, true, -Infinity, -1, 0, 1, Infinity]).sort()
 Array.median([1, 2, 3]) >> 2
+Array.filter([{ a: 1 }, { a: 2 }, { a: 3, b: 3 }], [{ a: x => x > 2 }, { b: 3 }, { a: 2 }]) >> [{ a: 2 }, { a: 3, b: 3 }]
 
 Function.partial((a, b) => [a, b], null, 2)(1) >> [1, 2]
 Function.wrap(x => x, (fn, x) => fn(x / 2) / 2)(4) >> 1

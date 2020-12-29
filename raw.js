@@ -4,6 +4,7 @@ Object.filter = (obj, fn) => Object.keys(obj).reduce((acc, k, i) => (fn(obj[k], 
 Object.find = (obj, fn) => obj[Object.keys(obj).find((k, i) => fn(obj[k], k, i, obj))]
 Object.findIndex = (obj, fn) => Object.keys(obj).find((k, i) => fn(obj[k], k, i, obj))
 Object.access = (obj, path = []) => {
+  if (obj == null) return obj
   if (obj[path] != null) return obj[path]
   if (typeof path === 'string') return Object.access(obj, path.split(/(?:\.|\[["']?([^\]"']*)["']?\])/).filter(x => x))
   if (path instanceof Array) return path.reduce((a, p) => a && a[p] != null ? a[p] : null, obj)
@@ -217,8 +218,8 @@ Object.shortcuts = Object.shortcuts || {
     const f = a => {
       if (a == null) return x => x
       if (a instanceof Function) return a
-      if (a instanceof Array) return x => a.some(v => Object.equal(x, v))
       if (a instanceof RegExp) return x => a.test(x)
+      if (a instanceof Array) return x => a.some(v => f(v)(x))
       if (a instanceof Object) return x => Object.keys(a).every(k => f(a[k])(x[k]))
       return x => Object.equal(x, a) || Object.access(x, a)
     }
