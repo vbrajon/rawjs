@@ -37,8 +37,9 @@ Array.filter(arr, { name: /Ja/ }) >> [{ name: 'Jane Doe', age: 22 }, { name: 'Ja
 Array.filter(arr, 'name') >> arr
 Array.find(arr, { name: /Ja/ }) >> { name: 'Jane Doe', age: 22 }
 Array.group(arr, v => !!v.name)[true] >> arr
-!!Array.group(arr, 'age') >> true
-!!Array.group(arr, ['age', 'name']) >> true
+Array.group([{ a: 1 }], 'a') >> { 1: [{ a: 1 }] }
+Array.group([{ a: 1 }], 'b') >> { null: [{ a: 1 }] }
+Array.group([{ a: 1, b: 2 }], ['a', 'b']) >> { 1: { 2: [{ a: 1, b: 2 }] } }
 Array.map(arr, 'name').sort() >> ['Jane Doe', 'Janette Doe', 'John Doe', 'Johnny Doe']
 Array.sort(arr, 'age') >> Array.sort(arr, v => v.age)
 Array.sort(arr, 'age') >> Array.sort(arr, (a, b) => (a.age === b.age ? 0 : a.age > b.age ? 1 : -1))
@@ -64,7 +65,7 @@ Array.median([1, 2, 3]) >> 2
 Array.filter([{ a: 1 }, { a: 2 }, { a: 3, b: 3 }], [{ a: x => x > 2 }, { b: 3 }, { a: 2 }]) >> [{ a: 2 }, { a: 3, b: 3 }]
 
 Function.partial((a, b) => [a, b], null, 2)(1) >> [1, 2]
-Function.wrap(x => x, (fn, x) => fn(x / 2) / 2)(4) >> 1
+Function.decorate(x => x, (fn, x) => fn(x / 2) / 2)(4) >> 1
 const mem = Function.memoize(x => x / 2)
 mem(2)
 mem(2)

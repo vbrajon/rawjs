@@ -5,7 +5,7 @@ Object.find = (obj, fn) => obj[Object.keys(obj).find((k, i) => fn(obj[k], k, i, 
 Object.findIndex = (obj, fn) => Object.keys(obj).find((k, i) => fn(obj[k], k, i, obj))
 Object.access = (obj, path = []) => {
   if (obj == null) return obj
-  if (obj[path] != null) return obj[path]
+  if (Object.prototype.hasOwnProperty.call(obj, path)) return obj[path]
   if (typeof path === 'string') return Object.access(obj, path.split(/(?:\.|\[["']?([^\]"']*)["']?\])/).filter(x => x))
   if (path instanceof Array) return path.reduce((a, p) => a && a[p] != null ? a[p] : null, obj)
   if (path instanceof Object) return Object.map(path, p => Object.access(obj, p))
@@ -30,8 +30,8 @@ Array.median = arr => {
   return arr.length % 2 ? nums[mid] : (nums[mid - 1] + nums[mid]) / 2
 }
 
-Function.wrap = (fn, wrap) => Object.assign((...args) => wrap(fn, ...args), { fn, wrap })
-Function.partial = (fn, ...outer) => (...inner) => fn(...outer.map((a, i) => (a === null ? inner.shift() : a)).concat(inner))
+Function.decorate = (fn, decorator) => Object.assign((...args) => decorator(fn, ...args), { fn, decorator })
+Function.partial = (fn, ...outer) => (...inner) => fn(...outer.map(a => (a === null ? inner.shift() : a)).concat(inner))
 Function.every = (fn, ms = 0, repeat = Infinity, immediate = true) => {
   fn.start = () => {
     if (fn.id) return
@@ -63,7 +63,7 @@ Function.throttle = (fn, ms = 0) => (...args) => {
 Function.memoize = (fn, hash = JSON.stringify) => {
   const f = (...args) => {
     const key = hash(args)
-    if (!f.cache.hasOwnProperty(key)) f.cache[key] = fn(...args)
+    if (!Object.prototype.hasOwnProperty.call(f.cache, key)) f.cache[key] = fn(...args)
     return f.cache[key]
   }
   f.cache = {}
@@ -156,12 +156,12 @@ Date.modify = (date, str, sign) => {
   if (sign === '<') fn = i => names.slice(0, i).map(name => d['set' + name](name === 'Date' ? 1 : 0))
   if (sign === '>') fn = i => names.slice(0, i).reverse().map(name => d['set' + name]({ Month: 11, Date: Date.getLastDate(d), Hours: 23, Minutes: 59, Seconds: 59 }[name]))
   str
-    .replace(/([+-\.\d]*)\s*seconds?/i, (m, n) => fn(0, +n || 1 - (n === '0')))
-    .replace(/([+-\.\d]*)\s*minutes?/i, (m, n) => fn(1, +n || 1 - (n === '0')))
-    .replace(/([+-\.\d]*)\s*hours?/i, (m, n) => fn(2, +n || 1 - (n === '0')))
-    .replace(/([+-\.\d]*)\s*days?/i, (m, n) => fn(3, +n || 1 - (n === '0')))
-    .replace(/([+-\.\d]*)\s*months?/i, (m, n) => fn(4, +n || 1 - (n === '0')))
-    .replace(/([+-\.\d]*)\s*years?/i, (m, n) => fn(5, +n || 1 - (n === '0')))
+    .replace(/([+-.\d]*)\s*seconds?/i, (m, n) => fn(0, +n || 1 - (n === '0')))
+    .replace(/([+-.\d]*)\s*minutes?/i, (m, n) => fn(1, +n || 1 - (n === '0')))
+    .replace(/([+-.\d]*)\s*hours?/i, (m, n) => fn(2, +n || 1 - (n === '0')))
+    .replace(/([+-.\d]*)\s*days?/i, (m, n) => fn(3, +n || 1 - (n === '0')))
+    .replace(/([+-.\d]*)\s*months?/i, (m, n) => fn(4, +n || 1 - (n === '0')))
+    .replace(/([+-.\d]*)\s*years?/i, (m, n) => fn(5, +n || 1 - (n === '0')))
   d.setMilliseconds(0)
   if (['-', '+'].includes(sign) && /(year|month)/i.test(str) && !/day/i.test(str) && date.getDate() !== d.getDate()) return Date.minus(Date.start(d, 'month'), '1 day')
   return d
@@ -191,7 +191,7 @@ Object.extend = (primitive, fname) => {
   const fn = primitive[fname].fn || primitive[fname]
   const native = natives.includes(fname)
   const shortcut = Object.keys(Object.shortcuts).includes(fname)
-  primitive[fname] = shortcut ? Function.wrap(fn, Object.shortcuts[fname]) : fn
+  primitive[fname] = shortcut ? Function.decorate(fn, Object.shortcuts[fname]) : fn
   if (Object.prototypes.includes(primitive))
     Object.defineProperty(primitive.prototype, fname, {
       writable: true,
@@ -256,7 +256,16 @@ Object.shortcuts = Object.shortcuts || {
     }
   },
   group: (fn, ...args) => {
-    if (args[1] instanceof Array) return args[0].reduce((acc, v) => (args[1].reduce((a, p, i, ds) => a[Object.access(v, p)] = i === ds.length - 1 ? (a[Object.access(v, p)] || []).concat([v]) : a[Object.access(v, p)] || {}, acc), acc), {})
+    if (typeof args[1] === 'string') args[1] = args.slice(1)
+    if (args[1] instanceof Array) return args[0].reduce((acc, v) => {
+      args[1].reduce((acc, k, i, arr) => {
+        const key = Object.access(v, k)
+        const last = i === arr.length - 1
+        if (!Object.prototype.hasOwnProperty.call(acc, key)) return acc[key] = last ? [v] : {}
+        return acc[key] = last ? acc[key].concat([v]) : acc[key]
+      }, acc)
+      return acc
+    }, {})
     return fn(...args)
   },
   format: (fn, ...args) => {

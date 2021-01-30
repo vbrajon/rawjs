@@ -1,4 +1,4 @@
-[rawjs](https://github.com/vbrajon/rawjs) is a utility library to ease **data & dates manipulation**, **formatting & internationalisation** and **function composition**.  
+[rawjs](https://github.com/vbrajon/rawjs) is a shortcut utility library to speed up **data transformation**, **dates manipulation**, **formatting** and **function composition**.  
 It is a simpler version of [lodash](https://github.com/lodash/lodash) and [moment](https://github.com/moment/moment/).
 
 Installation:

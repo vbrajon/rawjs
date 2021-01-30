@@ -291,15 +291,15 @@ const log = () => console.log('It will be called once after a delay')
 log.wait(1000)
 ```
 
-### Function.wrap
+### Function.decorate
 
-`wrap :: Function (Function) -> Function`
+`decorate :: Function (Function) -> Function`
 
 ```javascript
 const log = () => console.log('It will be called if first argument is true')
-const logwrap = log.wrap((fn, ...args) => args[0] && fn())
-logwrap()
-logwrap(true)
+const logdecorate = log.decorate((fn, ...args) => args[0] && fn())
+logdecorate()
+logdecorate(true)
 ```
 
 ### String.capitalize
