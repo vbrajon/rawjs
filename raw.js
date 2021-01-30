@@ -1,6 +1,12 @@
-Object.map = (obj, fn) => Object.keys(obj).reduce((acc, k, i) => (acc[k] = fn(obj[k], k, i, obj), acc), {})
+Object.map = (obj, fn) => Object.keys(obj).reduce((acc, k, i) => {
+  acc[k] = fn(obj[k], k, i, obj)
+  return acc
+}, {})
 Object.reduce = (obj, fn, base) => Object.keys(obj).reduce((acc, k, i) => fn(acc, obj[k], k, i, obj), base)
-Object.filter = (obj, fn) => Object.keys(obj).reduce((acc, k, i) => (fn(obj[k], k, i, obj) && (acc[k] = obj[k]), acc), {})
+Object.filter = (obj, fn) => Object.keys(obj).reduce((acc, k, i) => {
+  if (fn(obj[k], k, i, obj)) acc[k] = obj[k]
+  return acc
+}, {})
 Object.find = (obj, fn) => obj[Object.keys(obj).find((k, i) => fn(obj[k], k, i, obj))]
 Object.findIndex = (obj, fn) => Object.keys(obj).find((k, i) => fn(obj[k], k, i, obj))
 Object.access = (obj, path = []) => {
@@ -12,13 +18,16 @@ Object.access = (obj, path = []) => {
 }
 Object.equal = (a, b) => {
   if (a === b) return true
-  if (a == null || b == null || a.__proto__ !== b.__proto__) return false
-  if (![Object.prototype, Array.prototype].includes(a.__proto__)) return a.toString() === b.toString()
+  if (a == null || b == null || Object.getPrototypeOf(a) !== Object.getPrototypeOf(b)) return false
+  if (![Object.prototype, Array.prototype].includes(Object.getPrototypeOf(a))) return a.toString() === b.toString()
   if (Object.keys(a).length !== Object.keys(b).length) return false
   return Object.keys(a).every(k => Object.equal(a[k], b[k]))
 }
 
-Array.group = (arr, fn) => Array.map(arr, fn).reduce((acc, v, i) => (acc[v] = (acc[v] || []).concat([arr[i]]), acc), {})
+Array.group = (arr, fn) => Array.map(arr, fn).reduce((acc, v, i) => {
+  acc[v] = (acc[v] || []).concat([arr[i]])
+  return acc
+}, {})
 Array.unique = arr => Array.from(new Set(arr))
 Array.min = arr => Math.min(...arr)
 Array.max = arr => Math.max(...arr)
@@ -30,8 +39,18 @@ Array.median = arr => {
   return arr.length % 2 ? nums[mid] : (nums[mid - 1] + nums[mid]) / 2
 }
 
+Function.promisify = fn => (...args) => new Promise((resolve, reject) => fn(...args, (err, val) => err ? reject(err) : resolve(val)))
 Function.decorate = (fn, decorator) => Object.assign((...args) => decorator(fn, ...args), { fn, decorator })
 Function.partial = (fn, ...outer) => (...inner) => fn(...outer.map(a => (a === null ? inner.shift() : a)).concat(inner))
+Function.memoize = (fn, hash = JSON.stringify) => {
+  const f = (...args) => {
+    const key = hash(args)
+    if (!Object.prototype.hasOwnProperty.call(f.cache, key)) f.cache[key] = fn(...args)
+    return f.cache[key]
+  }
+  f.cache = {}
+  return f
+}
 Function.every = (fn, ms = 0, repeat = Infinity, immediate = true) => {
   fn.start = () => {
     if (fn.id) return
@@ -41,8 +60,14 @@ Function.every = (fn, ms = 0, repeat = Infinity, immediate = true) => {
       delete fn.r
     }, ms)
   }
-  fn.stop = () => (clearInterval(fn.id), delete fn.id, delete fn.then)
-  fn.then = r => (fn.r = r)
+  fn.stop = () => {
+    clearInterval(fn.id)
+    delete fn.id
+    delete fn.then
+  }
+  fn.then = r => {
+    fn.r = r
+  }
   fn.start()
   if (immediate) fn()
   return fn
@@ -53,21 +78,16 @@ Function.debounce = (fn, ms = 0) => (...args) => {
   fn.id = setTimeout(() => fn(...args), ms)
 }
 Function.throttle = (fn, ms = 0) => (...args) => {
-  const run = () => {
-    fn.id = setTimeout(() => (delete fn.id, fn.next && fn.next(), delete fn.next), ms)
+  fn.next = () => {
+    fn.id = setTimeout(() => {
+      delete fn.id
+      fn.next && fn.next()
+      delete fn.next
+    }, ms)
     fn(...args)
   }
-  if (fn.id) return fn.next = run
-  run()
-}
-Function.memoize = (fn, hash = JSON.stringify) => {
-  const f = (...args) => {
-    const key = hash(args)
-    if (!Object.prototype.hasOwnProperty.call(f.cache, key)) f.cache[key] = fn(...args)
-    return f.cache[key]
-  }
-  f.cache = {}
-  return f
+  if (fn.id) return fn.next
+  fn.next()
 }
 
 String.lower = str => str.toLowerCase()
@@ -132,9 +152,9 @@ Date.format = (date, format = 'YYYY-MM-DDThh:mm:ssZ', lang = 'en') => {
     return date.toLocaleString(lang, options)
   }
   const letters = { S: 'Milliseconds', s: 'Seconds', m: 'Minutes', h: 'Hours', D: 'Date', W: 'Week', M: 'Month', Q: 'Quarter', Y: 'FullYear', Z: 'Timezone' }
-  Object.keys(letters).map(letter => {
+  return Object.keys(letters).reduce((str, letter) => {
     const zeros = letter === 'Y' ? '0000' : letter === 'S' ? '000' : '00'
-    format = format.replace(RegExp(letter + '+', 'g'), m => {
+    return str.replace(RegExp(letter + '+', 'g'), m => {
       let int
       if (letter === 'Z') return Date.getTimezone(date)
       if (letter === 'W') return 'W' + Date.getWeek(date)
@@ -144,11 +164,10 @@ Date.format = (date, format = 'YYYY-MM-DDThh:mm:ssZ', lang = 'en') => {
       if (m.length > zeros.length) return (zeros + int).slice(-zeros.length) + letter
       return (zeros + int).slice(-m.length)
     })
-  })
-  return format
+  }, format)
 }
 Date.modify = (date, str, sign) => {
-  let d = new Date(date)
+  const d = new Date(date)
   const names = ['Seconds', 'Minutes', 'Hours', 'Date', 'Month', 'FullYear']
   let fn
   if (sign === '+') fn = (i, n) => d['set' + names[i]](d['get' + names[i]]() + n)
@@ -175,7 +194,7 @@ RegExp.escape = r => RegExp(r.source.replace(/([\\/'*+?|()[\]{}.^$-])/g, '\\$1')
 RegExp.plus = (r, f) => RegExp(r.source, r.flags.replace(f, '') + f)
 RegExp.minus = (r, f) => RegExp(r.source, r.flags.replace(f, ''))
 
-Promise.map = async (arr, fn) => await arr.reduce(async (acc, v, i) => ((await acc).push(await fn(v, i)), acc), Promise.resolve([]))
+Promise.map = async (arr, fn) => await arr.reduce(async (acc, v, i) => (await acc).concat(await fn(v, i)), [])
 
 // RAW Core functions
 Object.extend = (primitive, fname) => {
@@ -192,13 +211,14 @@ Object.extend = (primitive, fname) => {
   const native = natives.includes(fname)
   const shortcut = Object.keys(Object.shortcuts).includes(fname)
   primitive[fname] = shortcut ? Function.decorate(fn, Object.shortcuts[fname]) : fn
-  if (Object.prototypes.includes(primitive))
+  if (Object.prototypes.includes(primitive)) {
     Object.defineProperty(primitive.prototype, fname, {
       writable: true,
-      value: function(...args) {
+      value: function (...args) {
         return primitive[fname](this, ...args)
-      },
+      }
     })
+  }
   return primitive.name + '.' + fname + (native ? '#native' : '') + (shortcut ? '#shortcut' : '')
 }
 Object.prototypes = Object.prototypes || [Object, Array, Function, String, Number, Date, RegExp]
@@ -228,28 +248,28 @@ Object.shortcuts = Object.shortcuts || {
   },
   sort: (fn, ...args) => {
     const f = a => {
-      if (a == null) return default_sort
-      if (a instanceof Array) return multi_sort(a)
-      if (a instanceof Function && a.length === 1) return (x, y) => default_sort(a(x), a(y))
+      if (a == null) return defaultSort
+      if (a instanceof Array) return multiSort(a)
+      if (a instanceof Function && a.length === 1) return (x, y) => defaultSort(a(x), a(y))
       if (a instanceof Function) return a
       if (typeof a === 'string' && typeof args[0][0] === 'string') return Intl.Collator(a, { numeric: true, ...args[2] }).compare
-      return directed_sort(a)
+      return directedSort(a)
     }
     args[1] = f(args[1])
     return fn(...args)
-    function default_sort(a, b) {
+    function defaultSort (a, b) {
       if (typeof a !== typeof b) return typeof a > typeof b ? 1 : -1
       if (a == null || a instanceof Object) return 0
       return a === b ? 0 : a > b ? 1 : -1
     }
-    function directed_sort(p, desc = /^-/.test(p)) {
+    function directedSort (p, desc = /^-/.test(p)) {
       p = ('' + p).replace(/^[+-]/, '')
-      return (a, b) => default_sort(Object.access(a, p), Object.access(b, p)) * (!desc || -1)
+      return (a, b) => defaultSort(Object.access(a, p), Object.access(b, p)) * (!desc || -1)
     }
-    function multi_sort(p) {
+    function multiSort (p) {
       return (a, b) => {
         for (const k of p) {
-          const z = directed_sort(k)(a, b)
+          const z = directedSort(k)(a, b)
           if (z) return z
         }
       }
@@ -257,21 +277,24 @@ Object.shortcuts = Object.shortcuts || {
   },
   group: (fn, ...args) => {
     if (typeof args[1] === 'string') args[1] = args.slice(1)
-    if (args[1] instanceof Array) return args[0].reduce((acc, v) => {
-      args[1].reduce((acc, k, i, arr) => {
-        const key = Object.access(v, k)
-        const last = i === arr.length - 1
-        if (!Object.prototype.hasOwnProperty.call(acc, key)) return acc[key] = last ? [v] : {}
-        return acc[key] = last ? acc[key].concat([v]) : acc[key]
-      }, acc)
-      return acc
-    }, {})
+    if (args[1] instanceof Array) {
+      return args[0].reduce((acc, v) => {
+        args[1].reduce((acc, k, i, arr) => {
+          const key = Object.access(v, k)
+          const last = i === arr.length - 1
+          const hasKey = Object.prototype.hasOwnProperty.call(acc, key)
+          if (last) return (acc[key] = hasKey ? acc[key].concat([v]) : [v])
+          return (acc[key] = hasKey ? acc[key] : {})
+        }, acc)
+        return acc
+      }, {})
+    }
     return fn(...args)
   },
   format: (fn, ...args) => {
     if (['Invalid Date', 'NaN', 'null', 'undefined'].includes('' + args[0])) return '-'
     return fn(...args)
-  },
+  }
 }
 Object.shortcuts.find = Object.shortcuts.findIndex = Object.shortcuts.filter
 Object.extend()
