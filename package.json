@@ -11,5 +11,34 @@
     "moment": "*",
     "underscore": "*",
     "sugar": "*"
+  },
+  "optionalDependencies": {
+    "eslint": "*",
+    "eslint-config-prettier": "*",
+    "eslint-config-standard": "*",
+    "eslint-plugin-import": "*",
+    "eslint-plugin-node": "*",
+    "eslint-plugin-prettier": "*",
+    "eslint-plugin-promise": "*",
+    "prettier": "*"
+  },
+  "eslintConfig": {
+    "extends": [
+      "standard",
+      "prettier"
+    ],
+    "plugins": [
+      "prettier"
+    ],
+    "rules": {
+      "prettier/prettier": "error"
+    }
+  },
+  "prettier": {
+    "arrowParens": "avoid",
+    "printWidth": 160,
+    "semi": false,
+    "singleQuote": true,
+    "trailingComma": "all"
   }
 }
