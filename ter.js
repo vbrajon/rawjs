@@ -39,10 +39,10 @@ async function run_test(test) {
     const [left, right] = test.split('>>')
     const code = left.replace(/;?(.*)\s*$/, 'return $1')
     const start = performance.now()
-    const output = await eval(`(async () => {\n${code}\n})()`)
+    const output = await eval(`async () => {\n${code}\n}`)()
     time = performance.now() - start
     if (test.split('\n').every(l => l.startsWith('//'))) return {}
-    const expected = await eval(`(async () => {\nreturn ${right}\n})()`)
+    const expected = await eval(`async () => {\nreturn ${right}\n}`)()
     equal(output, expected)
   } catch (e) {
     error = e

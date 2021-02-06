@@ -11,25 +11,6 @@ Object.filter = (obj, fn) =>
   }, {})
 Object.find = (obj, fn) => obj[Object.keys(obj).find((k, i) => fn(obj[k], k, i, obj))]
 Object.findIndex = (obj, fn) => Object.keys(obj).find((k, i) => fn(obj[k], k, i, obj))
-Object.access = (obj, path = []) => {
-  if (obj == null) return obj
-  if (Object.prototype.hasOwnProperty.call(obj, path)) return obj[path]
-  if (typeof path === 'string') {
-    return Object.access(
-      obj,
-      path.split(/(?:\.|\[["']?([^\]"']*)["']?\])/).filter(x => x),
-    )
-  }
-  if (path instanceof Array) return path.reduce((a, p) => (a && a[p] != null ? a[p] : null), obj)
-  if (path instanceof Object) return Object.map(path, p => Object.access(obj, p))
-}
-Object.equal = (a, b) => {
-  if (a === b) return true
-  if (a == null || b == null || Object.getPrototypeOf(a) !== Object.getPrototypeOf(b)) return false
-  if (![Object.prototype, Array.prototype].includes(Object.getPrototypeOf(a))) return a.toString() === b.toString()
-  if (Object.keys(a).length !== Object.keys(b).length) return false
-  return Object.keys(a).every(k => Object.equal(a[k], b[k]))
-}
 
 Array.group = (arr, fn) =>
   Array.map(arr, fn).reduce((acc, v, i) => {
@@ -60,24 +41,17 @@ Function.memoize = (fn, hash = JSON.stringify) => {
   return f
 }
 Function.every = (fn, ms = 0, repeat = Infinity, immediate = true) => {
-  fn.start = () => {
-    if (fn.id) return
-    fn.id = setInterval(() => {
-      if (--repeat < 1 + immediate) fn.stop()
-      fn.r ? fn.r(fn()) : fn()
-      delete fn.r
-    }, ms)
-  }
+  if (immediate) fn()
+  fn.id = setInterval(() => {
+    if (--repeat > +immediate) return fn()
+    fn.resolve(fn())
+    fn.stop()
+  }, ms)
   fn.stop = () => {
     clearInterval(fn.id)
     delete fn.id
-    delete fn.then
   }
-  fn.then = r => {
-    fn.r = r
-  }
-  fn.start()
-  if (immediate) fn()
+  fn.then = resolve => (fn.resolve = resolve)
   return fn
 }
 Function.wait = (fn, ms) => Function.every(fn, ms, 1, false)
@@ -87,15 +61,31 @@ Function.debounce = (fn, ms = 0) => (...args) => {
 }
 Function.throttle = (fn, ms = 0) => (...args) => {
   fn.next = () => {
+    delete fn.next
     fn.id = setTimeout(() => {
       delete fn.id
-      fn.next && fn.next()
-      delete fn.next
+      if (fn.next) fn.next()
     }, ms)
     fn(...args)
   }
-  if (fn.id) return fn.next
+  if (fn.id) return
   fn.next()
+}
+
+String.toPath = Function.memoize(str => str.split(/(?:\.|\[["']?([^\]"']*)["']?\])/).filter(x => x))
+Object.access = (obj, path = []) => {
+  if (obj == null) return obj
+  if (Object.prototype.hasOwnProperty.call(obj, path)) return obj[path]
+  if (typeof path === 'string') return Object.access(obj, String.toPath(path))
+  if (path instanceof Array) return path.reduce((a, p) => (a && a[p] != null ? a[p] : null), obj)
+  if (path instanceof Object) return Object.map(path, p => Object.access(obj, p))
+}
+Object.equal = (a, b) => {
+  if (a === b) return true
+  if (a == null || b == null || Object.getPrototypeOf(a) !== Object.getPrototypeOf(b)) return false
+  if (![Object.prototype, Array.prototype].includes(Object.getPrototypeOf(a))) return a.toString() === b.toString()
+  if (Object.keys(a).length !== Object.keys(b).length) return false
+  return Object.keys(a).every(k => Object.equal(a[k], b[k]))
 }
 
 String.lower = str => str.toLowerCase()
@@ -158,7 +148,7 @@ Date.UNITS = [
   ['timezone', null, 'Z', 'Timezone'],
 ]
 Date.UNITS.map(([k, v]) => (Date[k.toUpperCase()] = v))
-Date.relative = (date, d2 = new Date()) => Number.duration(date - d2).replace(/^(-?)(.*)/, (m, sign, d) => d + (sign === '-' ? ' ago' : ' from now'))
+Date.relative = (date, d2 = new Date()) => Number.duration(date - d2).replace(/^-?(.*)/, (m, d) => d + (m[0] === '-' ? ' ago' : ' from now'))
 Date.getWeek = (date, soy = new Date(date.getFullYear(), 0, 0)) => Math.floor(((date - soy) / Date.DAY + 6 - soy.getDay()) / 7)
 Date.getQuarter = date => Math.ceil((date.getMonth() + 1) / 3)
 Date.getLastDate = date => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
