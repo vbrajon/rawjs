@@ -36,7 +36,7 @@ Array.filter([null, 'a', undefined, /a/]) >> ['a', /a/]
 Array.filter(arr, { name: /Ja/ }) >> [{ name: 'Jane Doe', age: 22 }, { name: 'Janette Doe', age: 22 }]
 Array.filter(arr, 'name') >> arr
 Array.find(arr, { name: /Ja/ }) >> { name: 'Jane Doe', age: 22 }
-Array.group(arr, v => !!v.name)[true] >> arr
+Array.group(arr, v => !v.name)[false] >> arr
 Array.group([{ a: 1 }], 'a') >> { 1: [{ a: 1 }] }
 Array.group([{ a: 1 }], 'b') >> { null: [{ a: 1 }] }
 Array.group([{ a: 1, b: 2 }], ['a', 'b']) >> { 1: { 2: [{ a: 1, b: 2 }] } }
@@ -64,13 +64,21 @@ shuffle([undefined, x => x, /a/gi, '', '&', 'A', false, true, -Infinity, -1, 0, 
 Array.median([1, 2, 3]) >> 2
 Array.filter([{ a: 1 }, { a: 2 }, { a: 3, b: 3 }], [{ a: x => x > 2 }, { b: 3 }, { a: 2 }]) >> [{ a: 2 }, { a: 3, b: 3 }]
 
+Function.decorate(x => x)(1) >> 1
+Function.decorate(x => x, null)(1) >> 1
+Function.decorate(x => x, (fn, x) => fn(x * 2) * 2)(1) >> 4
+Function.decorate(x => x, { before: x => x * 2 })(1) >> 2
+Function.decorate(x => x, { after: x => x * 2 })(1) >> 2
+Function.decorate(x => x, { before: [x => x * 2, x => [x * 2]], after: [x => x * 2], around: [(fn, x) => fn(x * 2) * 2] })(1) >> 32
+Function.decorate(Function.decorate(x => x, { before: x => x + 1 }), { before: x => x + 2 }).before >> [x => x + 1, x => x + 2]
+a = Function.decorate(x => x)
+a.around = [(fn, x) => 10]
+a() >> 10
 Function.partial((a, b) => [a, b], null, 2)(1) >> [1, 2]
-Function.decorate(x => x, (fn, x) => fn(x / 2) / 2)(4) >> 1
 const mem = Function.memoize(x => x / 2)
 mem(2)
 mem(2)
 mem.cache['[2]'] >> 1
-
 String.upper('a.b') >> 'A.B'
 String.lower('A.B') >> 'a.b'
 String.words(str) >> ['i', 'am', 'The', '1', 'AND', 'Lonely']

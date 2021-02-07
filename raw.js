@@ -12,9 +12,15 @@ Object.filter = (obj, fn) =>
 Object.find = (obj, fn) => obj[Object.keys(obj).find((k, i) => fn(obj[k], k, i, obj))]
 Object.findIndex = (obj, fn) => Object.keys(obj).find((k, i) => fn(obj[k], k, i, obj))
 
-Array.group = (arr, fn) =>
-  Array.map(arr, fn).reduce((acc, v, i) => {
-    acc[v] = (acc[v] || []).concat([arr[i]])
+Array.group = (arr, keys) =>
+  arr.reduce((acc, v) => {
+    [].concat(keys).reduce((acc, k, i, arr) => {
+      const key = Object.access(v, k)
+      const last = i === arr.length - 1
+      const hasKey = Object.prototype.hasOwnProperty.call(acc, key)
+      if (last) return (acc[key] = hasKey ? acc[key].concat([v]) : [v])
+      return (acc[key] = hasKey ? acc[key] : {})
+    }, acc)
     return acc
   }, {})
 Array.unique = arr => Array.from(new Set(arr))
@@ -28,8 +34,23 @@ Array.median = arr => {
   return arr.length % 2 ? nums[mid] : (nums[mid - 1] + nums[mid]) / 2
 }
 
+Function.decorate = (fn, opts) => {
+  let { before = [], after = [], around = [] } = opts instanceof Object ? opts : {}
+  if (opts instanceof Function) around.push(opts)
+  const f = (...args) => {
+    args = f.before.reduce((acc, f) => f(acc), args)
+    if (!args) return null
+    if (!(args instanceof Array)) args = [args]
+    const output = f.around.reduce((acc, fn) => (...args) => fn(acc, ...args), fn)(...args)
+    return f.after.reduce((acc, f) => f(acc, args), output)
+  }
+  f.before = (fn.before || []).concat(before)
+  f.after = (fn.after || []).concat(after)
+  f.around = (fn.around || []).concat(around)
+  f.fn = fn
+  return f
+}
 Function.promisify = fn => (...args) => new Promise((resolve, reject) => fn(...args, (err, val) => (err ? reject(err) : resolve(val))))
-Function.decorate = (fn, decorator) => Object.assign((...args) => decorator(fn, ...args), { fn, decorator })
 Function.partial = (fn, ...outer) => (...inner) => fn(...outer.map(a => (a === null ? inner.shift() : a)).concat(inner))
 Function.memoize = (fn, hash = JSON.stringify) => {
   const f = (...args) => {
@@ -78,6 +99,7 @@ Object.access = (obj, path = []) => {
   if (Object.prototype.hasOwnProperty.call(obj, path)) return obj[path]
   if (typeof path === 'string') return Object.access(obj, String.toPath(path))
   if (path instanceof Array) return path.reduce((a, p) => (a && a[p] != null ? a[p] : null), obj)
+  if (path instanceof Function) return path(obj)
   if (path instanceof Object) return Object.map(path, p => Object.access(obj, p))
 }
 Object.equal = (a, b) => {
@@ -282,16 +304,6 @@ Object.shortcuts = Object.shortcuts || {
     return fn(...args)
   },
   sort: (fn, ...args) => {
-    const f = a => {
-      if (a == null) return defaultSort
-      if (a instanceof Array) return multiSort(a)
-      if (a instanceof Function && a.length === 1) return (x, y) => defaultSort(a(x), a(y))
-      if (a instanceof Function) return a
-      if (typeof a === 'string' && typeof args[0][0] === 'string') return Intl.Collator(a, { numeric: true, ...args[2] }).compare
-      return directedSort(a)
-    }
-    args[1] = f(args[1])
-    return fn(...args)
     function defaultSort(a, b) {
       if (typeof a !== typeof b) return typeof a > typeof b ? 1 : -1
       if (a == null || a instanceof Object) return 0
@@ -309,21 +321,15 @@ Object.shortcuts = Object.shortcuts || {
         }
       }
     }
-  },
-  group: (fn, ...args) => {
-    if (typeof args[1] === 'string') args[1] = args.slice(1)
-    if (args[1] instanceof Array) {
-      return args[0].reduce((acc, v) => {
-        args[1].reduce((acc, k, i, arr) => {
-          const key = Object.access(v, k)
-          const last = i === arr.length - 1
-          const hasKey = Object.prototype.hasOwnProperty.call(acc, key)
-          if (last) return (acc[key] = hasKey ? acc[key].concat([v]) : [v])
-          return (acc[key] = hasKey ? acc[key] : {})
-        }, acc)
-        return acc
-      }, {})
+    const f = a => {
+      if (a == null) return defaultSort
+      if (a instanceof Array) return multiSort(a)
+      if (a instanceof Function && a.length === 1) return (x, y) => defaultSort(a(x), a(y))
+      if (a instanceof Function) return a
+      if (typeof a === 'string' && typeof args[0][0] === 'string') return Intl.Collator(a, { numeric: true, ...args[2] }).compare
+      return directedSort(a)
     }
+    args[1] = f(args[1])
     return fn(...args)
   },
   format: (fn, ...args) => {
