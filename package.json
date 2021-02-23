@@ -1,13 +1,15 @@
 {
-  "name": "rawjs",
+  "name": "cut",
   "version": "1.0.0",
-  "main": "raw.js",
+  "description": "Shortcut utility library to speed up development.",
+  "main": "cut.js",
+  "type": "module",
   "bin": {
-    "raw": "cli.js",
-    "ter": "ter.js"
+    "cute": "cute.js",
+    "cutest": "cutest.js"
   },
   "devDependencies": {
-    "lodash": "*",
+    "lodash-es": "*",
     "moment": "*",
     "underscore": "*",
     "sugar": "*"

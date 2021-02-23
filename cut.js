@@ -104,8 +104,9 @@ Object.access = (obj, path = []) => {
 }
 Object.equal = (a, b) => {
   if (a === b) return true
-  if (a == null || b == null || Object.getPrototypeOf(a) !== Object.getPrototypeOf(b)) return false
-  if (![Object.prototype, Array.prototype].includes(Object.getPrototypeOf(a))) return a.toString() === b.toString()
+  const ta = Object.prototype.toString.call(a)
+  if (ta !== Object.prototype.toString.call(b)) return false
+  if (!['[object Object]', '[object Array]'].includes(ta)) return a.toString() === b.toString()
   if (Object.keys(a).length !== Object.keys(b).length) return false
   return Object.keys(a).every(k => Object.equal(a[k], b[k]))
 }
@@ -256,14 +257,14 @@ Object.extend = (primitive, fname) => {
   const native = natives.includes(fname)
   const shortcut = Object.keys(Object.shortcuts).includes(fname)
   primitive[fname] = shortcut ? Function.decorate(fn, Object.shortcuts[fname]) : fn
-  if (Object.prototypes.includes(primitive)) {
-    Object.defineProperty(primitive.prototype, fname, {
-      writable: true,
-      value: function (...args) {
-        return primitive[fname](this, ...args)
-      },
-    })
-  }
+  // if (Object.prototypes.includes(primitive)) {
+  //   Object.defineProperty(primitive.prototype, fname, {
+  //     writable: true,
+  //     value: function (...args) {
+  //       return primitive[fname](this, ...args)
+  //     },
+  //   })
+  // }
   return primitive.name + '.' + fname + (native ? '#native' : '') + (shortcut ? '#shortcut' : '')
 }
 Object.prototypes = Object.prototypes || [Object, Array, Function, String, Number, Date, RegExp]
