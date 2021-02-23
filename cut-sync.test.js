@@ -1,4 +1,5 @@
 import './cut.js'
+import * as _ from 'lodash-es'
 const users = [
   { name: 'John Doe', age: 29 },
   { name: 'Jane Doe', age: 22 },
@@ -19,27 +20,38 @@ const sortingShuffled = shuffle([[], -1, /a/gi, 0, Infinity, NaN, new Date('2020
 export default [
   // Object
   {
+    vanilla: (obj, fn) => Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, fn(v, k, obj)])),
     raw: Object.map,
+    // lodash: _.map,
     tests: [[[user, v => v * 2 || v], { name: 'John Doe', age: 58 }]],
   },
   {
-    raw: Object.find,
-    tests: [[[user, v => v > 10], 29]],
-  },
-  {
+    vanilla: (obj, fn) => Object.fromEntries(Object.entries(obj).filter(([k, v]) => fn(v, k, obj))),
     raw: Object.filter,
+    // lodash: _.filter,
     tests: [[[user, Number], { age: 29 }]],
   },
   {
-    raw: Object.findIndex,
-    tests: [[[user, 29], 'age']],
+    vanilla: (obj, fn) => obj[Object.keys(obj).find((k, i, ks) => fn(obj[k], k, obj, i, ks))],
+    raw: Object.find,
+    lodash: _.find,
+    tests: [[[user, v => v > 10], 29]],
   },
   {
+    vanilla: (obj, fn) => Object.keys(obj).find((k, i, ks) => fn(obj[k], k, obj, i, ks)),
+    raw: Object.findIndex,
+    lodash: _.findKey,
+    tests: [[[user, v => v === 29], 'age']],
+  },
+  {
+    vanilla: (obj, fn, base = null) => Object.entries(obj).reduce((acc, [k, v], i, ks) => fn(acc, v, k, obj, i, ks), base),
     raw: Object.reduce,
+    lodash: _.reduce,
     tests: [[[user, (acc, v, k) => ((acc[v] = k), acc), {}], { 'John Doe': 'name', 29: 'age' }]],
   },
   {
     raw: Object.access,
+    // lodash: _.get,
     tests: [
       [[{ a: { b: [1, 2, 3] } }], { a: { b: [1, 2, 3] } }],
       [[{ a: { b: [1, 2, 3] } }, ['a', 'b', 'length']], 3],
@@ -58,6 +70,7 @@ export default [
   },
   {
     raw: Object.equal,
+    // lodash: _.isEqual,
     tests: [
       [[[null], [null, undefined]], false],
       [[sorting, sortingClone], true],
@@ -111,6 +124,11 @@ export default [
     ],
   },
   {
+    vanilla: arr => arr.slice().reverse(),
+    raw: Array.reverse,
+    tests: [[[[1, 2, 3]], [3, 2, 1]]],
+  },
+  {
     raw: Array.sort,
     tests: [
       [[userAges], [22, 22, 29, 71]],
@@ -126,23 +144,7 @@ export default [
         ],
         userAgesAsc,
       ],
-      [
-        [
-          [
-            [null, 1],
-            [null, 2],
-            [1, 3],
-            [null, 4],
-          ],
-          [0, -1],
-        ],
-        [
-          [1, 3],
-          [null, 4],
-          [null, 2],
-          [null, 1],
-        ],
-      ],
+      [[[[null, 1], [1, 2], [null, 3]], [0, -1]], [[1, 2], [null, 3], [null, 1]]], // eslint-disable-line
       [
         fn => fn(users, ['-age', 'name']).map(v => [v.age, v.name]),
         [

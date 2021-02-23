@@ -9,16 +9,16 @@ const run = async file => {
   const tests = await import('./' + file + '?cache=' + cache++)
   const start = performance.now()
   const results = await Promise.all(
-    tests.default.flatMap((test, i) =>
+    tests.default.flatMap((test, index) =>
       Object.entries(test)
-        .filter(([k, fn]) => k !== 'tests')
-        .flatMap(([k, fn]) =>
+        .filter(([fname, fn]) => fname !== 'tests')
+        .flatMap(([fname, fn]) =>
           test.tests.map(async ([input, output]) => {
             try {
               if (input instanceof Function) return deepStrictEqual(await input(fn), output)
               return deepStrictEqual(await fn(...input), output)
-            } catch (e) {
-              return { i, k, e }
+            } catch (error) {
+              return { index, fname, error }
             }
           }),
         ),
@@ -38,6 +38,7 @@ const cli = async () => {
   const testFiles = files.filter(file => file.endsWith('.test.js'))
   const runTests = async () => {
     try {
+      console.clear()
       await Promise.all(testFiles.map(run))
     } catch (e) {
       console.log(e)
