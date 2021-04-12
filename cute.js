@@ -1,19 +1,19 @@
 #!/usr/bin/env node
 
 if (process.stdin.isTTY) {
-  console.log(`USAGE: [cmd] | raw <raw-javascript>
+  console.log(`USAGE: [cmd] | cut <javascript>
 
 EXEMPLE:
 
-    echo 1+2+3+4+5 | raw -e
+    echo 1+2+3+4+5 | cut -e
 
-    curl -s https://api.github.com/users/vbrajon | raw .length
+    curl -s https://api.github.com/users/vbrajon | cut .length
 
-    curl -s https://api.github.com/users/vbrajon/repos | raw ".group(v => v.pushed_at.slice(0, 4)).map('length')"
+    curl -s https://api.github.com/users/vbrajon/repos | cut ".group(v => v.pushed_at.slice(0, 4)).map('length')"
 
 INTERACTIVE:
 
-    curl -s https://api.github.com/users/vbrajon | raw
+    curl -s https://api.github.com/users/vbrajon | cut
     > .login // autocompletion is on, you can enter ".l" then "tab"
     vbrajon
     > .access(['followers', 'following']).sum()
@@ -23,16 +23,16 @@ INTERACTIVE:
     > .words()
     ['Valentin', 'Brajon']
 
-WEBSITE: https://vbrajon.github.io/rawjs
+WEBSITE: https://vbrajon.github.io/cut
 
-GITHUB: https://github.com/vbrajon/rawjs
+GITHUB: https://github.com/vbrajon/cut
 `)
   process.exit(0)
 }
 
 run()
 async function run() {
-  await import('./raw.js')
+  await import('./cut.js')
   const readline = await import('readline')
   const tty = await import('tty')
   const fs = await import('fs')

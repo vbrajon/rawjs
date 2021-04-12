@@ -4,16 +4,17 @@ const tests = [
   [async () => await Function.wait(() => 1, 100), 1],
 
   [async () => {
-    let n = 0, inc = () => n++
-    await Function.every(inc, 100, 2) // immediate + 1 run
+    let n = 0, inc = () => n++, loop = Function.every(inc, 100, 2)
+    await loop // immediate + 1 run after 100ms
     return await Function.wait(() => n, 400)
   }, 2],
 
-  [async () => {
-    let n = 0, inc = () => n++
-    await Function.wait(Function.every(inc, 50).stop, 200) // immediate + run every 30ms + stop after 200ms
-    return await Function.wait(() => n, 300)
-  }, 4],
+  // [async () => {
+  //   await Function.wait(() => null, 250)
+  //   let n = 0, inc = () => n++, loop = Function.every(inc, 100)
+  //   await Function.wait(loop.stop, 250) // immediate + runs every 100ms + stops after 250ms
+  //   return n
+  // }, 3],
 
   [async () => {
     let n = 0, inc = Function.debounce(x => n += x, 100)

@@ -172,7 +172,7 @@ Date.UNITS = [
 ]
 Date.UNITS.map(([k, v]) => (Date[k.toUpperCase()] = v))
 Date.relative = (date, d2 = new Date()) => Number.duration(date - d2).replace(/^-?(.*)/, (m, d) => d + (m[0] === '-' ? ' ago' : ' from now'))
-Date.getWeek = (date, soy = new Date(date.getFullYear(), 0, 0)) => Math.floor(((date - soy) / Date.DAY + 6 - soy.getDay()) / 7)
+Date.getWeek = (date, soy = new Date(date.getFullYear(), 0, 0)) => Math.round((date - soy) / Date.DAY / 7)
 Date.getQuarter = date => Math.ceil((date.getMonth() + 1) / 3)
 Date.getLastDate = date => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
 Date.getTimezone = (date, offset = date.getTimezoneOffset()) =>
@@ -282,60 +282,68 @@ Object.natives = Object.natives || [
   'Array.reverse',
 ]
 Object.shortcuts = Object.shortcuts || {
-  map: (fn, ...args) => {
-    const f = a => {
-      if (a == null) return x => x
-      if (a instanceof Function) return a
-      if (a instanceof Array) return x => a.map(b => Object.access(x, b))
-      return x => Object.access(x, a)
-    }
-    args[1] = f(args[1])
-    return fn(...args)
+  map: {
+    before: args => {
+      const f = fn => {
+        if (fn == null) return x => x
+        if (fn instanceof Function) return fn
+        if (fn instanceof Array) return x => fn.map(b => Object.access(x, b))
+        return x => Object.access(x, fn)
+      }
+      args[1] = f(args[1])
+      return args
+    },
   },
-  filter: (fn, ...args) => {
-    const f = a => {
-      if (a == null) return x => x
-      if (a instanceof Function) return a
-      if (a instanceof RegExp) return x => a.test(x)
-      if (a instanceof Array) return x => a.some(v => f(v)(x))
-      if (a instanceof Object) return x => Object.keys(a).every(k => f(a[k])(x[k]))
-      return x => Object.equal(x, a) || Object.access(x, a)
-    }
-    args[1] = f(args[1])
-    return fn(...args)
+  filter: {
+    before: args => {
+      const f = fn => {
+        if (fn == null) return x => x
+        if (fn instanceof Function) return fn
+        if (fn instanceof RegExp) return x => fn.test(x)
+        if (fn instanceof Array) return x => fn.some(v => f(v)(x))
+        if (fn instanceof Object) return x => Object.keys(fn).every(k => f(fn[k])(x[k]))
+        return x => Object.equal(x, fn) || Object.access(x, fn)
+      }
+      args[1] = f(args[1])
+      return args
+    },
   },
-  sort: (fn, ...args) => {
-    function defaultSort(a, b) {
-      if (typeof a !== typeof b) return typeof a > typeof b ? 1 : -1
-      if (a == null || a instanceof Object) return 0
-      return a === b ? 0 : a > b ? 1 : -1
-    }
-    function directedSort(p, desc = /^-/.test(p)) {
-      p = ('' + p).replace(/^[+-]/, '')
-      return (a, b) => defaultSort(Object.access(a, p), Object.access(b, p)) * (!desc || -1)
-    }
-    function multiSort(p) {
-      return (a, b) => {
-        for (const k of p) {
-          const z = directedSort(k)(a, b)
-          if (z) return z
+  sort: {
+    before: args => {
+      function defaultSort(a, b) {
+        if (typeof a !== typeof b) return typeof a > typeof b ? 1 : -1
+        if (a == null || a instanceof Object) return 0
+        return a === b ? 0 : a > b ? 1 : -1
+      }
+      function directedSort(p, desc = /^-/.test(p)) {
+        p = ('' + p).replace(/^[+-]/, '')
+        return (a, b) => defaultSort(Object.access(a, p), Object.access(b, p)) * (!desc || -1)
+      }
+      function multiSort(fns) {
+        return (a, b) => {
+          for (const fn of fns) {
+            const z = fn(a, b)
+            if (z) return z
+          }
         }
       }
-    }
-    const f = a => {
-      if (a == null) return defaultSort
-      if (a instanceof Array) return multiSort(a)
-      if (a instanceof Function && a.length === 1) return (x, y) => defaultSort(a(x), a(y))
-      if (a instanceof Function) return a
-      if (typeof a === 'string' && typeof args[0][0] === 'string') return Intl.Collator(a, { numeric: true, ...args[2] }).compare
-      return directedSort(a)
-    }
-    args[1] = f(args[1])
-    return fn(...args)
+      const f = fn => {
+        if (fn == null) return defaultSort
+        if (fn instanceof Array) return multiSort(fn.map(f))
+        if (fn instanceof Function && fn.length === 1) return (x, y) => defaultSort(fn(x), fn(y))
+        if (fn instanceof Function) return fn
+        if (typeof fn === 'string' && typeof args[0][0] === 'string') return Intl.Collator(fn, { numeric: true, ...args[2] }).compare
+        return directedSort(fn)
+      }
+      args[1] = f(args[1])
+      return args
+    },
   },
-  format: (fn, ...args) => {
-    if (['Invalid Date', 'NaN', 'null', 'undefined'].includes('' + args[0])) return '-'
-    return fn(...args)
+  format: {
+    after: v => {
+      if (['Invalid Date', 'NaN', 'null', 'undefined'].includes(v)) return '-'
+      return v
+    },
   },
 }
 Object.shortcuts.find = Object.shortcuts.findIndex = Object.shortcuts.filter

@@ -8,7 +8,18 @@
     "cute": "cute.js",
     "cutest": "cutest.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vbrajon/cut.git"
+  },
+  "keywords": [
+    "shortcut",
+    "utility"
+  ],
+  "author": "Valentin Brajon",
+  "license": "MIT",
   "devDependencies": {
+    "date-fns": "*",
     "lodash-es": "*",
     "moment": "*",
     "underscore": "*",

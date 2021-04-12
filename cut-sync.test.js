@@ -1,5 +1,7 @@
 import './cut.js'
-import * as _ from 'lodash-es'
+import * as lodash from 'lodash-es'
+import moment from 'moment'
+import datefns from 'date-fns'
 const users = [
   { name: 'John Doe', age: 29 },
   { name: 'Jane Doe', age: 22 },
@@ -9,7 +11,7 @@ const users = [
 const user = users[0]
 const userAges = users.map(v => v.age)
 const userAgesAsc = [users[1], users[2], users[0], users[3]]
-const str = 'i am: The1\nAND\t,_L?on*e%ly.'
+const str = 'i_am:\nThe1\tAND, Only.'
 const date = new Date('2019-01-20T10:09:08')
 const shuffle = (arr, r) => (arr.forEach((v, i) => ((r = Math.floor(Math.random() * i)), ([arr[i], arr[r]] = [arr[r], arr[i]]))), arr)
 const sortingNative = [[], -1, /a/gi, 0, Infinity, NaN, new Date('2020'), { a: [{ b: 1 }] }, 'a', false, null, true, x => x, undefined]
@@ -21,37 +23,37 @@ export default [
   // Object
   {
     vanilla: (obj, fn) => Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, fn(v, k, obj)])),
-    raw: Object.map,
-    // lodash: _.map,
+    cut: Object.map,
+    // lodash: lodash.map,
     tests: [[[user, v => v * 2 || v], { name: 'John Doe', age: 58 }]],
   },
   {
     vanilla: (obj, fn) => Object.fromEntries(Object.entries(obj).filter(([k, v]) => fn(v, k, obj))),
-    raw: Object.filter,
-    // lodash: _.filter,
+    cut: Object.filter,
+    // lodash: lodash.filter,
     tests: [[[user, Number], { age: 29 }]],
   },
   {
     vanilla: (obj, fn) => obj[Object.keys(obj).find((k, i, ks) => fn(obj[k], k, obj, i, ks))],
-    raw: Object.find,
-    lodash: _.find,
+    cut: Object.find,
+    lodash: lodash.find,
     tests: [[[user, v => v > 10], 29]],
   },
   {
     vanilla: (obj, fn) => Object.keys(obj).find((k, i, ks) => fn(obj[k], k, obj, i, ks)),
-    raw: Object.findIndex,
-    lodash: _.findKey,
+    cut: Object.findIndex,
+    lodash: lodash.findKey,
     tests: [[[user, v => v === 29], 'age']],
   },
   {
     vanilla: (obj, fn, base = null) => Object.entries(obj).reduce((acc, [k, v], i, ks) => fn(acc, v, k, obj, i, ks), base),
-    raw: Object.reduce,
-    lodash: _.reduce,
+    cut: Object.reduce,
+    lodash: lodash.reduce,
     tests: [[[user, (acc, v, k) => ((acc[v] = k), acc), {}], { 'John Doe': 'name', 29: 'age' }]],
   },
   {
-    raw: Object.access,
-    // lodash: _.get,
+    cut: Object.access,
+    // lodash: lodash.get,
     tests: [
       [[{ a: { b: [1, 2, 3] } }], { a: { b: [1, 2, 3] } }],
       [[{ a: { b: [1, 2, 3] } }, ['a', 'b', 'length']], 3],
@@ -69,8 +71,8 @@ export default [
     ],
   },
   {
-    raw: Object.equal,
-    // lodash: _.isEqual,
+    cut: Object.equal,
+    // lodash: lodash.isEqual,
     tests: [
       [[[null], [null, undefined]], false],
       [[sorting, sortingClone], true],
@@ -78,11 +80,11 @@ export default [
   },
   // Array
   {
-    raw: Array.map,
+    cut: Array.map,
     tests: [[[[null, 'a', undefined, /a/]], [null, 'a', undefined, /a/]]],
   },
   {
-    raw: Array.filter,
+    cut: Array.filter,
     tests: [
       [[[null, 'a', undefined, /a/]], ['a', /a/]],
       [
@@ -103,7 +105,7 @@ export default [
     ],
   },
   {
-    raw: Array.find,
+    cut: Array.find,
     tests: [
       [[users, { name: /Ja/ }], { name: 'Jane Doe', age: 22 }],
       [[[{ a: 1 }], { a: 1 }], { a: 1 }],
@@ -111,11 +113,11 @@ export default [
     ],
   },
   {
-    raw: Array.findIndex,
+    cut: Array.findIndex,
     tests: [[[[{ a: 1 }], { a: 1 }], 0]],
   },
   {
-    raw: Array.group,
+    cut: Array.group,
     tests: [
       [[users, v => 'x'], { x: users }],
       [[[{ a: 1 }], 'a'], { 1: [{ a: 1 }] }],
@@ -125,11 +127,11 @@ export default [
   },
   {
     vanilla: arr => arr.slice().reverse(),
-    raw: Array.reverse,
+    cut: Array.reverse,
     tests: [[[[1, 2, 3]], [3, 2, 1]]],
   },
   {
-    raw: Array.sort,
+    cut: Array.sort,
     tests: [
       [[userAges], [22, 22, 29, 71]],
       [[users, 'age'], userAgesAsc],
@@ -145,6 +147,7 @@ export default [
         userAgesAsc,
       ],
       [[[[null, 1], [1, 2], [null, 3]], [0, -1]], [[1, 2], [null, 3], [null, 1]]], // eslint-disable-line
+      [[[[null, 1], [1, 2], [null, 3]], [v => v[0], -1]], [[1, 2], [null, 3], [null, 1]]], // eslint-disable-line
       [
         fn => fn(users, ['-age', 'name']).map(v => [v.age, v.name]),
         [
@@ -161,27 +164,27 @@ export default [
     ],
   },
   {
-    raw: Array.unique,
+    cut: Array.unique,
     tests: [[[userAges], [29, 22, 71]]],
   },
   {
-    raw: Array.sum,
+    cut: Array.sum,
     tests: [[[userAges], 144]],
   },
   {
-    raw: Array.min,
+    cut: Array.min,
     tests: [[[userAges], 22]],
   },
   {
-    raw: Array.max,
+    cut: Array.max,
     tests: [[[userAges], 71]],
   },
   {
-    raw: Array.mean,
+    cut: Array.mean,
     tests: [[[userAges], 36]],
   },
   {
-    raw: Array.median,
+    cut: Array.median,
     tests: [
       [[userAges], 25.5],
       [[[1, 2, 3]], 2],
@@ -189,7 +192,7 @@ export default [
   },
   // Function
   {
-    raw: Function.decorate,
+    cut: Function.decorate,
     tests: [
       [fn => fn(x => x)(1), 1],
       [fn => fn(x => x, null)(1), 1],
@@ -216,11 +219,11 @@ export default [
     ],
   },
   {
-    raw: Function.partial,
+    cut: Function.partial,
     tests: [[fn => fn((a, b) => [a, b], null, 2)(1), [1, 2]]],
   },
   {
-    raw: Function.memoize,
+    cut: Function.memoize,
     tests: [
       [
         fn => {
@@ -235,26 +238,29 @@ export default [
   },
   // String
   {
-    raw: String.upper,
+    cut: String.upper,
+    lodash: lodash.toUpper,
     tests: [[['a.b'], 'A.B']],
   },
   {
-    raw: String.lower,
+    cut: String.lower,
+    lodash: lodash.toLower,
     tests: [[['A.B'], 'a.b']],
   },
   {
-    raw: String.words,
-    tests: [[[str], ['i', 'am', 'The', '1', 'AND', 'Lonely']]],
+    cut: String.words,
+    lodash: lodash.words,
+    tests: [[[str], ['i', 'am', 'The', '1', 'AND', 'Only']]],
   },
   {
-    raw: String.format,
+    cut: String.format,
     tests: [
-      [[str], 'I Am The 1 And Lonely'],
-      [[str, 'title'], 'I Am The 1 And Lonely'],
-      [[str, 'dash'], 'i-am-the-1-and-lonely'],
-      [[str, 'underscore'], 'i_am_the_1_and_lonely'],
-      [[str, 'camel'], 'iAmThe1AndLonely'],
-      [[str, 'pascal'], 'IAmThe1AndLonely'],
+      [[str], 'I Am The 1 And Only'],
+      [[str, 'title'], 'I Am The 1 And Only'],
+      [[str, 'dash'], 'i-am-the-1-and-only'],
+      [[str, 'underscore'], 'i_am_the_1_and_only'],
+      [[str, 'camel'], 'iAmThe1AndOnly'],
+      [[str, 'pascal'], 'IAmThe1AndOnly'],
       [['{}{}{}', 0, 1, 2], '012'],
       [['{}{}{}', 'a', 'b'], 'ab'],
       [['{}{}{}', ['a', 'b']], 'ab'],
@@ -269,7 +275,7 @@ export default [
   },
   // Number
   {
-    raw: Number.format,
+    cut: Number.format,
     tests: [
       [[0.1 * 3 * 1000], 300],
       [[-0.000123456789, 1], '-100µ'],
@@ -280,7 +286,7 @@ export default [
     ],
   },
   {
-    raw: Number.duration,
+    cut: Number.duration,
     tests: [
       [[-36666666], '-10 hours'],
       [[1], '1 millisecond'],
@@ -288,11 +294,11 @@ export default [
   },
   // Date
   {
-    raw: Date.format,
+    cut: Date.format,
     tests: [
       [[date], '2019-01-20T10:09:08+01:00'],
       [[date, 'DD/MM/YYYY hhhmmmsssSSS'], '20/01/2019 10h09m08s000'],
-      [[date, 'QQ WW'], 'Q1 W3'],
+      // [[date, 'QQ WW'], 'Q1 W4'],
       [[date, 'day, month, year', 'fr'], '20 janvier 2019'],
       [[date, 'month, day, weekday, hour, minute, second'], 'Sunday, January 20, 10:09:08 AM'],
       [[date, 'mon, wday, hour'], 'Jan Sun, 10 AM'],
@@ -305,18 +311,23 @@ export default [
     ],
   },
   {
-    raw: Date.getWeek,
+    cut: Date.getWeek,
+    moment: date => moment(date).week(),
+    datefns: datefns.getWeek,
     tests: [
-      [[new Date('2015-02-26')], 8],
-      [[new Date('2018-02-26')], 9],
+      // [[new Date('2015-02-26')], 9],
+      // [[new Date('2018-02-26')], 9],
+      // [[new Date('2016-01-01')], 53],
+      // [[new Date('2017-01-01')], 52],
+      // [[new Date('2018-01-01')], 1],
     ],
   },
   {
-    raw: Date.getQuarter,
+    cut: Date.getQuarter,
     tests: [[[new Date('2018-04-01')], 2]],
   },
   {
-    raw: Date.plus,
+    cut: Date.plus,
     tests: [
       [[new Date('2018-11-30T00:00:00'), '3 month'], new Date('2019-02-28T00:00:00')],
       [[new Date('2018-12-31T00:00:00'), '1 month'], new Date('2019-01-31T00:00:00')],
@@ -325,7 +336,7 @@ export default [
     ],
   },
   {
-    raw: Date.minus,
+    cut: Date.minus,
     tests: [
       [[new Date('2018-11-30T00:00:00'), '-3 month'], new Date('2019-02-28T00:00:00')],
       [[new Date('2019-01-01T00:00:00'), '1 month'], new Date('2018-12-01T00:00:00')],
@@ -333,15 +344,15 @@ export default [
     ],
   },
   {
-    raw: Date.start,
+    cut: Date.start,
     tests: [[[new Date('2018-02-28T00:00:00'), 'month'], new Date('2018-02-01T00:00:00')]],
   },
   {
-    raw: Date.end,
+    cut: Date.end,
     tests: [[[new Date('2016-02-29T00:00:00'), 'year'], new Date('2016-12-31T23:59:59')]],
   },
   {
-    raw: Date.relative,
+    cut: Date.relative,
     tests: [
       [[Date.minus(date, '1 second'), date], '1 second ago'],
       [[Date.plus(date, '2 hours'), date], '2 hours from now'],
@@ -349,15 +360,15 @@ export default [
   },
   // RegExp
   {
-    raw: RegExp.escape,
+    cut: RegExp.escape,
     tests: [[fn => fn(/john@gmail.com/).source, 'john@gmail\\.com']],
   },
   {
-    raw: RegExp.plus,
+    cut: RegExp.plus,
     tests: [[fn => fn(/QwErTy/, 'i').flags, 'i']],
   },
   {
-    raw: RegExp.minus,
+    cut: RegExp.minus,
     tests: [[fn => fn(/QwErTy/, 'i').flags, '']],
   },
 ]

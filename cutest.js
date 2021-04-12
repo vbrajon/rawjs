@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { deepStrictEqual } from 'assert'
 import fs from 'fs'
 import { performance } from 'perf_hooks'
