@@ -141,6 +141,7 @@ String.format = (str, ...args) => {
 }
 
 Number.duration = num => {
+  if (!num) return ''
   const units = Date.UNITS.slice().reverse()
   const [k, v] = units.find(([k, v]) => v && v <= Math.abs(num))
   return Math.round(num / v) + ' ' + k + (Math.abs(num) / v > 1.5 ? 's' : '')
@@ -171,7 +172,7 @@ Date.UNITS = [
   ['timezone', null, 'Z', 'Timezone'],
 ]
 Date.UNITS.map(([k, v]) => (Date[k.toUpperCase()] = v))
-Date.relative = (date, d2 = new Date()) => Number.duration(date - d2).replace(/^-?(.*)/, (m, d) => d + (m[0] === '-' ? ' ago' : ' from now'))
+Date.relative = (from, to = new Date()) => Number.duration(from - to).replace(/^-?(.+)/, (m, d) => d + (m[0] === '-' ? ' ago' : ' from now'))
 Date.getWeek = (date, soy = new Date(date.getFullYear(), 0, 0)) => Math.round((date - soy) / Date.DAY / 7)
 Date.getQuarter = date => Math.ceil((date.getMonth() + 1) / 3)
 Date.getLastDate = date => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
@@ -195,12 +196,11 @@ Date.format = (date, format = 'YYYY-MM-DDThh:mm:ssZ', lang = 'en') => {
   }
   return Date.UNITS.reduce((str, [k, v, letter, jsfn, zeros = 2]) => {
     return str.replace(RegExp(letter + '+', 'g'), m => {
-      let int
       if (letter === 'Z') return Date.getTimezone(date)
       if (letter === 'W') return 'W' + Date.getWeek(date)
       if (letter === 'Q') return 'Q' + Date.getQuarter(date)
-      if (letter === 'M') int = date.getMonth() + 1
-      if (!int) int = date['get' + jsfn]()
+      let int = date['get' + jsfn]()
+      if (letter === 'M') int = int + 1
       if (m.length > zeros) return ('0'.repeat(zeros) + int).slice(-zeros) + letter
       return ('0'.repeat(zeros) + int).slice(-m.length)
     })
@@ -257,14 +257,14 @@ Object.extend = (primitive, fname) => {
   const native = natives.includes(fname)
   const shortcut = Object.keys(Object.shortcuts).includes(fname)
   primitive[fname] = shortcut ? Function.decorate(fn, Object.shortcuts[fname]) : fn
-  // if (Object.prototypes.includes(primitive)) {
-  //   Object.defineProperty(primitive.prototype, fname, {
-  //     writable: true,
-  //     value: function (...args) {
-  //       return primitive[fname](this, ...args)
-  //     },
-  //   })
-  // }
+  if (Object.prototypes.includes(primitive)) {
+    Object.defineProperty(primitive.prototype, fname, {
+      writable: true,
+      value: function (...args) {
+        return primitive[fname](this, ...args)
+      },
+    })
+  }
   return primitive.name + '.' + fname + (native ? '#native' : '') + (shortcut ? '#shortcut' : '')
 }
 Object.prototypes = Object.prototypes || [Object, Array, Function, String, Number, Date, RegExp]

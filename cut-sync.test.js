@@ -13,11 +13,11 @@ const userAges = users.map(v => v.age)
 const userAgesAsc = [users[1], users[2], users[0], users[3]]
 const str = 'i_am:\nThe1\tAND, Only.'
 const date = new Date('2019-01-20T10:09:08')
-const shuffle = (arr, r) => (arr.forEach((v, i) => ((r = Math.floor(Math.random() * i)), ([arr[i], arr[r]] = [arr[r], arr[i]]))), arr)
-const sortingNative = [[], -1, /a/gi, 0, Infinity, NaN, new Date('2020'), { a: [{ b: 1 }] }, 'a', false, null, true, x => x, undefined]
+// const shuffle = (arr, r) => (arr.forEach((v, i) => ((r = Math.floor(Math.random() * i)), ([arr[i], arr[r]] = [arr[r], arr[i]]))), arr)
+// const sortingNative = [[], -1, /a/gi, 0, Infinity, NaN, new Date('2020'), { a: [{ b: 1 }] }, 'a', false, null, true, x => x, undefined]
 const sorting = [[], -1, /a/gi, 0, Infinity, NaN, new Date('2020'), { a: [{ b: 1 }] }, 'a', false, null, true, x => x, undefined]
 const sortingClone = [[], -1, /a/gi, 0, Infinity, NaN, new Date('2020'), { a: [{ b: 1 }] }, 'a', false, null, true, x => x, undefined]
-const sortingShuffled = shuffle([[], -1, /a/gi, 0, Infinity, NaN, new Date('2020'), { a: [{ b: 1 }] }, 'a', false, null, true, x => x, undefined])
+// const sortingShuffled = shuffle([[], -1, /a/gi, 0, Infinity, NaN, new Date('2020'), { a: [{ b: 1 }] }, 'a', false, null, true, x => x, undefined])
 
 export default [
   // Object
@@ -25,57 +25,67 @@ export default [
     vanilla: (obj, fn) => Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, fn(v, k, obj)])),
     cut: Object.map,
     // lodash: lodash.map,
-    tests: [[[user, v => v * 2 || v], { name: 'John Doe', age: 58 }]],
+    tests: [{ inputs: [user, v => v * 2 || v], output: { name: 'John Doe', age: 58 } }],
   },
   {
     vanilla: (obj, fn) => Object.fromEntries(Object.entries(obj).filter(([k, v]) => fn(v, k, obj))),
     cut: Object.filter,
     // lodash: lodash.filter,
-    tests: [[[user, Number], { age: 29 }]],
+    tests: [{ inputs: [user, Number], output: { age: 29 } }],
   },
   {
     vanilla: (obj, fn) => obj[Object.keys(obj).find((k, i, ks) => fn(obj[k], k, obj, i, ks))],
     cut: Object.find,
     lodash: lodash.find,
-    tests: [[[user, v => v > 10], 29]],
+    tests: [{ inputs: [user, v => v > 10], output: 29 }],
   },
   {
     vanilla: (obj, fn) => Object.keys(obj).find((k, i, ks) => fn(obj[k], k, obj, i, ks)),
     cut: Object.findIndex,
     lodash: lodash.findKey,
-    tests: [[[user, v => v === 29], 'age']],
+    tests: [{ inputs: [user, v => v === 29], output: 'age' }],
   },
   {
     vanilla: (obj, fn, base = null) => Object.entries(obj).reduce((acc, [k, v], i, ks) => fn(acc, v, k, obj, i, ks), base),
     cut: Object.reduce,
     lodash: lodash.reduce,
-    tests: [[[user, (acc, v, k) => ((acc[v] = k), acc), {}], { 'John Doe': 'name', 29: 'age' }]],
+    // TODO: compare performance between Object.assign(acc, { [v]: k }) and (acc[v] = k, acc)
+    tests: [{ inputs: [user, (acc, v, k) => Object.assign(acc, { [v]: k }), {}], output: { 'John Doe': 'name', 29: 'age' } }],
   },
   {
     cut: Object.access,
     // lodash: lodash.get,
     tests: [
-      [[{ a: { b: [1, 2, 3] } }], { a: { b: [1, 2, 3] } }],
-      [[{ a: { b: [1, 2, 3] } }, ['a', 'b', 'length']], 3],
-      [[{ a: { b: [1, 2, 3] } }, 'a.b.length'], 3],
-      [[{ a: { b: [1, 2, 3] } }, '.a.b.length'], 3],
-      [[{ a: { b: [1, 2, 3] } }, '["a"]["b"].length'], 3],
-      [[{ a: { b: [1, 2, 3] } }, { a: 'a.b', b: 'a.b.length' }], { a: [1, 2, 3], b: 3 }],
-      [[[{ a: { b: [1, 2, 3] } }], '0.a.b.length'], 3],
-      [[{ a: { 'b.c': 1 } }, 'a["b.c"]'], 1],
-      [[{ a: { b: 1 } }, 'a.b'], 1],
-      [[{ 'a.b': 1 }, 'a.b'], 1],
-      [[{ 'a.b': 1 }, ['a', 'b']], null],
-      [[3, null], undefined],
-      [[null, 3], null],
+      { inputs: [{ a: { b: [1, 2, 3] } }], output: { a: { b: [1, 2, 3] } } },
+      { inputs: [{ a: { b: [1, 2, 3] } }, ['a', 'b', 'length']], output: 3 },
+      { inputs: [{ a: { b: [1, 2, 3] } }, 'a.b.length'], output: 3 },
+      { inputs: [{ a: { b: [1, 2, 3] } }, '.a.b.length'], output: 3 },
+      { inputs: [{ a: { b: [1, 2, 3] } }, '["a"]["b"].length'], output: 3 },
+      { inputs: [{ a: { b: [1, 2, 3] } }, { a: 'a.b', b: 'a.b.length' }], output: { a: [1, 2, 3], b: 3 } },
+      { inputs: [[{ a: { b: [1, 2, 3] } }], '0.a.b.length'], output: 3 },
+      { inputs: [{ a: { 'b.c': 1 } }, 'a["b.c"]'], output: 1 },
+      { inputs: [{ a: { b: 1 } }, 'a.b'], output: 1 },
+      { inputs: [{ 'a.b': 1 }, 'a.b'], output: 1 },
+      { inputs: [{ 'a.b': 1 }, ['a', 'b']], output: null },
+      { inputs: [3, null] },
+      { inputs: [null, 3], output: null },
     ],
   },
   {
     cut: Object.equal,
     // lodash: lodash.isEqual,
     tests: [
-      [[[null], [null, undefined]], false],
-      [[sorting, sortingClone], true],
+      { inputs: [[null, null], [null, undefined]], output: false },
+      { inputs: [sorting, sortingClone], output: true },
+    ],
+  },
+  {
+    cut: Object.traverse,
+    // lodash: lodash.isEqual,
+    tests: [
+      { inputs: [{ a: 1 }, v => v * 2], output: { a: 2 } },
+      { inputs: [{ a: 1, b: { c: 2, d: [3] } }, v => v * 2], output: { a: 2, b: { c: 4, d: [6] } } },
+      { inputs: [{ a: 1, b: { c: 2, d: [3] } }, (v, k, path) => path.concat(k).join('.')], output: { a: 'a', b: { c: 'b.c', d: ['b.d.0'] } } },
     ],
   },
   // Array
@@ -290,6 +300,7 @@ export default [
     tests: [
       [[-36666666], '-10 hours'],
       [[1], '1 millisecond'],
+      [[0], ''],
     ],
   },
   // Date
@@ -354,6 +365,7 @@ export default [
   {
     cut: Date.relative,
     tests: [
+      [[date, date], ''],
       [[Date.minus(date, '1 second'), date], '1 second ago'],
       [[Date.plus(date, '2 hours'), date], '2 hours from now'],
     ],
@@ -371,4 +383,4 @@ export default [
     cut: RegExp.minus,
     tests: [[fn => fn(/QwErTy/, 'i').flags, '']],
   },
-]
+].map(scenario => ({ ...scenario, tests: scenario.tests.map(v => (v.inputs && v) || { inputs: v[0], output: v[1] }) }))
