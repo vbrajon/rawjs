@@ -14,7 +14,7 @@ Object.findIndex = (obj, fn) => Object.keys(obj).find((k, i) => fn(obj[k], k, i,
 
 Array.group = (arr, keys) =>
   arr.reduce((acc, v) => {
-    [].concat(keys).reduce((acc, k, i, arr) => {
+    ;[].concat(keys).reduce((acc, k, i, arr) => {
       const key = Object.access(v, k)
       const last = i === arr.length - 1
       const hasKey = Object.prototype.hasOwnProperty.call(acc, key)
@@ -34,8 +34,9 @@ Array.median = arr => {
   return arr.length % 2 ? nums[mid] : (nums[mid - 1] + nums[mid]) / 2
 }
 
+// prettier-ignore
 Function.decorate = (fn, opts) => {
-  let { before = [], after = [], around = [] } = opts instanceof Object ? opts : {}
+  const { before = [], after = [], around = [] } = opts instanceof Object ? opts : {}
   if (opts instanceof Function) around.push(opts)
   const f = (...args) => {
     args = f.before.reduce((acc, f) => f(acc), args)
@@ -50,8 +51,11 @@ Function.decorate = (fn, opts) => {
   f.fn = fn
   return f
 }
+// prettier-ignore
 Function.promisify = fn => (...args) => new Promise((resolve, reject) => fn(...args, (err, val) => (err ? reject(err) : resolve(val))))
+// prettier-ignore
 Function.partial = (fn, ...outer) => (...inner) => fn(...outer.map(a => (a === null ? inner.shift() : a)).concat(inner))
+// prettier-ignore
 Function.memoize = (fn, hash = JSON.stringify) => {
   const f = (...args) => {
     const key = hash(args)
@@ -61,6 +65,7 @@ Function.memoize = (fn, hash = JSON.stringify) => {
   f.cache = {}
   return f
 }
+// prettier-ignore
 Function.every = (fn, ms = 0, repeat = Infinity, immediate = true) => {
   if (immediate) fn()
   fn.id = setInterval(() => {
@@ -75,11 +80,14 @@ Function.every = (fn, ms = 0, repeat = Infinity, immediate = true) => {
   fn.then = resolve => (fn.resolve = resolve)
   return fn
 }
+// prettier-ignore
 Function.wait = (fn, ms) => Function.every(fn, ms, 1, false)
+// prettier-ignore
 Function.debounce = (fn, ms = 0) => (...args) => {
   clearTimeout(fn.id)
   fn.id = setTimeout(() => fn(...args), ms)
 }
+// prettier-ignore
 Function.throttle = (fn, ms = 0) => (...args) => {
   fn.next = () => {
     delete fn.next
@@ -109,6 +117,13 @@ Object.equal = (a, b) => {
   if (!['[object Object]', '[object Array]'].includes(ta)) return a.toString() === b.toString()
   if (Object.keys(a).length !== Object.keys(b).length) return false
   return Object.keys(a).every(k => Object.equal(a[k], b[k]))
+}
+Object.traverse = (obj, fn, path = []) => {
+  return obj.constructor.map(obj, (v, k) => {
+    if (v instanceof Array) return Object.traverse(v, fn, path.concat(k))
+    if (v instanceof Object) return Object.traverse(v, fn, path.concat(k))
+    return fn(v, k, path)
+  })
 }
 
 String.lower = str => str.toLowerCase()
@@ -236,7 +251,7 @@ RegExp.escape = r => RegExp(r.source.replace(/([\\/'*+?|()[\]{}.^$-])/g, '\\$1')
 RegExp.plus = (r, f) => RegExp(r.source, r.flags.replace(f, '') + f)
 RegExp.minus = (r, f) => RegExp(r.source, r.flags.replace(f, ''))
 
-Promise.map = async (arr, fn) => await arr.reduce(async (acc, v, i) => (await acc).concat(await fn(v, i)), [])
+Promise.map = async (arr, fn) => await arr.reduce(async (acc, v, i) => (await acc).concat(await fn(v, i, acc)), [])
 
 // RAW Core functions
 Object.extend = (primitive, fname) => {

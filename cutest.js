@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env node --inspect
 
 import fs from 'fs'
 import { deepStrictEqual } from 'assert'
@@ -16,13 +16,14 @@ const run = async file => {
     const results = await Promise.all(
       module.default.flatMap((scenario, index) =>
         Object.entries(scenario)
-          .filter(([fname, fn]) => fname !== 'tests')
+          .filter(([fname, fn]) => !['name', 'tests'].includes(fname))
           .flatMap(([fname, fn]) =>
-            scenario.tests.map(async ({ inputs, output }) => {
+            scenario.tests.map(async ({ input, output }) => {
               try {
-                if (inputs instanceof Function) return deepStrictEqual(await inputs(fn), output)
-                return deepStrictEqual(await fn(...inputs), output)
+                if (input instanceof Function) return deepStrictEqual(await input(fn), output)
+                return deepStrictEqual(await fn(...input), output)
               } catch (error) {
+                debugger
                 return { index, fname, error }
               }
             }),
@@ -34,9 +35,10 @@ const run = async file => {
     const errored = results.filter(v => v)
     if (errored.length) console.dir(errored)
     errored.length ? ko() : ok()
-    console.log(`${blue}${file}${clear} | ${yellow}${time > 1000 ? +(time / 1000).toPrecision(2) + 's' : +time.toFixed(0) + 'ms'}${clear}: ${green}${passed.length} passed${clear}, ${red}${errored.length} errored${clear}`) // eslint-disable-line
+    // prettier-ignore
+    console.log(`${blue}${file}${clear} | ${yellow}${time > 1000 ? +(time / 1000).toPrecision(2) + 's' : +time.toFixed(0) + 'ms'}${clear}: ${green}${passed.length} passed${clear}, ${red}${errored.length} errored${clear}`)
   } catch (error) {
-    console.log(`${blue}${file}${clear} | ${red}${error.name}:${clear} ${error.message}`) // eslint-disable-line
+    console.log(`${blue}${file}${clear} | ${red}${error.name}:${clear} ${error.message}`) // prettier-ignore
     crash()
   }
 }

@@ -1,0 +1,8 @@
+{
+  "imports": {
+    "cutest": "./cutest.ts",
+    "lodash-es": "https://esm.sh/lodash-es@4.17.6?pin=v68",
+    "moment": "https://esm.sh/moment@2.29.1?pin=v68",
+    "date-fns": "https://esm.sh/date-fns@2.28.0?pin=v68"
+  }
+}

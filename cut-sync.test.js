@@ -1,7 +1,7 @@
 import './cut.js'
 import * as lodash from 'lodash-es'
-import moment from 'moment'
-import datefns from 'date-fns'
+import * as moment from 'moment'
+import * as datefns from 'date-fns'
 const users = [
   { name: 'John Doe', age: 29 },
   { name: 'Jane Doe', age: 22 },
@@ -19,81 +19,91 @@ const sorting = [[], -1, /a/gi, 0, Infinity, NaN, new Date('2020'), { a: [{ b: 1
 const sortingClone = [[], -1, /a/gi, 0, Infinity, NaN, new Date('2020'), { a: [{ b: 1 }] }, 'a', false, null, true, x => x, undefined]
 // const sortingShuffled = shuffle([[], -1, /a/gi, 0, Infinity, NaN, new Date('2020'), { a: [{ b: 1 }] }, 'a', false, null, true, x => x, undefined])
 
-export default [
+const scenarios = [
   // Object
   {
+    name: 'Object.map',
+    tests: [{ input: [user, v => v * 2 || v], output: { name: 'John Doe', age: 58 } }],
     vanilla: (obj, fn) => Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, fn(v, k, obj)])),
     cut: Object.map,
     // lodash: lodash.map,
-    tests: [{ inputs: [user, v => v * 2 || v], output: { name: 'John Doe', age: 58 } }],
   },
   {
+    name: 'Object.filter',
+    tests: [{ input: [user, Number], output: { age: 29 } }],
     vanilla: (obj, fn) => Object.fromEntries(Object.entries(obj).filter(([k, v]) => fn(v, k, obj))),
     cut: Object.filter,
     // lodash: lodash.filter,
-    tests: [{ inputs: [user, Number], output: { age: 29 } }],
   },
   {
+    name: 'Object.find',
+    tests: [{ input: [user, v => v > 10], output: 29 }],
     vanilla: (obj, fn) => obj[Object.keys(obj).find((k, i, ks) => fn(obj[k], k, obj, i, ks))],
     cut: Object.find,
     lodash: lodash.find,
-    tests: [{ inputs: [user, v => v > 10], output: 29 }],
   },
   {
+    name: 'Object.findIndex',
+    tests: [{ input: [user, v => v === 29], output: 'age' }],
     vanilla: (obj, fn) => Object.keys(obj).find((k, i, ks) => fn(obj[k], k, obj, i, ks)),
     cut: Object.findIndex,
     lodash: lodash.findKey,
-    tests: [{ inputs: [user, v => v === 29], output: 'age' }],
   },
   {
+    name: 'Object.reduce',
+    tests: [{ input: [user, (acc, v, k) => Object.assign(acc, { [v]: k }), {}], output: { 'John Doe': 'name', 29: 'age' } }],
     vanilla: (obj, fn, base = null) => Object.entries(obj).reduce((acc, [k, v], i, ks) => fn(acc, v, k, obj, i, ks), base),
     cut: Object.reduce,
     lodash: lodash.reduce,
     // TODO: compare performance between Object.assign(acc, { [v]: k }) and (acc[v] = k, acc)
-    tests: [{ inputs: [user, (acc, v, k) => Object.assign(acc, { [v]: k }), {}], output: { 'John Doe': 'name', 29: 'age' } }],
   },
   {
+    name: 'Object.access',
     cut: Object.access,
     // lodash: lodash.get,
     tests: [
-      { inputs: [{ a: { b: [1, 2, 3] } }], output: { a: { b: [1, 2, 3] } } },
-      { inputs: [{ a: { b: [1, 2, 3] } }, ['a', 'b', 'length']], output: 3 },
-      { inputs: [{ a: { b: [1, 2, 3] } }, 'a.b.length'], output: 3 },
-      { inputs: [{ a: { b: [1, 2, 3] } }, '.a.b.length'], output: 3 },
-      { inputs: [{ a: { b: [1, 2, 3] } }, '["a"]["b"].length'], output: 3 },
-      { inputs: [{ a: { b: [1, 2, 3] } }, { a: 'a.b', b: 'a.b.length' }], output: { a: [1, 2, 3], b: 3 } },
-      { inputs: [[{ a: { b: [1, 2, 3] } }], '0.a.b.length'], output: 3 },
-      { inputs: [{ a: { 'b.c': 1 } }, 'a["b.c"]'], output: 1 },
-      { inputs: [{ a: { b: 1 } }, 'a.b'], output: 1 },
-      { inputs: [{ 'a.b': 1 }, 'a.b'], output: 1 },
-      { inputs: [{ 'a.b': 1 }, ['a', 'b']], output: null },
-      { inputs: [3, null] },
-      { inputs: [null, 3], output: null },
+      { input: [{ a: { b: [1, 2, 3] } }], output: { a: { b: [1, 2, 3] } } },
+      { input: [{ a: { b: [1, 2, 3] } }, ['a', 'b', 'length']], output: 3 },
+      { input: [{ a: { b: [1, 2, 3] } }, 'a.b.length'], output: 3 },
+      { input: [{ a: { b: [1, 2, 3] } }, '.a.b.length'], output: 3 },
+      { input: [{ a: { b: [1, 2, 3] } }, '["a"]["b"].length'], output: 3 },
+      { input: [{ a: { b: [1, 2, 3] } }, { a: 'a.b', b: 'a.b.length' }], output: { a: [1, 2, 3], b: 3 } },
+      { input: [[{ a: { b: [1, 2, 3] } }], '0.a.b.length'], output: 3 },
+      { input: [{ a: { 'b.c': 1 } }, 'a["b.c"]'], output: 1 },
+      { input: [{ a: { b: 1 } }, 'a.b'], output: 1 },
+      { input: [{ 'a.b': 1 }, 'a.b'], output: 1 },
+      { input: [{ 'a.b': 1 }, ['a', 'b']], output: null },
+      { input: [3, null] },
+      { input: [null, 3], output: null },
     ],
   },
   {
+    name: 'Object.equal',
     cut: Object.equal,
     // lodash: lodash.isEqual,
     tests: [
-      { inputs: [[null, null], [null, undefined]], output: false },
-      { inputs: [sorting, sortingClone], output: true },
+      { input: [[null, null], [null, undefined]], output: false }, // prettier-ignore
+      { input: [sorting, sortingClone], output: true },
     ],
   },
   {
+    name: 'Object.traverse',
     cut: Object.traverse,
     // lodash: lodash.isEqual,
     tests: [
-      { inputs: [{ a: 1 }, v => v * 2], output: { a: 2 } },
-      { inputs: [{ a: 1, b: { c: 2, d: [3] } }, v => v * 2], output: { a: 2, b: { c: 4, d: [6] } } },
-      { inputs: [{ a: 1, b: { c: 2, d: [3] } }, (v, k, path) => path.concat(k).join('.')], output: { a: 'a', b: { c: 'b.c', d: ['b.d.0'] } } },
+      { input: [{ a: 1 }, v => v * 2], output: { a: 2 } },
+      { input: [{ a: 1, b: { c: 2, d: [3] } }, v => v * 2], output: { a: 2, b: { c: 4, d: [6] } } },
+      { input: [{ a: 1, b: { c: 2, d: [3] } }, (v, k, path) => path.concat(k).join('.')], output: { a: 'a', b: { c: 'b.c', d: ['b.d.0'] } } },
     ],
   },
   // Array
   {
+    name: 'Array.map',
     cut: Array.map,
     tests: [[[[null, 'a', undefined, /a/]], [null, 'a', undefined, /a/]]],
   },
   {
+    name: 'Array.filter',
     cut: Array.filter,
     tests: [
       [[[null, 'a', undefined, /a/]], ['a', /a/]],
@@ -115,6 +125,7 @@ export default [
     ],
   },
   {
+    name: 'Array.find',
     cut: Array.find,
     tests: [
       [[users, { name: /Ja/ }], { name: 'Jane Doe', age: 22 }],
@@ -123,10 +134,12 @@ export default [
     ],
   },
   {
+    name: 'Array.findIndex',
     cut: Array.findIndex,
     tests: [[[[{ a: 1 }], { a: 1 }], 0]],
   },
   {
+    name: 'Array.group',
     cut: Array.group,
     tests: [
       [[users, v => 'x'], { x: users }],
@@ -137,10 +150,12 @@ export default [
   },
   {
     vanilla: arr => arr.slice().reverse(),
+    name: 'Array.reverse',
     cut: Array.reverse,
     tests: [[[[1, 2, 3]], [3, 2, 1]]],
   },
   {
+    name: 'Array.sort',
     cut: Array.sort,
     tests: [
       [[userAges], [22, 22, 29, 71]],
@@ -156,8 +171,8 @@ export default [
         ],
         userAgesAsc,
       ],
-      [[[[null, 1], [1, 2], [null, 3]], [0, -1]], [[1, 2], [null, 3], [null, 1]]], // eslint-disable-line
-      [[[[null, 1], [1, 2], [null, 3]], [v => v[0], -1]], [[1, 2], [null, 3], [null, 1]]], // eslint-disable-line
+      [[[[null, 1], [1, 2], [null, 3]], [0, -1]], [[1, 2], [null, 3], [null, 1]]], // prettier-ignore
+      [[[[null, 1], [1, 2], [null, 3]], [v => v[0], -1]], [[1, 2], [null, 3], [null, 1]]], // prettier-ignore
       [
         fn => fn(users, ['-age', 'name']).map(v => [v.age, v.name]),
         [
@@ -174,26 +189,32 @@ export default [
     ],
   },
   {
+    name: 'Array.unique',
     cut: Array.unique,
     tests: [[[userAges], [29, 22, 71]]],
   },
   {
+    name: 'Array.sum',
     cut: Array.sum,
     tests: [[[userAges], 144]],
   },
   {
+    name: 'Array.min',
     cut: Array.min,
     tests: [[[userAges], 22]],
   },
   {
+    name: 'Array.max',
     cut: Array.max,
     tests: [[[userAges], 71]],
   },
   {
+    name: 'Array.mean',
     cut: Array.mean,
     tests: [[[userAges], 36]],
   },
   {
+    name: 'Array.median',
     cut: Array.median,
     tests: [
       [[userAges], 25.5],
@@ -202,6 +223,7 @@ export default [
   },
   // Function
   {
+    name: 'Function.decorate',
     cut: Function.decorate,
     tests: [
       [fn => fn(x => x)(1), 1],
@@ -229,10 +251,12 @@ export default [
     ],
   },
   {
+    name: 'Function.partial',
     cut: Function.partial,
     tests: [[fn => fn((a, b) => [a, b], null, 2)(1), [1, 2]]],
   },
   {
+    name: 'Function.memoize',
     cut: Function.memoize,
     tests: [
       [
@@ -248,21 +272,25 @@ export default [
   },
   // String
   {
+    name: 'String.upper',
     cut: String.upper,
     lodash: lodash.toUpper,
     tests: [[['a.b'], 'A.B']],
   },
   {
+    name: 'String.lower',
     cut: String.lower,
     lodash: lodash.toLower,
     tests: [[['A.B'], 'a.b']],
   },
   {
+    name: 'String.words',
     cut: String.words,
     lodash: lodash.words,
     tests: [[[str], ['i', 'am', 'The', '1', 'AND', 'Only']]],
   },
   {
+    name: 'String.format',
     cut: String.format,
     tests: [
       [[str], 'I Am The 1 And Only'],
@@ -285,6 +313,7 @@ export default [
   },
   // Number
   {
+    name: 'Number.format',
     cut: Number.format,
     tests: [
       [[0.1 * 3 * 1000], 300],
@@ -296,6 +325,7 @@ export default [
     ],
   },
   {
+    name: 'Number.duration',
     cut: Number.duration,
     tests: [
       [[-36666666], '-10 hours'],
@@ -305,6 +335,7 @@ export default [
   },
   // Date
   {
+    name: 'Date.format',
     cut: Date.format,
     tests: [
       [[date], '2019-01-20T10:09:08+01:00'],
@@ -322,6 +353,7 @@ export default [
     ],
   },
   {
+    name: 'Date.getWeek',
     cut: Date.getWeek,
     moment: date => moment(date).week(),
     datefns: datefns.getWeek,
@@ -334,10 +366,12 @@ export default [
     ],
   },
   {
+    name: 'Date.getQuarter',
     cut: Date.getQuarter,
     tests: [[[new Date('2018-04-01')], 2]],
   },
   {
+    name: 'Date.plus',
     cut: Date.plus,
     tests: [
       [[new Date('2018-11-30T00:00:00'), '3 month'], new Date('2019-02-28T00:00:00')],
@@ -347,6 +381,7 @@ export default [
     ],
   },
   {
+    name: 'Date.minus',
     cut: Date.minus,
     tests: [
       [[new Date('2018-11-30T00:00:00'), '-3 month'], new Date('2019-02-28T00:00:00')],
@@ -355,14 +390,17 @@ export default [
     ],
   },
   {
+    name: 'Date.start',
     cut: Date.start,
     tests: [[[new Date('2018-02-28T00:00:00'), 'month'], new Date('2018-02-01T00:00:00')]],
   },
   {
+    name: 'Date.end',
     cut: Date.end,
     tests: [[[new Date('2016-02-29T00:00:00'), 'year'], new Date('2016-12-31T23:59:59')]],
   },
   {
+    name: 'Date.relative',
     cut: Date.relative,
     tests: [
       [[date, date], ''],
@@ -372,15 +410,22 @@ export default [
   },
   // RegExp
   {
+    name: 'RegExp.escape',
     cut: RegExp.escape,
     tests: [[fn => fn(/john@gmail.com/).source, 'john@gmail\\.com']],
   },
   {
+    name: 'RegExp.plus',
     cut: RegExp.plus,
     tests: [[fn => fn(/QwErTy/, 'i').flags, 'i']],
   },
   {
+    name: 'RegExp.minus',
     cut: RegExp.minus,
     tests: [[fn => fn(/QwErTy/, 'i').flags, '']],
   },
-].map(scenario => ({ ...scenario, tests: scenario.tests.map(v => (v.inputs && v) || { inputs: v[0], output: v[1] }) }))
+].map(scenario => ({ ...scenario, tests: scenario.tests.map(v => (v.input && v) || { input: v[0], output: v[1] }) }))
+
+export default scenarios
+
+if (import.meta.main !== undefined) (await import('cutest')).default(scenarios)
