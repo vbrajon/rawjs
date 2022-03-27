@@ -1,7 +1,8 @@
 import './cut.js'
 import * as lodash from 'lodash-es'
-import * as moment from 'moment'
 import * as datefns from 'date-fns'
+import moment from 'moment'
+import { Temporal } from '@js-temporal/polyfill'
 const users = [
   { name: 'John Doe', age: 29 },
   { name: 'Jane Doe', age: 22 },
@@ -388,14 +389,31 @@ const scenarios = [
   {
     name: 'Date.getWeek',
     cut: Date.getWeek,
-    moment: date => moment(date).week(),
-    datefns: datefns.getWeek,
+    vanilla: date => Temporal.PlainDate.from({ year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() }).weekOfYear,
+    // moment: date => moment(date).week(),
+    // datefns: datefns.getWeek,
     tests: [
-      // [[new Date('2015-02-26')], 9],
-      // [[new Date('2018-02-26')], 9],
-      // [[new Date('2016-01-01')], 53],
-      // [[new Date('2017-01-01')], 52],
-      // [[new Date('2018-01-01')], 1],
+      [[new Date('2016-11-05')], 44], // https://en.wikipedia.org/wiki/ISO_week_date#Calculating_the_week_number_from_a_month_and_day_of_the_month
+      [[new Date('2000-01-01')], 52], // Saturday, Leep year
+      [[new Date('2000-01-02')], 52],
+      [[new Date('2000-01-03')], 1],
+      [[new Date('2000-01-04')], 1],
+      [[new Date('2000-01-11')], 2],
+      [[new Date('2000-01-19')], 3],
+      [[new Date('2000-01-27')], 4],
+      [[new Date('2000-02-04')], 5],
+      [[new Date('2000-02-12')], 6],
+      [[new Date('2000-09-17')], 37],
+      [[new Date('2000-12-17')], 50],
+      [[new Date('2000-12-24')], 51],
+      [[new Date('2000-12-31')], 52],
+      [[new Date('2001-01-01')], 1], // Monday
+      [[new Date('2002-01-01')], 1], // Tuesday
+      [[new Date('2003-01-01')], 1], // Wednesday
+      [[new Date('2004-01-01')], 1], // Thursday, Leep year
+      [[new Date('2004-12-31')], 53], // Friday, Leep year
+      [[new Date('2005-01-01')], 53], // Saturday
+      [[new Date('2006-01-01')], 52], // Sunday
     ],
   },
   {

@@ -188,7 +188,12 @@ Date.UNITS = [
 ]
 Date.UNITS.map(([k, v]) => (Date[k.toUpperCase()] = v))
 Date.relative = (from, to = new Date()) => Number.duration(from - to).replace(/^-?(.+)/, (m, d) => d + (m[0] === '-' ? ' ago' : ' from now'))
-Date.getWeek = (date, soy = new Date(date.getFullYear(), 0, 0)) => Math.round((date - soy) / Date.DAY / 7)
+Date.getWeek = date => {
+  const soy = new Date(date.getFullYear(), 0, 1)
+  const doy = Math.floor((date - soy) / Date.DAY) + 1
+  const dow = date.getDay() || 7
+  return Math.floor((10 + doy - dow) / 7) || Date.getWeek(new Date(date.getFullYear(), 0, 0))
+}
 Date.getQuarter = date => Math.ceil((date.getMonth() + 1) / 3)
 Date.getLastDate = date => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
 Date.getTimezone = (date, offset = date.getTimezoneOffset()) =>
