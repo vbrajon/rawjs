@@ -13,11 +13,11 @@ const userAges = users.map(v => v.age)
 const userAgesAsc = [users[1], users[2], users[0], users[3]]
 const str = 'i_am:\nThe1\tAND, Only.'
 const date = new Date('2019-01-20T10:09:08')
+const mixed = [[], -1, /a/gi, 0, Infinity, NaN, new Date('2020'), { a: [{ b: 1 }] }, 'a', false, null, true, undefined]
+const mixedClone = [[], -1, /a/gi, 0, Infinity, NaN, new Date('2020'), { a: [{ b: 1 }] }, 'a', false, null, true, undefined]
 // const shuffle = (arr, r) => (arr.forEach((v, i) => ((r = Math.floor(Math.random() * i)), ([arr[i], arr[r]] = [arr[r], arr[i]]))), arr)
-// const sortingNative = [[], -1, /a/gi, 0, Infinity, NaN, new Date('2020'), { a: [{ b: 1 }] }, 'a', false, null, true, x => x, undefined]
-const sorting = [[], -1, /a/gi, 0, Infinity, NaN, new Date('2020'), { a: [{ b: 1 }] }, 'a', false, null, true, x => x, undefined]
-const sortingClone = [[], -1, /a/gi, 0, Infinity, NaN, new Date('2020'), { a: [{ b: 1 }] }, 'a', false, null, true, x => x, undefined]
-// const sortingShuffled = shuffle([[], -1, /a/gi, 0, Infinity, NaN, new Date('2020'), { a: [{ b: 1 }] }, 'a', false, null, true, x => x, undefined])
+// const mixedNative = [[], -1, /a/gi, 0, Infinity, NaN, new Date('2020'), { a: [{ b: 1 }] }, 'a', false, null, true, x => x, undefined]
+// const mixedShuffled = shuffle([[], -1, /a/gi, 0, Infinity, NaN, new Date('2020'), { a: [{ b: 1 }] }, 'a', false, null, true, x => x, undefined])
 
 const scenarios = [
   // Object
@@ -51,30 +51,35 @@ const scenarios = [
   },
   {
     name: 'Object.reduce',
-    tests: [{ input: [user, (acc, v, k) => Object.assign(acc, { [v]: k }), {}], output: { 'John Doe': 'name', 29: 'age' } }],
+    tests: [
+      { input: [user, (acc, v, k) => ((acc[v] = k), acc), {}], output: { 'John Doe': 'name', 29: 'age' } },
+      { input: [user, (acc, v, k) => Object.assign(acc, { [v]: k }), {}], output: { 'John Doe': 'name', 29: 'age' } }, //* compare performance
+    ],
     vanilla: (obj, fn, base = null) => Object.entries(obj).reduce((acc, [k, v], i, ks) => fn(acc, v, k, obj, i, ks), base),
     cut: Object.reduce,
     lodash: lodash.reduce,
-    // TODO: compare performance between Object.assign(acc, { [v]: k }) and (acc[v] = k, acc)
   },
   {
     name: 'Object.access',
     cut: Object.access,
     // lodash: lodash.get,
     tests: [
-      { input: [{ a: { b: [1, 2, 3] } }], output: { a: { b: [1, 2, 3] } } },
       { input: [{ a: { b: [1, 2, 3] } }, ['a', 'b', 'length']], output: 3 },
       { input: [{ a: { b: [1, 2, 3] } }, 'a.b.length'], output: 3 },
-      { input: [{ a: { b: [1, 2, 3] } }, '.a.b.length'], output: 3 },
+      { input: [{ a: { b: [1, 2, 3] } }, '.a.b.length'], output: 3 }, // != lodash
       { input: [{ a: { b: [1, 2, 3] } }, '["a"]["b"].length'], output: 3 },
-      { input: [{ a: { b: [1, 2, 3] } }, { a: 'a.b', b: 'a.b.length' }], output: { a: [1, 2, 3], b: 3 } },
+      { input: [{ a: { b: [1, 2, 3] } }, { a: 'a.b', b: 'a.b.length' }], output: { a: [1, 2, 3], b: 3 } }, // != lodash
       { input: [[{ a: { b: [1, 2, 3] } }], '0.a.b.length'], output: 3 },
       { input: [{ a: { 'b.c': 1 } }, 'a["b.c"]'], output: 1 },
       { input: [{ a: { b: 1 } }, 'a.b'], output: 1 },
+      { input: [{ a: { b: 1 } }, ['a', 'b']], output: 1 },
       { input: [{ 'a.b': 1 }, 'a.b'], output: 1 },
-      { input: [{ 'a.b': 1 }, ['a', 'b']], output: null },
-      { input: [3, null] },
-      { input: [null, 3], output: null },
+      { input: [{ 'a.b': 1 }, ['a', 'b']], output: undefined },
+      { input: [{ 'a.b': 1 }], output: { 'a.b': 1 } }, // != lodash
+      { input: [{ 'a.b': 1 }, null], output: { 'a.b': 1 } }, // != lodash
+      { input: [{ 'a.b': 1 }, undefined], output: { 'a.b': 1 } }, // != lodash
+      { input: [1, 1], output: undefined },
+      { input: [], output: undefined },
     ],
   },
   {
@@ -83,17 +88,45 @@ const scenarios = [
     // lodash: lodash.isEqual,
     tests: [
       { input: [[null, null], [null, undefined]], output: false }, // prettier-ignore
-      { input: [sorting, sortingClone], output: true },
+      { input: [mixed, mixedClone], output: true },
+      { input: [x => x, x => x], output: true }, // != lodash
+      { input: [], output: true },
     ],
   },
   {
     name: 'Object.traverse',
     cut: Object.traverse,
-    // lodash: lodash.isEqual,
     tests: [
       { input: [{ a: 1 }, v => v * 2], output: { a: 2 } },
       { input: [{ a: 1, b: { c: 2, d: [3] } }, v => v * 2], output: { a: 2, b: { c: 4, d: [6] } } },
       { input: [{ a: 1, b: { c: 2, d: [3] } }, (v, k, path) => path.concat(k).join('.')], output: { a: 'a', b: { c: 'b.c', d: ['b.d.0'] } } },
+    ],
+  },
+  {
+    name: 'Object.difference',
+    cut1(a, b) {
+      const diffs = {}
+      Object.traverse(a, (v, k, path) => {
+        const v2 = Object.access(b, path.concat(k))
+        if (v === v2) return
+        diffs[path.concat(k).join('.')] = [v, v2]
+      })
+      Object.traverse(b, (v2, k, path) => {
+        const v = Object.access(a, path.concat(k))
+        if (v === v2) return
+        diffs[path.concat(k).join('.')] = [v, v2]
+      })
+      return diffs
+    },
+    cut2(a, b) {
+      const va = {}
+      const vb = {}
+      Object.traverse(a, (v, k, path) => (va[path.concat(k).join('.')] = v))
+      Object.traverse(b, (v, k, path) => (vb[path.concat(k).join('.')] = v))
+      return Object.filter(Object.map({ ...va, ...vb }, (v, k) => (va[k] === vb[k] ? null : [va[k], vb[k]])))
+    },
+    tests: [
+      { input: [{ a: 1, b: 2, c: 3, d: { e: [4, 5] } }, { b: 1, c: 3, d: { e: [5, 5] }, f: 6 }], output: { a: [1, undefined], b: [2, 1], 'd.e.0': [4, 5], f: [undefined, 6] } }, // prettier-ignore
     ],
   },
   // Array
@@ -144,7 +177,7 @@ const scenarios = [
     tests: [
       [[users, v => 'x'], { x: users }],
       [[[{ a: 1 }], 'a'], { 1: [{ a: 1 }] }],
-      [[[{ a: 1 }], 'b'], { null: [{ a: 1 }] }],
+      [[[{ a: 1 }], 'b'], { undefined: [{ a: 1 }] }],
       [[[{ a: 1, b: 2 }], ['a', 'b']], { 1: { 2: [{ a: 1, b: 2 }] } }],
     ],
   },

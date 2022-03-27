@@ -14,7 +14,7 @@ Object.findIndex = (obj, fn) => Object.keys(obj).find((k, i) => fn(obj[k], k, i,
 
 Array.group = (arr, keys) =>
   arr.reduce((acc, v) => {
-    ;[].concat(keys).reduce((acc, k, i, arr) => {
+    keys.reduce((acc, k, i, arr) => {
       const key = Object.access(v, k)
       const last = i === arr.length - 1
       const hasKey = Object.prototype.hasOwnProperty.call(acc, key)
@@ -102,11 +102,11 @@ Function.throttle = (fn, ms = 0) => (...args) => {
 }
 
 String.toPath = Function.memoize(str => str.split(/(?:\.|\[["']?([^\]"']*)["']?\])/).filter(x => x))
-Object.access = (obj, path = []) => {
-  if (obj == null) return obj
+Object.access = (obj, path) => {
+  if (obj == null || path == null) return obj
   if (Object.prototype.hasOwnProperty.call(obj, path)) return obj[path]
   if (typeof path === 'string') return Object.access(obj, String.toPath(path))
-  if (path instanceof Array) return path.reduce((a, p) => (a && a[p] != null ? a[p] : null), obj)
+  if (path instanceof Array) return path.reduce((a, p) => (a && a[p] != null ? a[p] : undefined), obj)
   if (path instanceof Function) return path(obj)
   if (path instanceof Object) return Object.map(path, p => Object.access(obj, p))
 }
@@ -351,6 +351,12 @@ Object.shortcuts = Object.shortcuts || {
         return directedSort(fn)
       }
       args[1] = f(args[1])
+      return args
+    },
+  },
+  group: {
+    before: args => {
+      args[1] = [].concat(args[1])
       return args
     },
   },
