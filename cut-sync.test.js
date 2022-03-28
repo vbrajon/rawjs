@@ -424,8 +424,8 @@ const scenarios = [
       { input: [new Date('2020-01-31'), '1 month'], output: new Date('2020-02-29') },
       { input: [new Date('2020-01-01'), '1.7 Month'], output: new Date('2020-02-01') }, //* Expected behavior
       { input: [new Date('2020-01-31'), '1.7 Month'], output: new Date('2020-02-29') }, //* Expected behavior
-      // { input: [new Date('2020-01-01'), { year: 1, month: 1, day: 1, hour: 1, minute: 1, second: 10 }],output:  new Date('2021-02-02T01:01:10')}, //! NOT SUPPORTED
-      { input: [new Date('2020-01-01T00:00:00'), '1 year, 1 month, 1 day, 1 hour, minute and 10 seconds'], output: new Date('2021-02-02T01:01:10') }, //! DEPRECATED
+      { input: [new Date('2020-01-01T00:00:00'), '1 year, 1 month, 1 hour - 2 minute - 3 seconds'], output: new Date('2021-02-01T01:02:03') }, //! DEPRECATED
+      { input: [new Date('2020-01-01T00:00:00'), { years: 1, months: 1, hours: 1, minutes: 2, seconds: 3 }], output: new Date('2021-02-01T01:02:03') }, //! SUPPORTED using deprecated syntax
     ],
   },
   {

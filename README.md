@@ -12,4 +12,4 @@ It is a simpler version of [lodash](https://github.com/lodash/lodash) or [moment
 - `git clone https://github.com/vbrajon/rawjs.git -b cut cut;cd cut`
 - `deno test --import-map import-map.json --allow-read --allow-net --no-check --watch`
 - `deno bench cut-sync.test.js --import-map import-map.json --allow-read --allow-net --no-check --watch --unstable`
-- `npx prettier * --write`
+- `npx prettier --no-semi --single-quote --arrow-parens=avoid --trailing-comma=all --print-width=160 --write *`

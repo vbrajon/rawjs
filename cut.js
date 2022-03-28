@@ -370,6 +370,15 @@ Object.shortcuts = Object.shortcuts || {
       return v
     },
   },
+  modify: {
+    before: args => {
+      if (args[1] instanceof Object)
+        args[1] = Object.entries(args[1])
+          .map(([k, v]) => v + k)
+          .join(' ')
+      return args
+    },
+  },
 }
 Object.shortcuts.find = Object.shortcuts.findIndex = Object.shortcuts.filter
 Object.extend()
