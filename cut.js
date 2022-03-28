@@ -243,8 +243,7 @@ Date.modify = (date, str, sign) => {
   }
   units.map(([unit], i) => str.replace(RegExp(/([+-.\d]*)\s*UNITs?/.source.replace('UNIT', unit), 'i'), (m, n) => fn(i, +n || 1 - (n === '0'))))
   d.setMilliseconds(0)
-  const gtMonth = /(year|month)/i.test(str) && !/(day|hour|minute|second)/i.test(str)
-  if (['-', '+'].includes(sign) && date.getDate() !== d.getDate() && gtMonth) return Date.minus(Date.start(d, 'month'), '1 day')
+  if (['-', '+'].includes(sign) && date.getDate() !== d.getDate() && /(year|month)/i.test(str) && !/(day|hour|minute|second)/i.test(str)) d.setDate(0)
   return d
 }
 Date.plus = (date, str) => Date.modify(date, str, '+')

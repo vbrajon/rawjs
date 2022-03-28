@@ -134,125 +134,117 @@ const scenarios = [
   {
     name: 'Array.map',
     cut: Array.map,
-    tests: [[[[null, 'a', undefined, /a/]], [null, 'a', undefined, /a/]]],
+    tests: [{ input: [[null, 'a', undefined, /a/]], output: [null, 'a', undefined, /a/] }],
   },
   {
     name: 'Array.filter',
     cut: Array.filter,
     tests: [
-      [[[null, 'a', undefined, /a/]], ['a', /a/]],
-      [
-        [users, { name: /Ja/ }],
-        [
+      { input: [[null, 'a', undefined, /a/]], output: ['a', /a/] },
+      {
+        input: [users, { name: /Ja/ }],
+        output: [
           { name: 'Jane Doe', age: 22 },
           { name: 'Janette Doe', age: 22 },
         ],
-      ],
-      [[users, 'name'], users],
-      [
-        [
+      },
+      { input: [users, 'name'], output: users },
+      {
+        input: [
           [{ a: 1 }, { a: 2 }, { a: 3, b: 3 }],
           [{ a: x => x > 2 }, { b: 3 }, { a: 2 }],
         ],
-        [{ a: 2 }, { a: 3, b: 3 }],
-      ],
+        output: [{ a: 2 }, { a: 3, b: 3 }],
+      },
     ],
   },
   {
     name: 'Array.find',
     cut: Array.find,
     tests: [
-      [[users, { name: /Ja/ }], { name: 'Jane Doe', age: 22 }],
-      [[[{ a: 1 }], { a: 1 }], { a: 1 }],
-      [[[{ a: 1 }, { a: 2 }], { a: [2, 3] }], { a: 2 }],
+      { input: [users, { name: /Ja/ }], output: { name: 'Jane Doe', age: 22 } },
+      { input: [[{ a: 1 }], { a: 1 }], output: { a: 1 } },
+      { input: [[{ a: 1 }, { a: 2 }], { a: [2, 3] }], output: { a: 2 } },
     ],
   },
   {
     name: 'Array.findIndex',
     cut: Array.findIndex,
-    tests: [[[[{ a: 1 }], { a: 1 }], 0]],
+    tests: [{ input: [[{ a: 1 }], { a: 1 }], output: 0 }],
   },
   {
     name: 'Array.group',
     cut: Array.group,
     tests: [
-      [[users, v => 'x'], { x: users }],
-      [[[{ a: 1 }], 'a'], { 1: [{ a: 1 }] }],
-      [[[{ a: 1 }], 'b'], { undefined: [{ a: 1 }] }],
-      [[[{ a: 1, b: 2 }], ['a', 'b']], { 1: { 2: [{ a: 1, b: 2 }] } }],
+      { input: [users, v => 'x'], output: { x: users } },
+      { input: [[{ a: 1 }], 'a'], output: { 1: [{ a: 1 }] } },
+      { input: [[{ a: 1 }], 'b'], output: { undefined: [{ a: 1 }] } },
+      { input: [[{ a: 1, b: 2 }], ['a', 'b']], output: { 1: { 2: [{ a: 1, b: 2 }] } } },
     ],
   },
   {
     vanilla: arr => arr.slice().reverse(),
     name: 'Array.reverse',
     cut: Array.reverse,
-    tests: [[[[1, 2, 3]], [3, 2, 1]]],
+    tests: [{ input: [[1, 2, 3]], output: [3, 2, 1] }],
   },
   {
     name: 'Array.sort',
     cut: Array.sort,
     tests: [
-      [[userAges], [22, 22, 29, 71]],
-      [[users, 'age'], userAgesAsc],
-      [[users, v => v.age], userAgesAsc],
-      [[users, (a, b) => (a.age === b.age ? 0 : a.age > b.age ? 1 : -1)], userAgesAsc],
-      [
-        [
-          users,
-          function () {
-            return arguments[0].age === arguments[1].age ? 0 : arguments[0].age > arguments[1].age ? 1 : -1
-          },
-        ],
-        userAgesAsc,
-      ],
-      [[[[null, 1], [1, 2], [null, 3]], [0, -1]], [[1, 2], [null, 3], [null, 1]]], // prettier-ignore
-      [[[[null, 1], [1, 2], [null, 3]], [v => v[0], -1]], [[1, 2], [null, 3], [null, 1]]], // prettier-ignore
-      [
-        fn => fn(users, ['-age', 'name']).map(v => [v.age, v.name]),
-        [
+      { input: [userAges], output: [22, 22, 29, 71] },
+      { input: [users, 'age'], output: userAgesAsc },
+      { input: [users, v => v.age], output: userAgesAsc },
+      { input: [users, (a, b) => (a.age === b.age ? 0 : a.age > b.age ? 1 : -1)], output: userAgesAsc },
+      { input: [users, function() { return arguments[0].age === arguments[1].age ? 0 : arguments[0].age > arguments[1].age ? 1 : -1 }], output: userAgesAsc }, // prettier-ignore
+      { input: [[[null, 1], [1, 2], [null, 3]], [0, -1]], output: [[1, 2], [null, 3], [null, 1]]}, // prettier-ignore
+      { input: [[[null, 1], [1, 2], [null, 3]], [v => v[0], -1]], output: [[1, 2], [null, 3], [null, 1]]}, // prettier-ignore
+      {
+        input: fn => fn(users, ['-age', 'name']).map(v => [v.age, v.name]),
+        output: [
           [71, 'Johnny Doe'],
           [29, 'John Doe'],
           [22, 'Jane Doe'],
           [22, 'Janette Doe'],
         ],
-      ],
-      [
-        [['10 arbres', '3 arbres', 'réservé', 'Cliché', 'Premier', 'communiqué', 'café', 'Adieu'], 'fr', { numeric: true }],
-        ['3 arbres', '10 arbres', 'Adieu', 'café', 'Cliché', 'communiqué', 'Premier', 'réservé'],
-      ],
+      },
+      {
+        input: [['10 arbres', '3 arbres', 'réservé', 'Cliché', 'Premier', 'communiqué', 'café', 'Adieu'], 'fr', { numeric: true }],
+        output: ['3 arbres', '10 arbres', 'Adieu', 'café', 'Cliché', 'communiqué', 'Premier', 'réservé'],
+      },
     ],
   },
   {
     name: 'Array.unique',
     cut: Array.unique,
-    tests: [[[userAges], [29, 22, 71]]],
+    tests: [{ input: [userAges], output: [29, 22, 71] }],
   },
   {
     name: 'Array.sum',
     cut: Array.sum,
-    tests: [[[userAges], 144]],
+    tests: [{ input: [userAges], output: 144 }],
   },
   {
     name: 'Array.min',
     cut: Array.min,
-    tests: [[[userAges], 22]],
+    tests: [{ input: [userAges], output: 22 }],
   },
   {
     name: 'Array.max',
     cut: Array.max,
-    tests: [[[userAges], 71]],
+    tests: [{ input: [userAges], output: 71 }],
   },
   {
     name: 'Array.mean',
     cut: Array.mean,
-    tests: [[[userAges], 36]],
+    tests: [{ input: [userAges], output: 36 }],
   },
   {
     name: 'Array.median',
     cut: Array.median,
     tests: [
-      [[userAges], 25.5],
-      [[[1, 2, 3]], 2],
+      { input: [userAges], output: 25.5 },
+      { input: [[1, 2, 3]], output: 2 },
     ],
   },
   // Function
@@ -260,48 +252,48 @@ const scenarios = [
     name: 'Function.decorate',
     cut: Function.decorate,
     tests: [
-      [fn => fn(x => x)(1), 1],
-      [fn => fn(x => x, null)(1), 1],
-      [fn => fn(x => x, { around: (fn, x) => fn(x * 2) * 2 })(1), 4],
-      [fn => fn(x => x, { before: x => x * 2 })(1), 2],
-      [fn => fn(x => x, { after: x => x * 2 })(1), 2],
-      [fn => fn(x => x, { before: [x => x * 2, x => [x * 2]], after: [x => x * 2], around: [(fn, x) => fn(x * 2) * 2] })(1), 32],
-      [
-        fn => {
+      { input: fn => fn(x => x)(1), output: 1 },
+      { input: fn => fn(x => x, null)(1), output: 1 },
+      { input: fn => fn(x => x, { around: (fn, x) => fn(x * 2) * 2 })(1), output: 4 },
+      { input: fn => fn(x => x, { before: x => x * 2 })(1), output: 2 },
+      { input: fn => fn(x => x, { after: x => x * 2 })(1), output: 2 },
+      { input: fn => fn(x => x, { before: [x => x * 2, x => [x * 2]], after: [x => x * 2], around: [(fn, x) => fn(x * 2) * 2] })(1), output: 32 },
+      {
+        input: fn => {
           const decorated = fn(x => x, { before: x => x + 1 })
           const decoratedTwice = fn(decorated, { before: x => x + 2 })
           return decoratedTwice.before.map(f => f.toString())
         },
-        [x => x + 1, x => x + 2].map(f => f.toString()),
-      ],
-      [
-        fn => {
+        output: [x => x + 1, x => x + 2].map(f => f.toString()),
+      },
+      {
+        input: fn => {
           const decorated = fn(x => x)
           decorated.around = [(fn, x) => 10]
           return decorated()
         },
-        10,
-      ],
+        output: 10,
+      },
     ],
   },
   {
     name: 'Function.partial',
     cut: Function.partial,
-    tests: [[fn => fn((a, b) => [a, b], null, 2)(1), [1, 2]]],
+    tests: [{ input: fn => fn((a, b) => [a, b], null, 2)(1), output: [1, 2] }],
   },
   {
     name: 'Function.memoize',
     cut: Function.memoize,
     tests: [
-      [
-        fn => {
+      {
+        input: fn => {
           const memory = fn(x => x / 2)
           memory(2)
           memory(2)
           return memory.cache['[2]']
         },
-        1,
-      ],
+        output: 1,
+      },
     ],
   },
   // String
@@ -309,40 +301,40 @@ const scenarios = [
     name: 'String.upper',
     cut: String.upper,
     lodash: lodash.toUpper,
-    tests: [[['a.b'], 'A.B']],
+    tests: [{ input: ['a.b'], output: 'A.B' }],
   },
   {
     name: 'String.lower',
     cut: String.lower,
     lodash: lodash.toLower,
-    tests: [[['A.B'], 'a.b']],
+    tests: [{ input: ['A.B'], output: 'a.b' }],
   },
   {
     name: 'String.words',
     cut: String.words,
     lodash: lodash.words,
-    tests: [[[str], ['i', 'am', 'The', '1', 'AND', 'Only']]],
+    tests: [{ input: [str], output: ['i', 'am', 'The', '1', 'AND', 'Only'] }],
   },
   {
     name: 'String.format',
     cut: String.format,
     tests: [
-      [[str], 'I Am The 1 And Only'],
-      [[str, 'title'], 'I Am The 1 And Only'],
-      [[str, 'dash'], 'i-am-the-1-and-only'],
-      [[str, 'underscore'], 'i_am_the_1_and_only'],
-      [[str, 'camel'], 'iAmThe1AndOnly'],
-      [[str, 'pascal'], 'IAmThe1AndOnly'],
-      [['{}{}{}', 0, 1, 2], '012'],
-      [['{}{}{}', 'a', 'b'], 'ab'],
-      [['{}{}{}', ['a', 'b']], 'ab'],
-      [['{1}{1}{1}{0}{0}', 'a', 'b'], 'bbbaa'],
-      [['{2}{2}{2}{1}{1}', ['a', 'b', '']], 'bb'],
-      [['{}{}{}{1}{1}{1}{0}{0}', 'a', 'b'], 'abbbbaa'],
-      [['{user.name} is <strong>{{user.age}}</strong>', { user }], 'John Doe is <strong>{29}</strong>'],
-      [['{.length} users starting with {0.name} & {1.name}', users], '4 users starting with John Doe & Jane Doe'],
-      [['{k2}{k2}{k3}', { k1: 'a', k2: 'b' }], 'bb'],
-      [['{66} pears x {3} apples', (x, i) => +x + i], '66 pears x 4 apples'],
+      { input: [str], output: 'I Am The 1 And Only' },
+      { input: [str, 'title'], output: 'I Am The 1 And Only' },
+      { input: [str, 'dash'], output: 'i-am-the-1-and-only' },
+      { input: [str, 'underscore'], output: 'i_am_the_1_and_only' },
+      { input: [str, 'camel'], output: 'iAmThe1AndOnly' },
+      { input: [str, 'pascal'], output: 'IAmThe1AndOnly' },
+      { input: ['{}{}{}', 0, 1, 2], output: '012' },
+      { input: ['{}{}{}', 'a', 'b'], output: 'ab' },
+      { input: ['{}{}{}', ['a', 'b']], output: 'ab' },
+      { input: ['{1}{1}{1}{0}{0}', 'a', 'b'], output: 'bbbaa' },
+      { input: ['{2}{2}{2}{1}{1}', ['a', 'b', '']], output: 'bb' },
+      { input: ['{}{}{}{1}{1}{1}{0}{0}', 'a', 'b'], output: 'abbbbaa' },
+      { input: ['{user.name} is <strong>{{user.age}}</strong>', { user }], output: 'John Doe is <strong>{29}</strong>' },
+      { input: ['{.length} users starting with {0.name} & {1.name}', users], output: '4 users starting with John Doe & Jane Doe' },
+      { input: ['{k2}{k2}{k3}', { k1: 'a', k2: 'b' }], output: 'bb' },
+      { input: ['{66} pears x {3} apples', (x, i) => +x + i], output: '66 pears x 4 apples' },
     ],
   },
   // Number
@@ -350,21 +342,21 @@ const scenarios = [
     name: 'Number.format',
     cut: Number.format,
     tests: [
-      [[0.1 * 3 * 1000], 300],
-      [[-0.000123456789, 1], '-100µ'],
-      [[123456789000, 2], '120G'],
-      [[1, 10], '1'],
-      [[1010.0101, 'en'], '1,010.01'],
-      [[1010.0101, 'fr'], '1 010,01'],
+      { input: [0.1 * 3 * 1000], output: 300 },
+      { input: [-0.000123456789, 1], output: '-100µ' },
+      { input: [123456789000, 2], output: '120G' },
+      { input: [1, 10], output: '1' },
+      { input: [1010.0101, 'en'], output: '1,010.01' },
+      { input: [1010.0101, 'fr'], output: '1 010,01' },
     ],
   },
   {
     name: 'Number.duration',
     cut: Number.duration,
     tests: [
-      [[-36666666], '-10 hours'],
-      [[1], '1 millisecond'],
-      [[0], ''],
+      { input: [-36666666], output: '-10 hours' },
+      { input: [1], output: '1 millisecond' },
+      { input: [0], output: '' },
     ],
   },
   // Date
@@ -372,110 +364,115 @@ const scenarios = [
     name: 'Date.format',
     cut: Date.format,
     tests: [
-      [[date], '2019-01-20T10:09:08+01:00'],
-      [[date, 'DD/MM/YYYY hhhmmmsssSSS'], '20/01/2019 10h09m08s000'],
-      // [[date, 'QQ WW'], 'Q1 W4'],
-      [[date, 'day, month, year', 'fr'], '20 janvier 2019'],
-      [[date, 'month, day, weekday, hour, minute, second'], 'Sunday, January 20, 10:09:08 AM'],
-      [[date, 'mon, wday, hour'], 'Jan Sun, 10 AM'],
-      [[date, 'hour, minute, second'], '10:09:08'],
-      [[Date.start(date, 'month'), 'YYYY-MM-DD hh:mm:ss'], '2019-01-01 00:00:00'],
-      [[Date.end(date, 'year'), 'YYYY-MM-DD hh:mm:ss'], '2019-12-31 23:59:59'],
-      [[new Date('2019-01-01 00:00'), 'YYYY-MM-DD hh:mm:ss Z'], '2019-01-01 00:00:00 +01:00'],
-      [[Date.plus(new Date('2020-10-01 20:00:00'), '25 day'), 'YYYY-MM-DD hh:mm:ss'], '2020-10-26 20:00:00'],
-      [[new Date('Invalid'), 'mon, wday, hour, minute'], '-'],
+      { input: [date], output: '2019-01-20T10:09:08+01:00' },
+      { input: [date, 'DD/MM/YYYY hhhmmmsssSSS'], output: '20/01/2019 10h09m08s000' },
+      { input: [date, 'QQ WW'], output: 'Q1 W3' },
+      { input: [date, 'day, month, year', 'fr'], output: '20 janvier 2019' },
+      { input: [date, 'month, day, weekday, hour, minute, second'], output: 'Sunday, January 20, 10:09:08 AM' },
+      { input: [date, 'mon, wday, hour'], output: 'Jan Sun, 10 AM' },
+      { input: [date, 'hour, minute, second'], output: '10:09:08' },
+      { input: [Date.start(date, 'month'), 'YYYY-MM-DD hh:mm:ss'], output: '2019-01-01 00:00:00' },
+      { input: [Date.end(date, 'year'), 'YYYY-MM-DD hh:mm:ss'], output: '2019-12-31 23:59:59' },
+      { input: [new Date('2019-01-01 00:00'), 'YYYY-MM-DD hh:mm:ss Z'], output: '2019-01-01 00:00:00 +01:00' },
+      { input: [Date.plus(new Date('2020-10-01 20:00:00'), '25 day'), 'YYYY-MM-DD hh:mm:ss'], output: '2020-10-26 20:00:00' },
+      { input: [new Date('Invalid'), 'mon, wday, hour, minute'], output: '-' },
     ],
   },
   {
     name: 'Date.getWeek',
     cut: Date.getWeek,
     vanilla: date => Temporal.PlainDate.from({ year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() }).weekOfYear,
-    // moment: date => moment(date).week(),
-    // datefns: datefns.getWeek,
+    // moment: date => moment(date).week(), //! output != from vanilla
+    // datefns: datefns.getWeek, //! output != from vanilla
     tests: [
-      [[new Date('2016-11-05')], 44], // https://en.wikipedia.org/wiki/ISO_week_date#Calculating_the_week_number_from_a_month_and_day_of_the_month
-      [[new Date('2000-01-01')], 52], // Saturday, Leep year
-      [[new Date('2000-01-02')], 52],
-      [[new Date('2000-01-03')], 1],
-      [[new Date('2000-01-04')], 1],
-      [[new Date('2000-01-11')], 2],
-      [[new Date('2000-01-19')], 3],
-      [[new Date('2000-01-27')], 4],
-      [[new Date('2000-02-04')], 5],
-      [[new Date('2000-02-12')], 6],
-      [[new Date('2000-09-17')], 37],
-      [[new Date('2000-12-17')], 50],
-      [[new Date('2000-12-24')], 51],
-      [[new Date('2000-12-31')], 52],
-      [[new Date('2001-01-01')], 1], // Monday
-      [[new Date('2002-01-01')], 1], // Tuesday
-      [[new Date('2003-01-01')], 1], // Wednesday
-      [[new Date('2004-01-01')], 1], // Thursday, Leep year
-      [[new Date('2004-12-31')], 53], // Friday, Leep year
-      [[new Date('2005-01-01')], 53], // Saturday
-      [[new Date('2006-01-01')], 52], // Sunday
+      { input: [new Date('2016-11-05')], output: 44 }, // https://en.wikipedia.org/wiki/ISO_week_date#Calculating_the_week_number_from_a_month_and_day_of_the_month
+      { input: [new Date('2000-01-01')], output: 52 }, // Saturday, Leep year
+      { input: [new Date('2000-01-02')], output: 52 },
+      { input: [new Date('2000-01-03')], output: 1 },
+      { input: [new Date('2000-01-04')], output: 1 },
+      { input: [new Date('2000-01-11')], output: 2 },
+      { input: [new Date('2000-01-19')], output: 3 },
+      { input: [new Date('2000-01-27')], output: 4 },
+      { input: [new Date('2000-02-04')], output: 5 },
+      { input: [new Date('2000-02-12')], output: 6 },
+      { input: [new Date('2000-09-17')], output: 37 },
+      { input: [new Date('2000-12-17')], output: 50 },
+      { input: [new Date('2000-12-24')], output: 51 },
+      { input: [new Date('2000-12-31')], output: 52 },
+      { input: [new Date('2001-01-01')], output: 1 }, // Monday
+      { input: [new Date('2002-01-01')], output: 1 }, // Tuesday
+      { input: [new Date('2003-01-01')], output: 1 }, // Wednesday
+      { input: [new Date('2004-01-01')], output: 1 }, // Thursday, Leep year
+      { input: [new Date('2004-12-31')], output: 53 }, // Friday, Leep year
+      { input: [new Date('2005-01-01')], output: 53 }, // Saturday
+      { input: [new Date('2006-01-01')], output: 52 }, // Sunday
     ],
   },
   {
     name: 'Date.getQuarter',
     cut: Date.getQuarter,
-    tests: [[[new Date('2018-04-01')], 2]],
+    tests: [{ input: [new Date('2018-04-01')], output: 2 }],
   },
   {
     name: 'Date.plus',
     cut: Date.plus,
     tests: [
-      [[new Date('2018-11-30T00:00:00'), '3 month'], new Date('2019-02-28T00:00:00')],
-      [[new Date('2018-12-31T00:00:00'), '1 month'], new Date('2019-01-31T00:00:00')],
-      [[new Date('2016-02-29T00:00:00'), '1 year'], new Date('2017-02-28T00:00:00')],
-      [/* EXPECTED */ [new Date('2019-01-31'), '1.7 Month'], new Date('2019-02-28T00:00:00')],
+      { input: [new Date('2018-11-30'), '3 month'], output: new Date('2019-02-28') },
+      { input: [new Date('2018-12-31'), '1 month'], output: new Date('2019-01-31') },
+      { input: [new Date('2016-02-29'), '1 year'], output: new Date('2017-02-28') },
+      { input: [new Date('2020-01-01'), '1 month'], output: new Date('2020-02-01') },
+      { input: [new Date('2020-01-31'), '1 month'], output: new Date('2020-02-29') },
+      { input: [new Date('2020-01-01'), '1.7 Month'], output: new Date('2020-02-01') }, //* Expected behavior
+      { input: [new Date('2020-01-31'), '1.7 Month'], output: new Date('2020-02-29') }, //* Expected behavior
+      // { input: [new Date('2020-01-01'), { year: 1, month: 1, day: 1, hour: 1, minute: 1, second: 10 }],output:  new Date('2021-02-02T01:01:10')}, //! NOT SUPPORTED
+      { input: [new Date('2020-01-01T00:00:00'), '1 year, 1 month, 1 day, 1 hour, minute and 10 seconds'], output: new Date('2021-02-02T01:01:10') }, //! DEPRECATED
     ],
   },
   {
     name: 'Date.minus',
     cut: Date.minus,
     tests: [
-      [[new Date('2018-11-30T00:00:00'), '-3 month'], new Date('2019-02-28T00:00:00')],
-      [[new Date('2019-01-01T00:00:00'), '1 month'], new Date('2018-12-01T00:00:00')],
-      // [/* DEPRECATED */ [Date.plus(date, '1 year, 1 month, 1 day, hour, minute and 10 seconds'), 'YYYY-MM-DD hh:mm:ss'], new Date('2017-12-19 09:07:58')],
+      { input: [new Date('2020-01-01'), '1 month'], output: new Date('2019-12-01') },
+      { input: [new Date('2020-02-29'), '1 year'], output: new Date('2019-02-28') },
+      { input: [new Date('2018-11-30'), '-3 month'], output: new Date('2019-02-28') }, //* Subtract negative number
     ],
   },
   {
     name: 'Date.start',
     cut: Date.start,
-    tests: [[[new Date('2018-02-28T00:00:00'), 'month'], new Date('2018-02-01T00:00:00')]],
+    tests: [{ input: [new Date('2018-02-28T04:05:00'), 'month'], output: new Date('2018-02-01T00:00:00') }],
   },
   {
     name: 'Date.end',
     cut: Date.end,
-    tests: [[[new Date('2016-02-29T00:00:00'), 'year'], new Date('2016-12-31T23:59:59')]],
+    tests: [{ input: [new Date('2016-02-29T10:11:12'), 'year'], output: new Date('2016-12-31T23:59:59') }],
   },
   {
     name: 'Date.relative',
     cut: Date.relative,
     tests: [
-      [[date, date], ''],
-      [[Date.minus(date, '1 second'), date], '1 second ago'],
-      [[Date.plus(date, '2 hours'), date], '2 hours from now'],
+      { input: [date, date], output: '' },
+      { input: [Date.minus(date, '1 second'), date], output: '1 second ago' }, //* 1 second before
+      { input: [Date.plus(date, '2 hours'), date], output: '2 hours from now' }, //* 2 hours after
     ],
   },
   // RegExp
   {
     name: 'RegExp.escape',
     cut: RegExp.escape,
-    tests: [[fn => fn(/john@gmail.com/).source, 'john@gmail\\.com']],
+    tests: [{ input: fn => fn(/john@gmail.com/).source, output: 'john@gmail\\.com' }],
   },
   {
     name: 'RegExp.plus',
     cut: RegExp.plus,
-    tests: [[fn => fn(/QwErTy/, 'i').flags, 'i']],
+    tests: [{ input: fn => fn(/QwErTy/, 'i').flags, output: 'i' }],
   },
   {
     name: 'RegExp.minus',
     cut: RegExp.minus,
-    tests: [[fn => fn(/QwErTy/, 'i').flags, '']],
+    tests: [{ input: fn => fn(/QwErTy/, 'i').flags, output: '' }],
   },
-].map(scenario => ({ ...scenario, tests: scenario.tests.map(v => (v.input && v) || { input: v[0], output: v[1] }) }))
+]
 
 export default scenarios
 
