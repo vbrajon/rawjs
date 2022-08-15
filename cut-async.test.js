@@ -1,17 +1,17 @@
-import './cut.js'
+import "cut"
 
 const scenarios = [
   {
-    name: 'Function.wait',
+    name: "Function.wait",
     fn: async () => {
       const start = Date.now()
       const n = await Function.wait(() => 1, 100)
-      if (Date.now() - start < 100) throw new Error('Function.wait should wait 100ms')
-      if (n !== 1) throw new Error('Function.wait should resolve the function and return 1')
+      if (Date.now() - start < 100) throw new Error("Function.wait should wait 100ms")
+      if (n !== 1) throw new Error("Function.wait should resolve the function and return 1")
     },
   },
   {
-    name: 'Function.every - limit',
+    name: "Function.every - limit",
     fn: async () => {
       let n = 0
       const loop = Function.every(() => n++, 100, 3) // immediate + runs every 100ms + stops after 3 times
@@ -25,7 +25,7 @@ const scenarios = [
     },
   },
   {
-    name: 'Function.every - stop',
+    name: "Function.every - stop",
     fn: async () => {
       let n = 0
       const loop = Function.every(() => n++, 100)
@@ -34,10 +34,10 @@ const scenarios = [
     },
   },
   {
-    name: 'Function.debounce',
+    name: "Function.debounce",
     fn: async () => {
       let n = 0
-      const inc = Function.debounce(x => (n += x), 100)
+      const inc = Function.debounce((x) => (n += x), 100)
       inc(1) // skipped
       inc(2) // skipped
       inc(3) // delayed
@@ -47,10 +47,10 @@ const scenarios = [
     },
   },
   {
-    name: 'Function.throttle',
+    name: "Function.throttle",
     fn: async () => {
       let n = 0
-      const inc = Function.throttle(x => (n += x), 100)
+      const inc = Function.throttle((x) => (n += x), 100)
       inc(1) // immediate
       inc(2) // skipped
       inc(3) // planned
@@ -61,10 +61,10 @@ const scenarios = [
     },
   },
   {
-    name: 'Promise.map',
+    name: "Promise.map",
     fn: async () => {
       let n = 0
-      const inc = x => new Promise(resolve => setTimeout(() => resolve((n += x)), 100))
+      const inc = (x) => new Promise((resolve) => setTimeout(() => resolve((n += x)), 100))
 
       const all = await Promise.all([1, 2].map(inc))
       if (n !== 3) throw new Error(`Promise.all should be awaitable, n = ${n}`)
@@ -88,4 +88,4 @@ const scenarios = [
 
 export default scenarios
 
-if (import.meta.main !== undefined) (await import('cutest')).default(scenarios)
+if (import.meta.main !== undefined) (await import("cutest")).default(scenarios)

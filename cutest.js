@@ -1,22 +1,22 @@
 #!/usr/bin/env node --inspect
 
-import fs from 'fs'
-import { deepStrictEqual } from 'assert'
-import { performance } from 'perf_hooks'
-import { spawn } from 'child_process'
-const sound = k => spawn('afplay', [`/System/Library/Sounds/${k}.aiff`], { detached: true, stdio: 'ignore' }).unref()
-const [ok, ko, crash] = ['Tink', 'Ping', 'Sosumi'].map(k => () => sound(k))
-const [clear, red, green, yellow, blue] = [0, 31, 32, 33, 34].map(n => `\x1b[${n}m`)
+import fs from "fs"
+import { deepStrictEqual } from "assert"
+import { performance } from "perf_hooks"
+import { spawn } from "child_process"
+const sound = (k) => spawn("afplay", [`/System/Library/Sounds/${k}.aiff`], { detached: true, stdio: "ignore" }).unref()
+const [ok, ko, crash] = ["Tink", "Ping", "Sosumi"].map((k) => () => sound(k))
+const [clear, red, green, yellow, blue] = [0, 31, 32, 33, 34].map((n) => `\x1b[${n}m`)
 
 let cache = 0
-const run = async file => {
+const run = async (file) => {
   try {
-    const module = await import(file + '?cache=' + cache++)
+    const module = await import(file + "?cache=" + cache++)
     const start = performance.now()
     const results = await Promise.all(
       module.default.flatMap((scenario, index) =>
         Object.entries(scenario)
-          .filter(([fname, fn]) => !['name', 'tests'].includes(fname))
+          .filter(([fname, fn]) => !["name", "tests"].includes(fname))
           .flatMap(([fname, fn]) =>
             scenario.tests.map(async ({ input, output }) => {
               try {
@@ -26,13 +26,13 @@ const run = async file => {
                 debugger
                 return { index, fname, error }
               }
-            }),
-          ),
-      ),
+            })
+          )
+      )
     )
     const time = performance.now() - start
-    const passed = results.filter(v => !v)
-    const errored = results.filter(v => v)
+    const passed = results.filter((v) => !v)
+    const errored = results.filter((v) => v)
     if (errored.length) console.dir(errored)
     errored.length ? ko() : ok()
     // prettier-ignore
@@ -45,10 +45,10 @@ const run = async file => {
 
 const cli = async () => {
   console.clear()
-  const files = await fs.promises.readdir('.')
+  const files = await fs.promises.readdir(".")
   files
-    .filter(file => file.endsWith('.test.js'))
-    .map(async file => {
+    .filter((file) => file.endsWith(".test.js"))
+    .map(async (file) => {
       await run(`file://${process.cwd()}/${file}`)
       fs.watchFile(file, { interval: 100 }, async () => {
         console.clear()
