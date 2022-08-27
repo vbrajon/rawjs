@@ -35,14 +35,14 @@ Array.median = (arr) => {
 }
 
 // prettier-ignore
-Function.decorate = (fn, opts) => {
-  const { before = [], after = [], around = [] } = opts instanceof Object ? opts : {}
-  if (opts instanceof Function) around.push(opts)
+Function.decorate = (fn, options) => {
+  if (options instanceof Function) options = { around: [options] }
+  const { before = [], after = [], around = [] } = options || {}
   const f = (...args) => {
     args = f.before.reduce((acc, f) => f(acc), args)
     if (!args) return null
     if (!(args instanceof Array)) args = [args]
-    const output = f.around.reduce((acc, fn) => (...args) => fn(acc, ...args), fn)(...args)
+    const output = f.around.reduce((acc, f) => (...args) => f(acc, ...args), fn)(...args)
     return f.after.reduce((acc, f) => f(acc, args), output)
   }
   f.before = (fn.before || []).concat(before)
@@ -52,7 +52,7 @@ Function.decorate = (fn, opts) => {
   return f
 }
 // prettier-ignore
-Function.promisify = (fn, ...args) => new Promise((r) => fn(...args, r))
+Function.promisify = fn => (...args) => new Promise((resolve, reject) => fn(...args, (err, val) => err ? reject(err) : resolve(val)))
 // prettier-ignore
 Function.partial = (fn, ...outer) => (...inner) => fn(...outer.map(a => (a === null ? inner.shift() : a)).concat(inner))
 // prettier-ignore
@@ -125,7 +125,7 @@ Object.traverse = (obj, fn, path = []) => {
 
 String.lower = (str) => str.toLowerCase()
 String.upper = (str) => str.toUpperCase()
-String.capitalize = (str) => str.replace(/./, (c) => c.toUpperCase())
+String.capitalize = (str) => str.toLowerCase().replace(/./, (c) => c.toUpperCase())
 String.words = (str, sep = /[-_,.\s]/) =>
   str
     .normalize("NFKD")
@@ -136,7 +136,7 @@ String.words = (str, sep = /[-_,.\s]/) =>
 String.format = (str, ...args) => {
   if (!args.length) args = ["title"]
   if (["title", "pascal", "camel", "dash", "list", "kebab", "underscore", "snake"].includes(args[0])) {
-    let words = String.words(str).map((v) => v.toLowerCase())
+    let words = String.words(str.toLowerCase())
     let sep = " "
     if (args[0] === "camel") return String.format(str, "pascal").replace(/./, (c) => c.toLowerCase())
     if (["title", "pascal"].includes(args[0])) words = words.map((v) => v.replace(/./, (c) => c.toUpperCase()))

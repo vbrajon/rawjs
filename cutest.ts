@@ -3,7 +3,7 @@ import { assertEquals, assertRejects } from "https://deno.land/std@0.127.0/testi
 try { Deno.bench('null', {}, () => null) } catch (e) { import.meta.test = true } // prettier-ignore
 export default async function cutest(scenarios) {
   for await (const { name: scenario_name, tests, runs = 100, ...rest } of scenarios) {
-    for await (const [test_num, { input, output, error }] of Object.entries(tests)) {
+    for await (const [test_num, { input, output, error }] of Object.entries(tests || [{ input: [], output: undefined }])) {
       for await (const [fn_name, f] of Object.entries(rest)) {
         const name = `${scenario_name} #${test_num} #${fn_name}`
         const fn = input instanceof Function ? async () => await input(f) : async () => await f(...input)

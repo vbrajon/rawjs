@@ -84,7 +84,7 @@ const scenarios = [
       if (n !== 3) throw new Error(`Promise.map should be done, n = ${n}`)
     },
   },
-].map(({ name, fn, output }) => ({ name, fn, tests: [{ input: [], output }] }))
+]
 
 export default scenarios
 

@@ -89,6 +89,8 @@ const scenarios = [
     // lodash: lodash.isEqual,
     tests: [
       { input: [[null, null], [null, undefined]], output: false }, // prettier-ignore
+      { input: [{ a: 1 }, { a: 1 }], output: true },
+      { input: [{ a: 1 }, { a: 1, b: 2 }], output: false },
       { input: [mixed, mixedClone], output: true },
       { input: [(x) => x, (x) => x], output: true }, // != lodash
       { input: [], output: true },
@@ -136,7 +138,12 @@ const scenarios = [
   {
     name: "Array.map",
     cut: Array.map,
-    tests: [{ input: [[null, "a", undefined, /a/]], output: [null, "a", undefined, /a/] }],
+    tests: [
+      { input: [[null, "a", undefined, /a/]], output: [null, "a", undefined, /a/] },
+      { input: [[{ a: 1, b: 2 }, { a: 3, b: 4 }], "a"], output: [1, 3] }, // prettier-ignore
+      { input: [[{ a: 1, b: 2 }, { a: 3, b: 4 }], ["a", "b"]], output: [[1, 2], [3, 4]] }, // prettier-ignore
+      { input: [[{ a: 1, b: 2 }, { a: 3, b: 4 }], { a: "b" }], output: [{ a: 2 }, { a: 4 }] }, // prettier-ignore
+    ],
   },
   {
     name: "Array.filter",
@@ -181,7 +188,7 @@ const scenarios = [
       { input: [users, (v) => "x"], output: { x: users } },
       { input: [[{ a: 1 }], "a"], output: { 1: [{ a: 1 }] } },
       { input: [[{ a: 1 }], "b"], output: { undefined: [{ a: 1 }] } },
-      { input: [[{ a: 1, b: 2 }], ["a", "b"]], output: { 1: { 2: [{ a: 1, b: 2 }] } } },
+      { input: [[{ a: 1, b: 2 }, { a: 1, b: 2 }], ["a", "b"]], output: { 1: { 2: [{ a: 1, b: 2 }, { a: 1, b: 2 }] } } }, // prettier-ignore
     ],
   },
   {
@@ -201,6 +208,7 @@ const scenarios = [
       { input: [users, function() { return arguments[0].age === arguments[1].age ? 0 : arguments[0].age > arguments[1].age ? 1 : -1 }], output: userAgesAsc }, // prettier-ignore
       { input: [[[null, 1], [1, 2], [null, 3]], [0, -1]], output: [[1, 2], [null, 3], [null, 1]]}, // prettier-ignore
       { input: [[[null, 1], [1, 2], [null, 3]], [v => v[0], -1]], output: [[1, 2], [null, 3], [null, 1]]}, // prettier-ignore
+      { input: [[[null, 1], [1, 2], [null, 3]], [4, 5]], output: [[null, 1], [1, 2], [null, 3]]}, // prettier-ignore
       {
         input: (fn) => fn(users, ["-age", "name"]).map((v) => [v.age, v.name]),
         output: [
@@ -256,8 +264,10 @@ const scenarios = [
     tests: [
       { input: (fn) => fn((x) => x)(1), output: 1 },
       { input: (fn) => fn((x) => x, null)(1), output: 1 },
+      { input: (fn) => fn((x) => x, () => 2)(1), output: 2 }, // prettier-ignore
       { input: (fn) => fn((x) => x, { around: (fn, x) => fn(x * 2) * 2 })(1), output: 4 },
       { input: (fn) => fn((x) => x, { before: (x) => x * 2 })(1), output: 2 },
+      { input: (fn) => fn((x) => x, { before: () => null })(1), output: null },
       { input: (fn) => fn((x) => x, { after: (x) => x * 2 })(1), output: 2 },
       { input: (fn) => fn((x) => x, { before: [(x) => x * 2, (x) => [x * 2]], after: [(x) => x * 2], around: [(fn, x) => fn(x * 2) * 2] })(1), output: 32 },
       {
@@ -277,6 +287,22 @@ const scenarios = [
         output: 10,
       },
     ],
+  },
+  {
+    name: "Function.promisify",
+    // cut: Function.promisify,
+    // test: async (fn) => {
+    //   const expect1callback = (v, cb) => v === 1 ? cb(null, 'OK') : cb('KO', null)
+    //   const promisified = fn(expect1callback)
+    //   if (await promisified(1) !== 'OK') throw new Error('Function.promisify should resolve the callback with the first argument')
+    //   if (await promisified(2).catch(e => e) !== 'KO') throw new Error('Function.promisify should reject the callback with the second argument')
+    // },
+    fn: async () => {
+      const expect1callback = (v, cb) => (v === 1 ? cb(null, "OK") : cb("KO", null))
+      const promisified = Function.promisify(expect1callback)
+      if ((await promisified(1)) !== "OK") throw new Error("Function.promisify should resolve the callback with the first argument")
+      if ((await promisified(2).catch((e) => e)) !== "KO") throw new Error("Function.promisify should reject the callback with the second argument")
+    },
   },
   {
     name: "Function.partial",
@@ -300,16 +326,22 @@ const scenarios = [
   },
   // String
   {
+    name: "String.lower",
+    cut: String.lower,
+    lodash: lodash.toLower,
+    tests: [{ input: ["A.B"], output: "a.b" }],
+  },
+  {
     name: "String.upper",
     cut: String.upper,
     lodash: lodash.toUpper,
     tests: [{ input: ["a.b"], output: "A.B" }],
   },
   {
-    name: "String.lower",
-    cut: String.lower,
-    lodash: lodash.toLower,
-    tests: [{ input: ["A.B"], output: "a.b" }],
+    name: "String.capitalize",
+    cut: String.capitalize,
+    lodash: lodash.capitalize,
+    tests: [{ input: ["A.B"], output: "A.b" }],
   },
   {
     name: "String.words",
@@ -367,12 +399,15 @@ const scenarios = [
     cut: Date.format,
     tests: [
       { input: [date], output: "2019-01-20T10:09:08+01:00" },
-      { input: [date, "DD/MM/YYYY hhhmmmsssSSS"], output: "20/01/2019 10h09m08s000" },
+      { input: [date, "DD/MM/YYYY hhhmmmsssSSSZ"], output: "20/01/2019 10h09m08s000+01:00" },
       { input: [date, "QQ WW"], output: "Q1 W3" },
       { input: [date, "day, month, year", "fr"], output: "20 janvier 2019" },
       { input: [date, "month, day, weekday, hour, minute, second"], output: "Sunday, January 20, 10:09:08 AM" },
       { input: [date, "mon, wday, hour"], output: "Jan Sun, 10 AM" },
       { input: [date, "hour, minute, second"], output: "10:09:08" },
+      { input: [date, "hour"], output: "10:09:08" },
+      { input: [date, "minute"], output: "09:08" },
+      { input: [date, "second"], output: "08" },
       { input: [Date.start(date, "month"), "YYYY-MM-DD hh:mm:ss"], output: "2019-01-01 00:00:00" },
       { input: [Date.end(date, "year"), "YYYY-MM-DD hh:mm:ss"], output: "2019-12-31 23:59:59" },
       { input: [new Date("2019-01-01 00:00"), "YYYY-MM-DD hh:mm:ss Z"], output: "2019-01-01 00:00:00 +01:00" },
@@ -384,7 +419,7 @@ const scenarios = [
     name: "Date.getWeek",
     cut: Date.getWeek,
     vanilla: (date) => Temporal.PlainDate.from({ year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() }).weekOfYear,
-    // moment: date => moment(date).week(), //! output != from vanilla
+    // moment: (date) => moment(date).week(), //! output != from vanilla
     // datefns: datefns.getWeek, //! output != from vanilla
     tests: [
       { input: [new Date("2016-11-05")], output: 44 }, // https://en.wikipedia.org/wiki/ISO_week_date#Calculating_the_week_number_from_a_month_and_day_of_the_month
@@ -414,6 +449,14 @@ const scenarios = [
     name: "Date.getQuarter",
     cut: Date.getQuarter,
     tests: [{ input: [new Date("2018-04-01")], output: 2 }],
+  },
+  {
+    name: "Date.getTimezone",
+    cut: Date.getTimezone,
+    tests: [
+      { input: [null, -540], output: "+09:00" },
+      { input: [null, +240], output: "-04:00" },
+    ],
   },
   {
     name: "Date.plus",
