@@ -1,21 +1,52 @@
-Object.map = (obj, fn) =>
-  Object.keys(obj).reduce((acc, k, i) => {
+// Object
+const path2array = memoize((str) => str.split(/(?:\.|\[["']?([^\]"']*)["']?\])/).filter((x) => x))
+export function access(obj, path) {
+  if (obj == null || path == null) return obj
+  if (Object.prototype.hasOwnProperty.call(obj, path)) return obj[path]
+  if (typeof path === "string") return access(obj, path2array(path))
+  if (path instanceof Array) return path.reduce((a, p) => (a && a[p] != null ? a[p] : undefined), obj)
+  if (path instanceof Function) return path(obj)
+  if (path instanceof Object) return map(path, (p) => access(obj, p))
+}
+export function equal(a, b) {
+  if (a === b) return true
+  const ta = Object.prototype.toString.call(a)
+  if (ta !== Object.prototype.toString.call(b)) return false
+  if (!["[object Object]", "[object Array]"].includes(ta)) return a.toString() === b.toString()
+  if (Object.keys(a).length !== Object.keys(b).length) return false
+  return Object.keys(a).every((k) => equal(a[k], b[k]))
+}
+export function traverse(obj, fn, path = []) {
+  if (obj instanceof Array) return obj.map((v, k) => traverse(v, fn, path.concat(k)))
+  if (obj instanceof Object) return map(obj, (v, k) => traverse(v, fn, path.concat(k)))
+  return fn(obj, path)
+}
+export function map(obj, fn) {
+  return Object.keys(obj).reduce((acc, k, i) => {
     acc[k] = fn(obj[k], k, i, obj)
     return acc
   }, {})
-Object.reduce = (obj, fn, base) => Object.keys(obj).reduce((acc, k, i) => fn(acc, obj[k], k, i, obj), base)
-Object.filter = (obj, fn) =>
-  Object.keys(obj).reduce((acc, k, i) => {
+}
+export function reduce(obj, fn, base) {
+  return Object.keys(obj).reduce((acc, k, i) => fn(acc, obj[k], k, i, obj), base)
+}
+export function filter(obj, fn) {
+  return Object.keys(obj).reduce((acc, k, i) => {
     if (fn(obj[k], k, i, obj)) acc[k] = obj[k]
     return acc
   }, {})
-Object.find = (obj, fn) => obj[Object.keys(obj).find((k, i) => fn(obj[k], k, i, obj))]
-Object.findIndex = (obj, fn) => Object.keys(obj).find((k, i) => fn(obj[k], k, i, obj))
-
-Array.group = (arr, keys) =>
-  arr.reduce((acc, v) => {
+}
+export function find(obj, fn) {
+  return obj[Object.keys(obj).find((k, i) => fn(obj[k], k, i, obj))]
+}
+export function findIndex(obj, fn) {
+  return Object.keys(obj).find((k, i) => fn(obj[k], k, i, obj))
+}
+// Array
+export function group(arr, keys) {
+  return arr.reduce((acc, v) => {
     keys.reduce((acc, k, i, arr) => {
-      const key = Object.access(v, k)
+      const key = access(v, k)
       const last = i === arr.length - 1
       const hasKey = Object.prototype.hasOwnProperty.call(acc, key)
       if (last) return (acc[key] = hasKey ? acc[key].concat([v]) : [v])
@@ -23,151 +54,148 @@ Array.group = (arr, keys) =>
     }, acc)
     return acc
   }, {})
-Array.unique = (arr) => Array.from(new Set(arr))
-Array.min = (arr) => Math.min(...arr)
-Array.max = (arr) => Math.max(...arr)
-Array.sum = (arr) => arr.reduce((acc, v) => acc + v, 0)
-Array.mean = (arr) => arr.reduce((acc, v) => acc + v, 0) / arr.length
-Array.median = (arr) => {
+}
+export function unique(arr) {
+  return Array.from(new Set(arr))
+}
+export function min(arr) {
+  return Math.min(...arr)
+}
+export function max(arr) {
+  return Math.max(...arr)
+}
+export function sum(arr) {
+  return arr.reduce((acc, v) => acc + v, 0)
+}
+export function mean(arr) {
+  return arr.reduce((acc, v) => acc + v, 0) / arr.length
+}
+export function median(arr) {
   const mid = Math.floor(arr.length / 2)
   const nums = arr.slice().sort((a, b) => a - b)
   return arr.length % 2 ? nums[mid] : (nums[mid - 1] + nums[mid]) / 2
 }
-
-// prettier-ignore
-Function.decorate = (fn, options) => {
-  if (options instanceof Function) options = { around: [options] }
-  const { before = [], after = [], around = [] } = options || {}
-  const f = (...args) => {
-    args = f.before.reduce((acc, f) => f(acc), args)
+// Function
+export function decorate(fn, options = {}) {
+  if (options instanceof Function) options = { around: options }
+  function decorated(...args) {
+    args = decorated.before ? decorated.before(args) : args
     if (!args) return null
     if (!(args instanceof Array)) args = [args]
-    const output = f.around.reduce((acc, f) => (...args) => f(acc, ...args), fn)(...args)
-    return f.after.reduce((acc, f) => f(acc, args), output)
+    const output = decorated.around ? decorated.around(fn, ...args) : fn(...args)
+    return decorated.after ? decorated.after(output) : output
   }
-  f.before = (fn.before || []).concat(before)
-  f.after = (fn.after || []).concat(after)
-  f.around = (fn.around || []).concat(around)
-  f.fn = fn
-  return f
+  decorated.before = options.before
+  decorated.after = options.after
+  decorated.around = options.around
+  decorated.fn = fn
+  return decorated
 }
-// prettier-ignore
-Function.promisify = fn => (...args) => new Promise((resolve, reject) => fn(...args, (err, val) => err ? reject(err) : resolve(val)))
-// prettier-ignore
-Function.partial = (fn, ...outer) => (...inner) => fn(...outer.map(a => (a === null ? inner.shift() : a)).concat(inner))
-// prettier-ignore
-Function.memoize = (fn, hash = JSON.stringify) => {
-  const f = (...args) => {
+export function promisify(fn) {
+  return function promisified(...args) {
+    return new Promise((resolve, reject) => fn(...args, (err, val) => (err ? reject(err) : resolve(val))))
+  }
+}
+export function partial(fn, ...outer) {
+  return (...inner) => fn(...outer.map((a) => (a === null ? inner.shift() : a)).concat(inner))
+}
+export function memoize(fn, hash = JSON.stringify) {
+  function memoized(...args) {
     const key = hash(args)
-    if (!Object.prototype.hasOwnProperty.call(f.cache, key)) f.cache[key] = fn(...args)
-    return f.cache[key]
+    if (!Object.prototype.hasOwnProperty.call(memoized.cache, key)) memoized.cache[key] = fn(...args)
+    return memoized.cache[key]
   }
-  f.cache = {}
-  return f
+  memoized.cache = {}
+  return memoized
 }
-// prettier-ignore
-Function.every = (fn, ms = 0, repeat = Infinity, immediate = true) => {
+export function every(fn, ms = 0, repeat = Infinity, immediate = true) {
   if (immediate) fn()
-  fn.id = setInterval(() => {
+  fn.id = setInterval(function loop() {
     if (--repeat > +immediate) return fn()
     fn.resolve(fn())
     fn.stop()
   }, ms)
-  fn.stop = () => {
+  fn.stop = function stop() {
     clearInterval(fn.id)
     delete fn.id
   }
-  fn.then = resolve => (fn.resolve = resolve)
+  fn.then = (resolve) => (fn.resolve = resolve)
   return fn
 }
-// prettier-ignore
-Function.wait = (fn, ms) => Function.every(fn, ms, 1, false)
-// prettier-ignore
-Function.debounce = (fn, ms = 0) => (...args) => {
-  clearTimeout(fn.id)
-  fn.id = setTimeout(() => fn(...args), ms)
+export function wait(fn, ms) {
+  return every(fn, ms, 1, false)
 }
-// prettier-ignore
-Function.throttle = (fn, ms = 0) => (...args) => {
-  fn.next = () => {
-    delete fn.next
-    fn.id = setTimeout(() => {
-      delete fn.id
-      if (fn.next) fn.next()
-    }, ms)
-    fn(...args)
+export function debounce(fn, ms = 0) {
+  return function debounced() {
+    clearTimeout(fn.id)
+    fn.id = setTimeout(() => fn(...arguments), ms)
   }
-  if (fn.id) return
-  fn.next()
 }
-
-String.toPath = Function.memoize((str) => str.split(/(?:\.|\[["']?([^\]"']*)["']?\])/).filter((x) => x))
-Object.access = (obj, path) => {
-  if (obj == null || path == null) return obj
-  if (Object.prototype.hasOwnProperty.call(obj, path)) return obj[path]
-  if (typeof path === "string") return Object.access(obj, String.toPath(path))
-  if (path instanceof Array) return path.reduce((a, p) => (a && a[p] != null ? a[p] : undefined), obj)
-  if (path instanceof Function) return path(obj)
-  if (path instanceof Object) return Object.map(path, (p) => Object.access(obj, p))
+export function throttle(fn, ms = 0) {
+  return function throttled(...args) {
+    fn.next = function next() {
+      delete fn.next
+      fn.id = setTimeout(() => {
+        delete fn.id
+        if (fn.next) fn.next()
+      }, ms)
+      fn(...args)
+    }
+    if (fn.id) return
+    fn.next()
+  }
 }
-Object.equal = (a, b) => {
-  if (a === b) return true
-  const ta = Object.prototype.toString.call(a)
-  if (ta !== Object.prototype.toString.call(b)) return false
-  if (!["[object Object]", "[object Array]"].includes(ta)) return a.toString() === b.toString()
-  if (Object.keys(a).length !== Object.keys(b).length) return false
-  return Object.keys(a).every((k) => Object.equal(a[k], b[k]))
+// String
+export function lower(str) {
+  return str.toLowerCase()
 }
-Object.traverse = (obj, fn, path = []) => {
-  if (obj instanceof Array || obj instanceof Object) return obj.constructor.map(obj, (v, k) => Object.traverse(v, fn, path.concat(k)))
-  return fn(obj, path)
+export function upper(str) {
+  return str.toUpperCase()
 }
-
-String.lower = (str) => str.toLowerCase()
-String.upper = (str) => str.toUpperCase()
-String.capitalize = (str) => str.toLowerCase().replace(/./, (c) => c.toUpperCase())
-String.words = (str, sep = /[-_,.\s]/) =>
-  str
+export function capitalize(str) {
+  return str.toLowerCase().replace(/./, (c) => c.toUpperCase())
+}
+export function words(str, sep = /[-_,.\s]/) {
+  return str
     .normalize("NFKD")
     .replace(RegExp("[^A-z0-9" + sep.source.slice(1, -1) + "]", "g"), "")
     .replace(/([a-z])([A-Z\d])/g, "$1 $2")
     .split(sep)
     .filter((x) => x)
-String.format = (str, ...args) => {
+}
+export function string_format(str, ...args) {
   if (!args.length) args = ["title"]
   if (["title", "pascal", "camel", "dash", "list", "kebab", "underscore", "snake"].includes(args[0])) {
-    let words = String.words(str.toLowerCase())
+    let tokens = words(str.toLowerCase())
     let sep = " "
-    if (args[0] === "camel") return String.format(str, "pascal").replace(/./, (c) => c.toLowerCase())
-    if (["title", "pascal"].includes(args[0])) words = words.map((v) => v.replace(/./, (c) => c.toUpperCase()))
+    if (args[0] === "camel") return string_format(str, "pascal").replace(/./, (c) => c.toLowerCase())
+    if (["title", "pascal"].includes(args[0])) tokens = tokens.map((v) => v.replace(/./, (c) => c.toUpperCase()))
     if (["pascal"].includes(args[0])) sep = ""
     if (["dash", "list", "kebab"].includes(args[0])) sep = "-"
     if (["underscore", "snake"].includes(args[0])) sep = "_"
-    return words.join(sep)
+    return tokens.join(sep)
   }
   let i = 0
-  let fn = (m) => Object.access(args, m)
-  if (typeof args[0] === "object") fn = (m) => Object.access(args[0], m)
+  let fn
+  fn = (m) => access(args, m)
+  if (typeof args[0] === "object") fn = (m) => access(args[0], m)
   if (typeof args[0] === "function") fn = args.shift()
   return str.replace(/\{[^{}]*\}/g, (m) => String(fn(m.slice(1, -1) || i, i++)).replace(/^(null|undefined)$/, ""))
 }
-
-Object.getOwnPropertyNames(Math)
-  .filter((k) => typeof Math[k] === "function")
-  .forEach((k) => (Number[k] = Math[k]))
-Number.duration = (num) => {
+// Number
+export function duration(num) {
   if (!num) return ""
-  const units = Date.UNITS.slice().reverse()
+  const units = UNITS.slice().reverse()
   const [k, v] = units.find(([k, v]) => v && v <= Math.abs(num))
-  return Math.round(num / v) + " " + k + (Math.abs(Math.round(num / v)) > 1 ? "s" : "")
+  return Math.round(+num / +v) + " " + k + (Math.abs(Math.round(+num / +v)) > 1 ? "s" : "")
 }
-Number.format = (num, format, options) => {
+export function number_format(num, format, options) {
   if (typeof format === "string") return Intl.NumberFormat(format, options).format(num)
   if (typeof format === "number") return (+num.toPrecision(format)).toExponential().replace(/([+-\d.]+)e([+-\d]+)/, (m, n, e) => +(n + "e" + (e - Math.floor(e / 3) * 3)) + (["mµnpfazy", "kMGTPEZY"][+(e > 0)].split("")[Math.abs(Math.floor(e / 3)) - 1] || ""))
   return +num.toPrecision(15)
 }
-
-Date.UNITS = [
+// Date
+const UNITS = [
   ["millisecond", 1, "S", "Milliseconds", 3],
   ["second", 1000, "s", "Seconds"],
   ["minute", 1000 * 60, "m", "Minutes"],
@@ -179,18 +207,26 @@ Date.UNITS = [
   ["year", 1000 * 60 * 60 * 24 * 365, "Y", "FullYear", 4],
   ["timezone", null, "Z", "Timezone"],
 ]
-Date.UNITS.map(([k, v]) => (Date[k.toUpperCase()] = v))
-Date.relative = (from, to = new Date()) => Number.duration(from - to).replace(/^-?(.+)/, (m, d) => d + (m[0] === "-" ? " ago" : " from now"))
-Date.getWeek = (date) => {
-  const soy = new Date(date.getFullYear(), 0, 1)
-  const doy = Math.floor((date - soy) / Date.DAY) + 1
-  const dow = date.getDay() || 7
-  return Math.floor((10 + doy - dow) / 7) || Date.getWeek(new Date(date.getFullYear(), 0, 0))
+UNITS.map(([k, v]) => (UNITS[k.toUpperCase()] = v))
+export function relative(from, to = new Date()) {
+  return duration(+from - +to).replace(/^-?(.+)/, (m, d) => d + (m[0] === "-" ? " ago" : " from now"))
 }
-Date.getQuarter = (date) => Math.ceil((date.getMonth() + 1) / 3)
-Date.getLastDate = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
-Date.getTimezone = (date, offset = date.getTimezoneOffset()) => `${offset > 0 ? "-" : "+"}${("0" + ~~Math.abs(offset / 60)).slice(-2)}:${("0" + Math.abs(offset % 60)).slice(-2)}`
-Date.format = (date, format = "YYYY-MM-DDThh:mm:ssZ", lang = "en") => {
+export function getWeek(date) {
+  const soy = new Date(date.getFullYear(), 0, 1)
+  const doy = Math.floor((+date - +soy) / UNITS.DAY) + 1
+  const dow = date.getDay() || 7
+  return Math.floor((10 + doy - dow) / 7) || getWeek(new Date(date.getFullYear(), 0, 0))
+}
+export function getQuarter(date) {
+  return Math.ceil((date.getMonth() + 1) / 3)
+}
+export function getLastDate(date) {
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
+}
+export function getTimezone(date, offset = date.getTimezoneOffset()) {
+  return `${offset > 0 ? "-" : "+"}${("0" + ~~Math.abs(offset / 60)).slice(-2)}:${("0" + Math.abs(offset % 60)).slice(-2)}`
+}
+export function date_format(date, format = "YYYY-MM-DDThh:mm:ssZ", lang = "en") {
   const parts = format.split(",").map((s) => s.trim())
   if (!parts.filter((v) => !["year", "month", "mon", "day", "weekday", "wday", "hour", "minute", "second"].includes(v)).length) {
     const options = {}
@@ -203,14 +239,14 @@ Date.format = (date, format = "YYYY-MM-DDThh:mm:ssZ", lang = "en") => {
     if (parts.includes("mon")) options.month = "short"
     if (parts.includes("month")) options.month = "long"
     if (parts.includes("year")) options.year = "numeric"
-    if (!options.day && !options.month && !options.year) return Date.format(date, (options.hour && "hh:mm:ss") || (options.minute && "mm:ss") || "ss")
+    if (!options.day && !options.month && !options.year) return date_format(date, (options.hour && "hh:mm:ss") || (options.minute && "mm:ss") || "ss")
     return date.toLocaleString(lang, options)
   }
-  return Date.UNITS.reduce((str, [k, v, letter, jsfn, zeros = 2]) => {
+  return UNITS.reduce((str, [k, v, letter, jsfn, zeros = 2]) => {
     return str.replace(RegExp(letter + "+", "g"), (m) => {
-      if (letter === "Z") return Date.getTimezone(date)
-      if (letter === "W") return "W" + Date.getWeek(date)
-      if (letter === "Q") return "Q" + Date.getQuarter(date)
+      if (letter === "Z") return getTimezone(date)
+      if (letter === "W") return "W" + getWeek(date)
+      if (letter === "Q") return "Q" + getQuarter(date)
       let int = date["get" + jsfn]()
       if (letter === "M") int = int + 1
       if (m.length > zeros) return ("0".repeat(zeros) + int).slice(-zeros) + letter
@@ -218,76 +254,81 @@ Date.format = (date, format = "YYYY-MM-DDThh:mm:ssZ", lang = "en") => {
     })
   }, format)
 }
-Date.modify = (date, str, sign) => {
-  const d = new Date(date)
-  const units = Date.UNITS.filter((unit) => !["millisecond", "week", "quarter", "timezone"].includes(unit[0]))
-  const jsfns = units.map((unit) => unit[3])
-  let fn
-  if (sign === "+") fn = (i, n) => d["set" + jsfns[i]](d["get" + jsfns[i]]() + n)
-  if (sign === "-") fn = (i, n) => d["set" + jsfns[i]](d["get" + jsfns[i]]() - n)
-  if (sign === "<") fn = (i) => jsfns.slice(0, i).map((jsfn) => d["set" + jsfn](jsfn === "Date" ? 1 : 0))
-  if (sign === ">") {
-    fn = (i) =>
-      jsfns
-        .slice(0, i)
-        .reverse()
-        .map((jsfn) => d["set" + jsfn]({ Month: 11, Date: Date.getLastDate(d), Hours: 23, Minutes: 59, Seconds: 59 }[jsfn]))
+export function modify(date, options, sign) {
+  if (!options || !sign) return date
+  if (typeof options === "string") {
+    options = { str: options }
+    options.str.replace(/([+-.\d]*)\s*(second|minute|hour|day|month|year)s?/gi, (m, n, u) => (options[u + "s"] = +n || 1 - +(n === "0")))
   }
-  units.map(([unit], i) => str.replace(RegExp(/([+-.\d]*)\s*UNITs?/.source.replace("UNIT", unit), "i"), (m, n) => fn(i, +n || 1 - (n === "0"))))
+  options = Object.fromEntries(
+    Object.entries(options)
+      .filter(([k, v]) => ["seconds", "minutes", "hours", "days", "months", "years"].includes(k))
+      .map(([k, v]) => [k, Math.round(+v)])
+  )
+  const d = new Date(date)
+  const units = UNITS.filter((unit) => ["second", "minute", "hour", "day", "month", "year"].includes(unit[0]))
+  let fn
+  if (sign === "+") fn = (unit, n) => d["set" + unit[3]](d["get" + unit[3]]() + n)
+  if (sign === "-") fn = (unit, n) => d["set" + unit[3]](d["get" + unit[3]]() - n)
+  if (sign === "<")
+    fn = (unit) =>
+      units
+        .slice(
+          0,
+          units.findIndex((u) => u === unit)
+        )
+        .map((unit) => d["set" + unit[3]](unit[3] === "Date" ? 1 : 0))
+  if (sign === ">") {
+    fn = (unit) =>
+      units
+        .slice(
+          0,
+          units.findIndex((u) => u === unit)
+        )
+        .reverse()
+        .map((unit) => d["set" + unit[3]]({ Month: 11, Date: getLastDate(d), Hours: 23, Minutes: 59, Seconds: 59 }[unit[3]]))
+  }
+  units.forEach((unit) => options[unit[0] + "s"] && fn(unit, options[unit[0] + "s"]))
   d.setMilliseconds(0)
-  if (["-", "+"].includes(sign) && date.getDate() !== d.getDate() && /(year|month)/i.test(str) && !/(day|hour|minute|second)/i.test(str)) d.setDate(0)
+  if (["-", "+"].includes(sign) && date.getDate() !== d.getDate() && ["year", "month"].some((k) => options[k + "s"]) && !["day", "hour", "minute", "second"].some((k) => options[k + "s"])) d.setDate(0)
+  if (date.getTimezoneOffset() !== d.getTimezoneOffset()) return new Date(+d + (date.getTimezoneOffset() - d.getTimezoneOffset()) * 60 * 1000)
   return d
 }
-Date.plus = (date, str) => Date.modify(date, str, "+")
-Date.minus = (date, str) => Date.modify(date, str, "-")
-Date.start = (date, str) => Date.modify(date, str, "<")
-Date.end = (date, str) => Date.modify(date, str, ">")
-
-RegExp.escape = (r) => RegExp(r.source.replace(/([\\/'*+?|()[\]{}.^$-])/g, "\\$1"), r.flags)
-RegExp.plus = (r, f) => RegExp(r.source, r.flags.replace(f, "") + f)
-RegExp.minus = (r, f) => RegExp(r.source, r.flags.replace(f, ""))
-
-Promise.map = async (arr, fn) => await arr.reduce(async (acc, v, i) => (await acc).concat(await fn(v, i, acc)), [])
-
-// RAW Core functions
-Object.extend = (primitive, fname) => {
-  if (!primitive) return [Object, Array, Function, String, Number, Date, RegExp].map((primitive) => Object.extend(primitive)).flat()
-  const natives = Object.natives.filter((v) => v.startsWith(primitive.name)).map((v) => v.split(".")[1])
-  if (!fname) {
-    return Array.unique(Object.keys(primitive).concat(natives))
-      .map((fname) => Object.extend(primitive, fname))
-      .filter((x) => x)
-  }
-  if (primitive.prototype[fname] && primitive.prototype[fname].toString().includes("[native code]")) {
-    primitive.prototype["_" + fname] = primitive.prototype[fname]
-    primitive[fname] = (x, ...args) => primitive.prototype["_" + fname].call(x, ...args)
-    if (["sort", "reverse"].includes(fname)) primitive[fname] = (x, ...args) => primitive.prototype["_" + fname].call(x.slice(), ...args)
-  }
-  if (primitive[fname] === Object.extend || !(primitive[fname] instanceof Function)) return
-  const fn = primitive[fname].fn || primitive[fname]
-  const native = natives.includes(fname)
-  const shortcut = Object.keys(Object.shortcuts).includes(fname)
-  primitive[fname] = shortcut ? Function.decorate(fn, Object.shortcuts[fname]) : fn
-  if (Object.prototypes.includes(primitive)) {
-    Object.defineProperty(primitive.prototype, fname, {
-      writable: true,
-      value: function (...args) {
-        return primitive[fname](this, ...args)
-      },
-    })
-  }
-  return primitive.name + "." + fname + (native ? "#native" : "") + (shortcut ? "#shortcut" : "")
+export function date_plus(date, options) {
+  return modify(date, options, "+")
 }
-Object.prototypes = Object.prototypes || [Object, Array, Function, String, Number, Date, RegExp]
-Object.natives = Object.natives || ["Object.keys", "Object.values", "Object.entries", "Object.fromEntries", "Array.map", "Array.reduce", "Array.filter", "Array.find", "Array.findIndex", "Array.sort", "Array.reverse"]
-Object.shortcuts = Object.shortcuts || {
+export function date_minus(date, options) {
+  return modify(date, options, "-")
+}
+export function start(date, options) {
+  return modify(date, options, "<")
+}
+export function end(date, options) {
+  return modify(date, options, ">")
+}
+// RegExp
+export function escape(re) {
+  return RegExp(re.source.replace(/([\\/'*+?|()[\]{}.^$-])/g, "\\$1"), re.flags)
+}
+export function regexp_plus(re, f) {
+  return RegExp(re.source, re.flags.replace(f, "") + f)
+}
+export function regexp_minus(re, f) {
+  return RegExp(re.source, re.flags.replace(f, ""))
+}
+// Promise
+export async function promise_map(arr, fn) {
+  return await arr.reduce(async (acc, v, i) => (await acc).concat(await fn(v, i, acc)), [])
+}
+// Shortuts
+export const shortcuts = {
   map: {
     before: (args) => {
       const f = (fn) => {
         if (fn == null) return (x) => x
         if (fn instanceof Function) return fn
-        if (fn instanceof Array) return (x) => fn.map((b) => Object.access(x, b))
-        return (x) => Object.access(x, fn)
+        if (fn instanceof Array) return (x) => fn.map((b) => access(x, b))
+        return (x) => access(x, fn)
       }
       args[1] = f(args[1])
       return args
@@ -301,7 +342,7 @@ Object.shortcuts = Object.shortcuts || {
         if (fn instanceof RegExp) return (x) => fn.test(x)
         if (fn instanceof Array) return (x) => fn.some((v) => f(v)(x))
         if (fn instanceof Object) return (x) => Object.keys(fn).every((k) => f(fn[k])(x[k]))
-        return (x) => Object.equal(x, fn) || Object.access(x, fn)
+        return (x) => equal(x, fn) || access(x, fn)
       }
       args[1] = f(args[1])
       return args
@@ -316,7 +357,7 @@ Object.shortcuts = Object.shortcuts || {
       }
       function directedSort(p, desc = /^-/.test(p)) {
         p = ("" + p).replace(/^[+-]/, "")
-        return (a, b) => defaultSort(Object.access(a, p), Object.access(b, p)) * (!desc || -1)
+        return (a, b) => defaultSort(access(a, p), access(b, p)) * +(!desc || -1)
       }
       function multiSort(fns) {
         return (a, b) => {
@@ -350,15 +391,88 @@ Object.shortcuts = Object.shortcuts || {
       return v
     },
   },
-  modify: {
-    before: (args) => {
-      if (args[1] instanceof Object)
-        args[1] = Object.entries(args[1])
-          .map(([k, v]) => v + k)
-          .join(" ")
-      return args
-    },
-  },
 }
-Object.shortcuts.find = Object.shortcuts.findIndex = Object.shortcuts.filter
-Object.extend()
+shortcuts.find = shortcuts.findIndex = shortcuts.filter
+// Extend
+export const extend = (constructor, fname, fn) => {
+  if (constructor.prototype[fname]?.toString().includes("[native code]")) {
+    constructor.prototype["_" + fname] = constructor.prototype[fname]
+    fn = (x, ...args) => constructor.prototype["_" + fname].call(x, ...args)
+    if (["sort", "reverse"].includes(fname)) fn = (x, ...args) => constructor.prototype["_" + fname].call(x.slice(), ...args)
+  }
+  // return shortcuts.hasOwnProperty(fname) ? decorate(fn, shortcuts[fname]) : fn
+  constructor[fname] = shortcuts.hasOwnProperty(fname) ? decorate(fn, shortcuts[fname]) : fn
+  constructor.prototype[fname] = function () {
+    return constructor[fname](this, ...arguments)
+  }
+  return constructor[fname]
+}
+export default [
+  [Object, "keys", Object.keys],
+  [Object, "values", Object.values],
+  [Object, "entries", Object.entries],
+  [Object, "fromEntries", Object.fromEntries],
+  [Object, "map", map],
+  [Object, "reduce", reduce],
+  [Object, "filter", filter],
+  [Object, "find", find],
+  [Object, "findIndex", findIndex],
+  [Object, "access", access],
+  [Object, "equal", equal],
+  [Object, "traverse", traverse],
+  [Array, "reduce", null],
+  [Array, "map", null],
+  [Array, "filter", null],
+  [Array, "find", null],
+  [Array, "findIndex", null],
+  [Array, "sort", null],
+  [Array, "reverse", null],
+  [Array, "group", group],
+  [Array, "unique", unique],
+  [Array, "min", min],
+  [Array, "max", max],
+  [Array, "sum", sum],
+  [Array, "mean", mean],
+  [Array, "median", median],
+  [Function, "decorate", decorate],
+  [Function, "promisify", promisify],
+  [Function, "partial", partial],
+  [Function, "memoize", memoize],
+  [Function, "every", every],
+  [Function, "wait", wait],
+  [Function, "debounce", debounce],
+  [Function, "throttle", throttle],
+  [String, "lower", lower],
+  [String, "upper", upper],
+  [String, "capitalize", capitalize],
+  [String, "words", words],
+  [String, "format", string_format],
+  [Number, "duration", duration],
+  [Number, "format", number_format],
+  [Date, "relative", relative],
+  [Date, "getWeek", getWeek],
+  [Date, "getQuarter", getQuarter],
+  [Date, "getLastDate", getLastDate],
+  [Date, "getTimezone", getTimezone],
+  [Date, "format", date_format],
+  [Date, "modify", modify],
+  [Date, "plus", date_plus],
+  [Date, "minus", date_minus],
+  [Date, "start", start],
+  [Date, "end", end],
+  [RegExp, "escape", escape],
+  [RegExp, "plus", regexp_plus],
+  [RegExp, "minus", regexp_minus],
+  [Promise, "map", promise_map],
+]
+  .concat(
+    Object.getOwnPropertyNames(Math)
+      .filter((k) => typeof Math[k] === "function")
+      .map((k) => [Number, k, Math[k]])
+  )
+  .reduce((acc, [constructor, fname, fn]) => {
+    acc[constructor.name] = acc[constructor.name] || {}
+    acc[constructor.name][fname] = extend(constructor, fname, fn)
+    // if (fn && !fn.toString().includes("[native code]")) eval(`${fn.name} = acc[constructor.name][fname]`)
+    return acc
+  }, {})
