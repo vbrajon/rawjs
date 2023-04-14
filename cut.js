@@ -45,9 +45,9 @@ export function findIndex(obj, fn) {
 // Array
 export function group(arr, keys) {
   return arr.reduce((acc, v) => {
-    keys.reduce((acc, k, i, arr) => {
+    keys.reduce((acc, k, i) => {
       const key = access(v, k)
-      const last = i === arr.length - 1
+      const last = i === keys.length - 1
       const hasKey = Object.prototype.hasOwnProperty.call(acc, key)
       if (last) return (acc[key] = hasKey ? acc[key].concat([v]) : [v])
       return (acc[key] = hasKey ? acc[key] : {})
@@ -111,10 +111,12 @@ export function memoize(fn, hash = JSON.stringify) {
 export function every(fn, ms = 0, repeat = Infinity, immediate = true) {
   if (immediate) fn()
   fn.id = setInterval(function loop() {
+    // console.log(Date.now() - fn.start, ms, fn.id)
     if (--repeat > +immediate) return fn()
     fn.resolve(fn())
     fn.stop()
   }, ms)
+  fn.start = Date.now()
   fn.stop = function stop() {
     clearInterval(fn.id)
     delete fn.id
@@ -278,7 +280,7 @@ export function modify(date, options, sign) {
           units.findIndex((u) => u === unit)
         )
         .map((unit) => d["set" + unit[3]](unit[3] === "Date" ? 1 : 0))
-  if (sign === ">") {
+  if (sign === ">")
     fn = (unit) =>
       units
         .slice(
@@ -287,7 +289,6 @@ export function modify(date, options, sign) {
         )
         .reverse()
         .map((unit) => d["set" + unit[3]]({ Month: 11, Date: getLastDate(d), Hours: 23, Minutes: 59, Seconds: 59 }[unit[3]]))
-  }
   units.forEach((unit) => options[unit[0] + "s"] && fn(unit, options[unit[0] + "s"]))
   d.setMilliseconds(0)
   if (["-", "+"].includes(sign) && date.getDate() !== d.getDate() && ["year", "month"].some((k) => options[k + "s"]) && !["day", "hour", "minute", "second"].some((k) => options[k + "s"])) d.setDate(0)
@@ -320,10 +321,10 @@ export function regexp_minus(re, f) {
 export async function promise_map(arr, fn) {
   return await arr.reduce(async (acc, v, i) => (await acc).concat(await fn(v, i, acc)), [])
 }
-// Shortuts
-export const shortcuts = {
+// Core
+const shortcuts = {
   map: {
-    before: (args) => {
+    before(args) {
       const f = (fn) => {
         if (fn == null) return (x) => x
         if (fn instanceof Function) return fn
@@ -335,7 +336,7 @@ export const shortcuts = {
     },
   },
   filter: {
-    before: (args) => {
+    before(args) {
       const f = (fn) => {
         if (fn == null) return (x) => x
         if (fn instanceof Function) return fn
@@ -349,7 +350,7 @@ export const shortcuts = {
     },
   },
   sort: {
-    before: (args) => {
+    before(args) {
       function defaultSort(a, b) {
         if (typeof a !== typeof b) return typeof a > typeof b ? 1 : -1
         if (a == null || a instanceof Object) return 0
@@ -380,34 +381,20 @@ export const shortcuts = {
     },
   },
   group: {
-    before: (args) => {
+    before(args) {
       args[1] = [].concat(args[1])
       return args
     },
   },
   format: {
-    after: (v) => {
-      if (["Invalid Date", "NaN", "null", "undefined"].includes(v)) return "-"
+    after(v) {
+      if (/(Invalid Date|NaN|null|undefined)/.test(v)) return "-"
       return v
     },
   },
 }
 shortcuts.find = shortcuts.findIndex = shortcuts.filter
-// Extend
-export const extend = (constructor, fname, fn) => {
-  if (constructor.prototype[fname]?.toString().includes("[native code]")) {
-    constructor.prototype["_" + fname] = constructor.prototype[fname]
-    fn = (x, ...args) => constructor.prototype["_" + fname].call(x, ...args)
-    if (["sort", "reverse"].includes(fname)) fn = (x, ...args) => constructor.prototype["_" + fname].call(x.slice(), ...args)
-  }
-  // return shortcuts.hasOwnProperty(fname) ? decorate(fn, shortcuts[fname]) : fn
-  constructor[fname] = shortcuts.hasOwnProperty(fname) ? decorate(fn, shortcuts[fname]) : fn
-  constructor.prototype[fname] = function () {
-    return constructor[fname](this, ...arguments)
-  }
-  return constructor[fname]
-}
-export default [
+const list = [
   [Object, "keys", Object.keys],
   [Object, "values", Object.values],
   [Object, "entries", Object.entries],
@@ -464,15 +451,40 @@ export default [
   [RegExp, "plus", regexp_plus],
   [RegExp, "minus", regexp_minus],
   [Promise, "map", promise_map],
+  ...Object.getOwnPropertyNames(Math)
+    .filter((k) => typeof Math[k] === "function")
+    .map((k) => [Number, k, Math[k]]),
 ]
-  .concat(
-    Object.getOwnPropertyNames(Math)
-      .filter((k) => typeof Math[k] === "function")
-      .map((k) => [Number, k, Math[k]])
-  )
-  .reduce((acc, [constructor, fname, fn]) => {
-    acc[constructor.name] = acc[constructor.name] || {}
-    acc[constructor.name][fname] = extend(constructor, fname, fn)
-    // if (fn && !fn.toString().includes("[native code]")) eval(`${fn.name} = acc[constructor.name][fname]`)
-    return acc
-  }, {})
+function refresh(global = false) {
+  function cut(constructor, fname, fn) {
+    if (constructor.prototype[fname]?.toString().includes("[native code]")) {
+      fn = (x, ...args) => constructor.prototype[fname].call(x, ...args)
+      if (["sort", "reverse"].includes(fname)) fn = (x, ...args) => constructor.prototype[fname].call(x.slice(), ...args)
+    }
+    return shortcuts.hasOwnProperty(fname) ? decorate(fn, shortcuts[fname]) : fn
+  }
+  function proto(constructor, fname, fn) {
+    if (constructor.prototype[fname]?.toString().includes("[native code]")) {
+      constructor.prototype["_" + fname] = constructor.prototype[fname]
+      fn = (x, ...args) => constructor.prototype["_" + fname].call(x, ...args)
+      if (["sort", "reverse"].includes(fname)) fn = (x, ...args) => constructor.prototype["_" + fname].call(x.slice(), ...args)
+    }
+    constructor[fname] = shortcuts.hasOwnProperty(fname) ? decorate(fn, shortcuts[fname]) : fn
+    constructor.prototype[fname] = function () {
+      return constructor[fname](this, ...arguments)
+    }
+    return constructor[fname]
+  }
+  this.list.forEach(([constructor, fname, fn]) => {
+    this[constructor.name] = this[constructor.name] || {}
+    this[constructor.name][fname] = (global ? proto : cut)(constructor, fname, fn)
+  })
+  return this
+}
+const cut = {
+  shortcuts,
+  list,
+  refresh,
+}
+cut.refresh()
+export default cut

@@ -23,7 +23,7 @@ const mixedClone = [[], -1, /a/gi, 0, Infinity, NaN, new Date("2020"), { a: [{ b
 // const mixedNative = [[], -1, /a/gi, 0, Infinity, NaN, new Date('2020'), { a: [{ b: 1 }] }, 'a', false, null, true, x => x, undefined]
 // const mixedShuffled = shuffle([[], -1, /a/gi, 0, Infinity, NaN, new Date('2020'), { a: [{ b: 1 }] }, 'a', false, null, true, x => x, undefined])
 
-const scenarios = [
+export default [
   // Object
   {
     name: "Object.map",
@@ -292,14 +292,8 @@ const scenarios = [
   },
   {
     name: "Function.promisify",
-    // cut: cut.Function.promisify,
-    // test: async (fn) => {
-    //   const expect1callback = (v, cb) => v === 1 ? cb(null, 'OK') : cb('KO', null)
-    //   const promisified = fn(expect1callback)
-    //   if (await promisified(1) !== 'OK') throw new Error('Function.promisify should resolve the callback with the first argument')
-    //   if (await promisified(2).catch(e => e) !== 'KO') throw new Error('Function.promisify should reject the callback with the second argument')
-    // },
-    fn: async (fn = cut.Function.promisify) => {
+    cut: cut.Function.promisify,
+    tests: async (fn) => {
       const expect1callback = (v, cb) => (v === 1 ? cb(null, "OK") : cb("KO", null))
       const promisified = fn(expect1callback)
       if ((await promisified(1)) !== "OK") throw new Error("Function.promisify should resolve the callback with the first argument")
@@ -404,7 +398,7 @@ const scenarios = [
       { input: [date, "DD/MM/YYYY hhhmmmsssSSSZ"], output: "20/01/2019 10h09m08s000+01:00" },
       { input: [date, "QQ WW"], output: "Q1 W3" },
       { input: [date, "day, month, year", "fr"], output: "20 janvier 2019" },
-      { input: [date, "month, day, weekday, hour, minute, second"], output: "Sunday, January 20, 10:09:08 AM" },
+      { input: [date, "month, day, weekday, hour, minute, second"], output: "Sunday, January 20 at 10:09:08 AM" },
       { input: [date, "mon, wday, hour"], output: "Jan Sun, 10 AM" },
       { input: [date, "hour, minute, second"], output: "10:09:08" },
       { input: [date, "hour"], output: "10:09:08" },
@@ -412,6 +406,7 @@ const scenarios = [
       { input: [date, "second"], output: "08" },
       { input: [new Date("2019-01-01 00:00"), "YYYY-MM-DD hh:mm:ss Z"], output: "2019-01-01 00:00:00 +01:00" },
       { input: [new Date("Invalid"), "mon, wday, hour, minute"], output: "-" },
+      { input: [new Date("Invalid"), "YYYY/MM/DD"], output: "-" },
     ],
   },
   {
@@ -528,7 +523,3 @@ const scenarios = [
     tests: [{ input: (fn) => fn(/QwErTy/, "i").flags, output: "" }],
   },
 ]
-
-export default scenarios
-
-if (import.meta.main !== undefined) (await import("cutest")).default(scenarios)
