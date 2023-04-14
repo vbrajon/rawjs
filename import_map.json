@@ -1,0 +1,16 @@
+{
+  "imports": {
+    "cut": "./cut.js",
+    "cutest": "./cutest.bundle.js",
+    "asserts": "https://deno.land/std@0.127.0/testing/asserts.ts",
+    "@js-temporal/polyfill": "https://esm.sh/v115/*@js-temporal/polyfill@0.4.3",
+    "date-fns": "https://esm.sh/v115/date-fns@2.29.3",
+    "lodash-es": "https://esm.sh/v115/lodash-es@4.17.21"
+  },
+  "scopes": {
+    "https://esm.sh/v115/": {
+      "jsbi": "https://esm.sh/v115/jsbi@4.3.0",
+      "tslib": "https://esm.sh/v115/tslib@2.5.0"
+    }
+  }
+}

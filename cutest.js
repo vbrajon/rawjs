@@ -1,60 +1,65 @@
-#!/usr/bin/env node --inspect
-
-import fs from "fs"
-import { deepStrictEqual } from "assert"
-import { performance } from "perf_hooks"
-import { spawn } from "child_process"
-const sound = (k) => spawn("afplay", [`/System/Library/Sounds/${k}.aiff`], { detached: true, stdio: "ignore" }).unref()
-const [ok, ko, crash] = ["Tink", "Ping", "Sosumi"].map((k) => () => sound(k))
-const [clear, red, green, yellow, blue] = [0, 31, 32, 33, 34].map((n) => `\x1b[${n}m`)
-
-let cache = 0
-const run = async (file) => {
-  try {
-    const module = await import(file + "?cache=" + cache++)
-    const start = performance.now()
-    const results = await Promise.all(
-      module.default.flatMap((scenario, index) =>
-        Object.entries(scenario)
-          .filter(([fname, fn]) => !["name", "tests"].includes(fname))
-          .flatMap(([fname, fn]) =>
-            scenario.tests.map(async ({ input, output }) => {
-              try {
-                if (input instanceof Function) return deepStrictEqual(await input(fn), output)
-                return deepStrictEqual(await fn(...input), output)
-              } catch (error) {
-                debugger
-                return { index, fname, error }
-              }
-            })
-          )
-      )
-    )
-    const time = performance.now() - start
-    const passed = results.filter((v) => !v)
-    const errored = results.filter((v) => v)
-    if (errored.length) console.dir(errored)
-    errored.length ? ko() : ok()
-    // prettier-ignore
-    console.log(`${blue}${file}${clear} | ${yellow}${time > 1000 ? +(time / 1000).toPrecision(2) + 's' : +time.toFixed(0) + 'ms'}${clear}: ${green}${passed.length} passed${clear}, ${red}${errored.length} errored${clear}`)
-  } catch (error) {
-    console.log(`${blue}${file}${clear} | ${red}${error.name}:${clear} ${error.message}`) // prettier-ignore
-    crash()
+import { assertEquals, assertRejects } from "asserts"
+export function cutest(scenarios, options) {
+  const functions = []
+  for (const { name: scenario_name, tests, ...rest } of scenarios) {
+    if (tests instanceof Function) {
+      for (const [fn_name, f] of Object.entries(rest).length ? Object.entries(rest) : Object.entries({ default: null }) ) {
+        const name = `${scenario_name} #fn #${fn_name}`
+        const fn_test = async () => await tests(f)
+        const fn_bench = async () => await tests(f)
+        const fn_run = async (times = 1) => {
+          try {
+            await fn_test()
+            const start = performance.now()
+            for (let i = 0; i < times; i++) {
+              await fn_bench()
+            }
+            const duration = performance.now() - start
+            return ["ok", name, duration / times]
+          } catch (e) {
+            return ["ko", name, e]
+          }
+        }
+        functions.push({ name, fn_run })
+      }
+      continue
+    }
+    for (const [test_num, { input, output, error }] of Object.entries(tests)) {
+      for (const [fn_name, f] of Object.entries(rest)) {
+        const name = `${scenario_name} #${test_num} #${fn_name}`
+        const fn = input instanceof Function ? async () => await input(f) : async () => await f(...input)
+        const fn_test = error ? async () => assertRejects(await fn(), Error, error) : async () => assertEquals(await fn(), output)
+        const fn_bench = error ? fn : async () => { try { await fn() } catch (e) {} } // prettier-ignore
+        const fn_run = async (times = 1) => {
+          try {
+            await fn_test()
+            const start = performance.now()
+            for (let i = 0; i < times; i++) {
+              await fn_bench()
+            }
+            const duration = performance.now() - start
+            return ["ok", name, duration / times]
+          } catch (e) {
+            return ["ko", name, e]
+          }
+        }
+        functions.push({ name, fn_run })
+      }
+    }
   }
+  return functions
 }
-
-const cli = async () => {
-  console.clear()
-  const files = await fs.promises.readdir(".")
-  files
-    .filter((file) => file.endsWith(".test.js"))
-    .map(async (file) => {
-      await run(`file://${process.cwd()}/${file}`)
-      fs.watchFile(file, { interval: 100 }, async () => {
-        console.clear()
-        await run(`file://${process.cwd()}/${file}`)
-      })
-    })
+export async function run(file, options) {
+  const { times = 1, parallel = false } = options || {}
+  const scenarios = (await import('./' + file)).default
+  const functions = cutest(scenarios)
+  const start = performance.now()
+  const results = parallel ? await Promise.all(functions.map(({ fn_run }) => fn_run(times))) : await functions.reduce(async (acc, { fn_run }) => [...(await acc), await fn_run(times)], [])
+  const duration = performance.now() - start
+  const passed = results.filter(([status]) => status === "ok")
+  const errored = results.filter(([status]) => status === "ko")
+  const [clear, red, green, yellow, blue] = [0, 31, 32, 33, 34].map((n) => `\x1b[${n}m`)
+  if (errored.length) console.table(errored)
+  console[errored.length ? 'error' : 'log'](`${blue}${file}${clear} | ${yellow}${duration > 1000 ? +(duration / 1000).toPrecision(2) + "s" : +duration.toFixed(0) + "ms"}${times > 1 ? ` x${times}` : ''}${parallel ? ` parallel` : ''}${clear}: ${green}${passed.length} passed${clear}, ${red}${errored.length} errored${clear}`)
+  return results
 }
-
-cli()

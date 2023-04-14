@@ -1,0 +1,13 @@
+<meta charset="utf-8" />
+<link rel="icon" href="data:," />
+<script>
+  fetch("/import_map.json")
+    .then((r) => r.json())
+    .then((m) => {
+      const im = document.createElement("script")
+      im.type = "importmap"
+      im.textContent = JSON.stringify(m)
+      document.body.after(im)
+    })
+    .then(() => import("/cutest.test.js"))
+</script>
