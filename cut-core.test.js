@@ -1,6 +1,6 @@
 import cut from "cut"
 import scenarios from "./cut-sync.test.js"
-cut.list.push([Object, "fake", () => 1 / 3])
+cut.Object.fake = () => 1 / 3
 cut.shortcuts.fake = { after: (v) => Math.round(v * 100) }
 cut.refresh("global")
 export default scenarios

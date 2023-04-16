@@ -322,169 +322,194 @@ export async function promise_map(arr, fn) {
   return await arr.reduce(async (acc, v, i) => (await acc).concat(await fn(v, i, acc)), [])
 }
 // Core
-const shortcuts = {
-  map: {
-    before(args) {
-      const f = (fn) => {
-        if (fn == null) return (x) => x
-        if (fn instanceof Function) return fn
-        if (fn instanceof Array) return (x) => fn.map((b) => access(x, b))
-        return (x) => access(x, fn)
-      }
-      args[1] = f(args[1])
-      return args
-    },
+const cut = {
+  constructors: {
+    Object,
+    Array,
+    Function,
+    String,
+    Number,
+    Date,
+    RegExp,
+    Promise,
   },
-  filter: {
-    before(args) {
-      const f = (fn) => {
-        if (fn == null) return (x) => x
-        if (fn instanceof Function) return fn
-        if (fn instanceof RegExp) return (x) => fn.test(x)
-        if (fn instanceof Array) return (x) => fn.some((v) => f(v)(x))
-        if (fn instanceof Object) return (x) => Object.keys(fn).every((k) => f(fn[k])(x[k]))
-        return (x) => equal(x, fn) || access(x, fn)
-      }
-      args[1] = f(args[1])
-      return args
+  shortcuts: {
+    map: {
+      before(args) {
+        const f = (fn) => {
+          if (fn == null) return (x) => x
+          if (fn instanceof Function) return fn
+          if (fn instanceof Array) return (x) => fn.map((b) => access(x, b))
+          return (x) => access(x, fn)
+        }
+        args[1] = f(args[1])
+        return args
+      },
     },
-  },
-  sort: {
-    before(args) {
-      function defaultSort(a, b) {
-        if (typeof a !== typeof b) return typeof a > typeof b ? 1 : -1
-        if (a == null || a instanceof Object) return 0
-        return a === b ? 0 : a > b ? 1 : -1
-      }
-      function directedSort(p, desc = /^-/.test(p)) {
-        p = ("" + p).replace(/^[+-]/, "")
-        return (a, b) => defaultSort(access(a, p), access(b, p)) * +(!desc || -1)
-      }
-      function multiSort(fns) {
-        return (a, b) => {
-          for (const fn of fns) {
-            const z = fn(a, b)
-            if (z) return z
+    filter: {
+      before(args) {
+        const f = (fn) => {
+          if (fn == null) return (x) => x
+          if (fn instanceof Function) return fn
+          if (fn instanceof RegExp) return (x) => fn.test(x)
+          if (fn instanceof Array) return (x) => fn.some((v) => f(v)(x))
+          if (fn instanceof Object) return (x) => Object.keys(fn).every((k) => f(fn[k])(x[k]))
+          return (x) => equal(x, fn) || access(x, fn)
+        }
+        args[1] = f(args[1])
+        return args
+      },
+    },
+    sort: {
+      before(args) {
+        function defaultSort(a, b) {
+          if (typeof a !== typeof b) return typeof a > typeof b ? 1 : -1
+          if (a == null || a instanceof Object) return 0
+          return a === b ? 0 : a > b ? 1 : -1
+        }
+        function directedSort(p, desc = /^-/.test(p)) {
+          p = ("" + p).replace(/^[+-]/, "")
+          return (a, b) => defaultSort(access(a, p), access(b, p)) * +(!desc || -1)
+        }
+        function multiSort(fns) {
+          return (a, b) => {
+            for (const fn of fns) {
+              const z = fn(a, b)
+              if (z) return z
+            }
           }
         }
+        const f = (fn) => {
+          if (fn == null) return defaultSort
+          if (fn instanceof Array) return multiSort(fn.map(f))
+          if (fn instanceof Function && fn.length === 1) return (x, y) => defaultSort(fn(x), fn(y))
+          if (fn instanceof Function) return fn
+          if (typeof fn === "string" && typeof args[0][0] === "string") return Intl.Collator(fn, { numeric: true, ...args[2] }).compare
+          return directedSort(fn)
+        }
+        args[1] = f(args[1])
+        return args
+      },
+    },
+    group: {
+      before(args) {
+        args[1] = [].concat(args[1])
+        return args
+      },
+    },
+    format: {
+      after(v) {
+        if (/(Invalid Date|NaN|null|undefined)/.test(v)) return "-"
+        return v
+      },
+    },
+  },
+  refresh(global) {
+    const { constructors, shortcuts } = cut
+    function shorcut(constructor, fname, fn) {
+      if (constructor.prototype[fname]?.toString().includes("[native code]")) {
+        fn = (x, ...args) => constructor.prototype[fname].call(x, ...args)
+        if (["sort", "reverse"].includes(fname)) fn = (x, ...args) => constructor.prototype[fname].call(x.slice(), ...args)
       }
-      const f = (fn) => {
-        if (fn == null) return defaultSort
-        if (fn instanceof Array) return multiSort(fn.map(f))
-        if (fn instanceof Function && fn.length === 1) return (x, y) => defaultSort(fn(x), fn(y))
-        if (fn instanceof Function) return fn
-        if (typeof fn === "string" && typeof args[0][0] === "string") return Intl.Collator(fn, { numeric: true, ...args[2] }).compare
-        return directedSort(fn)
+      return shortcuts.hasOwnProperty(fname) ? decorate(fn, shortcuts[fname]) : fn
+    }
+    function proto(constructor, fname, fn) {
+      if (constructor.prototype[fname]?.toString().includes("[native code]")) {
+        constructor.prototype["_" + fname] = constructor.prototype[fname]
+        fn = (x, ...args) => constructor.prototype["_" + fname].call(x, ...args)
+        if (["sort", "reverse"].includes(fname)) fn = (x, ...args) => constructor.prototype["_" + fname].call(x.slice(), ...args)
       }
-      args[1] = f(args[1])
-      return args
-    },
+      constructor[fname] = shortcuts.hasOwnProperty(fname) ? decorate(fn, shortcuts[fname]) : fn
+      constructor.prototype[fname] = function () {
+        return constructor[fname](this, ...arguments)
+      }
+      return constructor[fname]
+    }
+    Object.entries(constructors).forEach(([name, constructor]) => {
+      Object.entries(this[name]).forEach(([fname, fn]) => {
+        this[name][fname] = (global ? proto : shorcut)(constructor, fname, fn)
+      })
+    })
+    return this
   },
-  group: {
-    before(args) {
-      args[1] = [].concat(args[1])
-      return args
-    },
+  Object: {
+    keys: Object.keys,
+    values: Object.values,
+    entries: Object.entries,
+    fromEntries: Object.fromEntries,
+    map,
+    reduce,
+    filter,
+    find,
+    findIndex,
+    access,
+    equal,
+    traverse,
   },
-  format: {
-    after(v) {
-      if (/(Invalid Date|NaN|null|undefined)/.test(v)) return "-"
-      return v
-    },
+  Array: {
+    reduce: null,
+    map: null,
+    filter: null,
+    find: null,
+    findIndex: null,
+    sort: null,
+    reverse: null,
+    group,
+    unique,
+    min,
+    max,
+    sum,
+    mean,
+    median,
+  },
+  Function: {
+    decorate,
+    promisify,
+    partial,
+    memoize,
+    every,
+    wait,
+    debounce,
+    throttle,
+  },
+  String: {
+    lower,
+    upper,
+    capitalize,
+    words,
+    format: string_format,
+  },
+  Number: {
+    duration,
+    format: number_format,
+    ...Object.fromEntries(
+      Object.getOwnPropertyNames(Math)
+        .filter((k) => typeof Math[k] === "function")
+        .map((k) => [k, Math[k]])
+    ),
+  },
+  Date: {
+    relative,
+    getWeek,
+    getQuarter,
+    getLastDate,
+    getTimezone,
+    format: date_format,
+    modify,
+    plus: date_plus,
+    minus: date_minus,
+    start,
+    end,
+  },
+  RegExp: {
+    escape,
+    plus: regexp_plus,
+    minus: regexp_minus,
+  },
+  Promise: {
+    map: promise_map,
   },
 }
-shortcuts.find = shortcuts.findIndex = shortcuts.filter
-const list = [
-  [Object, "keys", Object.keys],
-  [Object, "values", Object.values],
-  [Object, "entries", Object.entries],
-  [Object, "fromEntries", Object.fromEntries],
-  [Object, "map", map],
-  [Object, "reduce", reduce],
-  [Object, "filter", filter],
-  [Object, "find", find],
-  [Object, "findIndex", findIndex],
-  [Object, "access", access],
-  [Object, "equal", equal],
-  [Object, "traverse", traverse],
-  [Array, "reduce", null],
-  [Array, "map", null],
-  [Array, "filter", null],
-  [Array, "find", null],
-  [Array, "findIndex", null],
-  [Array, "sort", null],
-  [Array, "reverse", null],
-  [Array, "group", group],
-  [Array, "unique", unique],
-  [Array, "min", min],
-  [Array, "max", max],
-  [Array, "sum", sum],
-  [Array, "mean", mean],
-  [Array, "median", median],
-  [Function, "decorate", decorate],
-  [Function, "promisify", promisify],
-  [Function, "partial", partial],
-  [Function, "memoize", memoize],
-  [Function, "every", every],
-  [Function, "wait", wait],
-  [Function, "debounce", debounce],
-  [Function, "throttle", throttle],
-  [String, "lower", lower],
-  [String, "upper", upper],
-  [String, "capitalize", capitalize],
-  [String, "words", words],
-  [String, "format", string_format],
-  [Number, "duration", duration],
-  [Number, "format", number_format],
-  [Date, "relative", relative],
-  [Date, "getWeek", getWeek],
-  [Date, "getQuarter", getQuarter],
-  [Date, "getLastDate", getLastDate],
-  [Date, "getTimezone", getTimezone],
-  [Date, "format", date_format],
-  [Date, "modify", modify],
-  [Date, "plus", date_plus],
-  [Date, "minus", date_minus],
-  [Date, "start", start],
-  [Date, "end", end],
-  [RegExp, "escape", escape],
-  [RegExp, "plus", regexp_plus],
-  [RegExp, "minus", regexp_minus],
-  [Promise, "map", promise_map],
-  ...Object.getOwnPropertyNames(Math)
-    .filter((k) => typeof Math[k] === "function")
-    .map((k) => [Number, k, Math[k]]),
-]
-function refresh(global = false) {
-  function cut(constructor, fname, fn) {
-    if (constructor.prototype[fname]?.toString().includes("[native code]")) {
-      fn = (x, ...args) => constructor.prototype[fname].call(x, ...args)
-      if (["sort", "reverse"].includes(fname)) fn = (x, ...args) => constructor.prototype[fname].call(x.slice(), ...args)
-    }
-    return shortcuts.hasOwnProperty(fname) ? decorate(fn, shortcuts[fname]) : fn
-  }
-  function proto(constructor, fname, fn) {
-    if (constructor.prototype[fname]?.toString().includes("[native code]")) {
-      constructor.prototype["_" + fname] = constructor.prototype[fname]
-      fn = (x, ...args) => constructor.prototype["_" + fname].call(x, ...args)
-      if (["sort", "reverse"].includes(fname)) fn = (x, ...args) => constructor.prototype["_" + fname].call(x.slice(), ...args)
-    }
-    constructor[fname] = shortcuts.hasOwnProperty(fname) ? decorate(fn, shortcuts[fname]) : fn
-    constructor.prototype[fname] = function () {
-      return constructor[fname](this, ...arguments)
-    }
-    return constructor[fname]
-  }
-  this.list.forEach(([constructor, fname, fn]) => {
-    this[constructor.name] = this[constructor.name] || {}
-    this[constructor.name][fname] = (global ? proto : cut)(constructor, fname, fn)
-  })
-  return this
-}
-const cut = {
-  shortcuts,
-  list,
-  refresh,
-}
+cut.shortcuts.find = cut.shortcuts.findIndex = cut.shortcuts.filter
 cut.refresh()
 export default cut
