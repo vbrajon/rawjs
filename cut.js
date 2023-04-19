@@ -76,7 +76,8 @@ export function median(arr) {
   return arr.length % 2 ? nums[mid] : (nums[mid - 1] + nums[mid]) / 2
 }
 // Function
-export function decorate(fn, options = {}) {
+export function decorate(fn, options) {
+  if (!options || fn.name === "decorated") return fn
   if (options instanceof Function) options = { around: options }
   function decorated(...args) {
     args = decorated.before ? decorated.before(args) : args
@@ -111,7 +112,6 @@ export function memoize(fn, hash = JSON.stringify) {
 export function every(fn, ms = 0, repeat = Infinity, immediate = true) {
   if (immediate) fn()
   fn.id = setInterval(function loop() {
-    // console.log(Date.now() - fn.start, ms, fn.id)
     if (--repeat > +immediate) return fn()
     fn.resolve(fn())
     fn.stop()
@@ -407,11 +407,17 @@ const cut = {
   refresh(global) {
     const { constructors, shortcuts } = cut
     function shorcut(constructor, fname, fn) {
+      if (constructor.prototype["_" + fname]) {
+        constructor.prototype[fname] = constructor.prototype["_" + fname]
+        delete constructor.prototype["_" + fname]
+      }
+      if (constructor[fname] && !constructor[fname].toString().includes("[native code]")) delete constructor[fname]
+      if (constructor.prototype[fname] && !constructor.prototype[fname].toString().includes("[native code]")) delete constructor.prototype[fname]
       if (constructor.prototype[fname]?.toString().includes("[native code]")) {
         fn = (x, ...args) => constructor.prototype[fname].call(x, ...args)
         if (["sort", "reverse"].includes(fname)) fn = (x, ...args) => constructor.prototype[fname].call(x.slice(), ...args)
       }
-      return shortcuts.hasOwnProperty(fname) ? decorate(fn, shortcuts[fname]) : fn
+      return decorate(fn, shortcuts[fname])
     }
     function proto(constructor, fname, fn) {
       if (constructor.prototype[fname]?.toString().includes("[native code]")) {

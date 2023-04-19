@@ -53,13 +53,10 @@ function bgGreen(str) {
         42
     ], 49));
 }
-const ANSI_PATTERN = new RegExp([
+new RegExp([
     "[\\u001B\\u009B][[\\]()#;?]*(?:(?:(?:[a-zA-Z\\d]*(?:;[-a-zA-Z\\d\\/#&.:=?%@~_]*)*)?\\u0007)",
     "(?:(?:\\d{1,4}(?:;\\d{0,4})*)?[\\dA-PR-TZcf-ntqry=><~]))"
 ].join("|"), "g");
-function stripColor(string) {
-    return string.replace(ANSI_PATTERN, "");
-}
 var DiffType;
 (function(DiffType) {
     DiffType["removed"] = "removed";
@@ -465,148 +462,83 @@ function assertEquals(actual, expected, msg) {
     }
     throw new AssertionError(message);
 }
-function assertIsError(error, ErrorClass, msgIncludes, msg) {
-    if (error instanceof Error === false) {
-        throw new AssertionError(`Expected "error" to be an Error object.`);
-    }
-    if (ErrorClass && !(error instanceof ErrorClass)) {
-        msg = `Expected error to be instance of "${ErrorClass.name}", but was "${typeof error === "object" ? error?.constructor?.name : "[not an object]"}"${msg ? `: ${msg}` : "."}`;
-        throw new AssertionError(msg);
-    }
-    if (msgIncludes && (!(error instanceof Error) || !stripColor(error.message).includes(stripColor(msgIncludes)))) {
-        msg = `Expected error message to include "${msgIncludes}", but got "${error instanceof Error ? error.message : "[not an Error]"}"${msg ? `: ${msg}` : "."}`;
-        throw new AssertionError(msg);
-    }
-}
-async function assertRejects(fn, errorClassOrCallback, msgIncludesOrMsg, msg) {
-    let ErrorClass = undefined;
-    let msgIncludes = undefined;
-    let errorCallback;
-    if (errorClassOrCallback == null || errorClassOrCallback.prototype instanceof Error || errorClassOrCallback.prototype === Error.prototype) {
-        ErrorClass = errorClassOrCallback;
-        msgIncludes = msgIncludesOrMsg;
-        errorCallback = null;
-    } else {
-        errorCallback = errorClassOrCallback;
-        msg = msgIncludesOrMsg;
-    }
-    let doesThrow = false;
-    try {
-        await fn();
-    } catch (error) {
-        if (error instanceof Error === false) {
-            throw new AssertionError("A non-Error object was thrown or rejected.");
-        }
-        assertIsError(error, ErrorClass, msgIncludes, msg);
-        if (typeof errorCallback == "function") {
-            errorCallback(error);
-        }
-        doesThrow = true;
-    }
-    if (!doesThrow) {
-        msg = `Expected function to throw${msg ? `: ${msg}` : "."}`;
-        throw new AssertionError(msg);
-    }
-}
-function cutest(scenarios, options) {
+function cutest(tests, pkg) {
+    const c = {};
     const functions = [];
-    for (const { name: scenario_name , tests , ...rest } of scenarios){
-        if (tests instanceof Function) {
-            for (const [fn_name, f] of Object.entries(rest).length ? Object.entries(rest) : Object.entries({
-                default: null
-            })){
-                const name = `${scenario_name} #fn #${fn_name}`;
-                const fn_test = async ()=>await tests(f);
-                const fn_bench = async ()=>await tests(f);
-                const fn_run = async (times = 1)=>{
-                    try {
-                        await fn_test();
-                        const start = performance.now();
-                        for(let i = 0; i < times; i++){
-                            await fn_bench();
-                        }
-                        const duration = performance.now() - start;
-                        return [
-                            "ok",
-                            name,
-                            duration / times
-                        ];
-                    } catch (e) {
-                        return [
-                            "ko",
-                            name,
-                            e
-                        ];
-                    }
-                };
-                functions.push({
-                    name,
-                    fn_run
-                });
+    for (let test of tests){
+        if (test instanceof Array) test = {
+            name: test[0],
+            input: test.slice(1, -1),
+            output: test.at(-1)
+        };
+        const { name , input , output  } = test;
+        c[name] = (c[name] || 0) + 1;
+        const f = pkg.fn(pkg.module, name);
+        if (!f) continue;
+        const run = `${name} #${c[name]} #${pkg.name}.${f.name}`;
+        const fn = test.fn ? ()=>test.fn(f) : ()=>f(...input);
+        const fn_test = async ()=>assertEquals(await fn(), output);
+        const fn_bench = async ()=>{
+            try {
+                await fn();
+            } catch (e) {}
+        };
+        const fn_run = async (times = 1)=>{
+            try {
+                await fn_test();
+                const start = performance.now();
+                for(let i = 0; i < times; i++){
+                    await fn_bench();
+                }
+                const duration = performance.now() - start;
+                return [
+                    "ok",
+                    run,
+                    duration / times
+                ];
+            } catch (e) {
+                return [
+                    "ko",
+                    run,
+                    e
+                ];
             }
-            continue;
-        }
-        for (const [test_num, { input , output , error  }] of Object.entries(tests)){
-            for (const [fn_name, f] of Object.entries(rest)){
-                const name = `${scenario_name} #${test_num} #${fn_name}`;
-                const fn = input instanceof Function ? async ()=>await input(f) : async ()=>await f(...input);
-                const fn_test = error ? async ()=>assertRejects(await fn(), Error, error) : async ()=>assertEquals(await fn(), output);
-                const fn_bench = error ? fn : async ()=>{
-                    try {
-                        await fn();
-                    } catch (e) {}
-                };
-                const fn_run = async (times = 1)=>{
-                    try {
-                        await fn_test();
-                        const start = performance.now();
-                        for(let i = 0; i < times; i++){
-                            await fn_bench();
-                        }
-                        const duration = performance.now() - start;
-                        return [
-                            "ok",
-                            name,
-                            duration / times
-                        ];
-                    } catch (e) {
-                        return [
-                            "ko",
-                            name,
-                            e
-                        ];
-                    }
-                };
-                functions.push({
-                    name,
-                    fn_run
-                });
-            }
-        }
+        };
+        functions.push({
+            run,
+            fn_run
+        });
     }
     return functions;
 }
 async function run1(file, options) {
     const { times =1 , parallel =false  } = options || {};
-    const scenarios = (await import('./' + file)).default;
-    const functions = cutest(scenarios);
-    const start = performance.now();
-    const results = parallel ? await Promise.all(functions.map(({ fn_run  })=>fn_run(times))) : await functions.reduce(async (acc, { fn_run  })=>[
-            ...await acc,
-            await fn_run(times)
-        ], []);
-    const duration = performance.now() - start;
-    const passed = results.filter(([status])=>status === "ok");
-    const errored = results.filter(([status])=>status === "ko");
-    const [clear, red, green, yellow, blue] = [
-        0,
-        31,
-        32,
-        33,
-        34
-    ].map((n)=>`\x1b[${n}m`);
-    if (errored.length) console.table(errored);
-    console[errored.length ? 'error' : 'log'](`${blue}${file}${clear} | ${yellow}${duration > 1000 ? +(duration / 1000).toPrecision(2) + "s" : +duration.toFixed(0) + "ms"}${times > 1 ? ` x${times}` : ''}${parallel ? ` parallel` : ''}${clear}: ${green}${passed.length} passed${clear}, ${red}${errored.length} errored${clear}`);
+    const { packages , default: tests  } = await import('./' + file);
+    const results = {};
+    for (const pkg of packages || options.packages){
+        for (const version of pkg.versions){
+            const name = `${pkg.name}@${version}`;
+            pkg.module = await pkg.import(version);
+            const functions = cutest(tests, pkg);
+            const start = performance.now();
+            results[name] = parallel ? await Promise.all(functions.map(({ fn_run  })=>fn_run(times))) : await functions.reduce(async (acc, { fn_run  })=>[
+                    ...await acc,
+                    await fn_run(times)
+                ], []);
+            const duration = performance.now() - start;
+            const passed = results[name].filter(([status])=>status === "ok");
+            const errored = results[name].filter(([status])=>status === "ko");
+            const [clear, red, green, yellow, blue] = [
+                0,
+                31,
+                32,
+                33,
+                34
+            ].map((n)=>`\x1b[${n}m`);
+            if (errored.length) console.table(errored);
+            console[errored.length ? 'error' : 'log'](`${blue}${file} ${name}${clear} | ${yellow}${duration > 1000 ? +(duration / 1000).toPrecision(2) + "s" : +duration.toFixed(0) + "ms"}${times > 1 ? ` x${times}` : ''}${parallel ? ` parallel` : ''}${clear}: ${green}${passed.length} passed${clear}, ${red}${errored.length} errored${clear}`);
+        }
+    }
     return results;
 }
 export { cutest as cutest };

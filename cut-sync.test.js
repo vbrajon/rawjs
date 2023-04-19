@@ -1,11 +1,3 @@
-import cut from "cut"
-import * as lodash from "lodash-es"
-// import * as underscore from "underscore"
-// import * as ramda from "ramda"
-// import * as remeda from "remeda"
-import * as datefns from "date-fns"
-// import moment from "moment"
-import { Temporal } from "@js-temporal/polyfill"
 const users = [
   { name: "John Doe", age: 29 },
   { name: "Jane Doe", age: 22 },
@@ -24,276 +16,116 @@ const mixedClone = [[], -1, /a/gi, 0, Infinity, NaN, new Date("2020"), { a: [{ b
 // const mixedShuffled = shuffle([[], -1, /a/gi, 0, Infinity, NaN, new Date('2020'), { a: [{ b: 1 }] }, 'a', false, null, true, x => x, undefined])
 
 export default [
-  // Object
-  {
-    name: "Object.map",
-    tests: [{ input: [user, (v) => v * 2 || v], output: { name: "John Doe", age: 58 } }],
-    vanilla: (obj, fn) => Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, fn(v, k, obj)])),
-    cut: cut.Object.map,
-    // lodash: lodash.map,
-  },
-  {
-    name: "Object.filter",
-    tests: [{ input: [user, Number], output: { age: 29 } }],
-    vanilla: (obj, fn) => Object.fromEntries(Object.entries(obj).filter(([k, v]) => fn(v, k, obj))),
-    cut: cut.Object.filter,
-    // lodash: lodash.filter,
-  },
-  {
-    name: "Object.find",
-    tests: [{ input: [user, (v) => v > 10], output: 29 }],
-    vanilla: (obj, fn) => obj[Object.keys(obj).find((k, i, ks) => fn(obj[k], k, obj, i, ks))],
-    cut: cut.Object.find,
-    lodash: lodash.find,
-  },
-  {
-    name: "Object.findIndex",
-    tests: [{ input: [user, (v) => v === 29], output: "age" }],
-    vanilla: (obj, fn) => Object.keys(obj).find((k, i, ks) => fn(obj[k], k, obj, i, ks)),
-    cut: cut.Object.findIndex,
-    lodash: lodash.findKey,
-  },
-  {
-    name: "Object.reduce",
-    tests: [
-      { input: [user, (acc, v, k) => ((acc[v] = k), acc), {}], output: { "John Doe": "name", 29: "age" } },
-      { input: [user, (acc, v, k) => Object.assign(acc, { [v]: k }), {}], output: { "John Doe": "name", 29: "age" } }, //* compare performance
-    ],
-    vanilla: (obj, fn, base = null) => Object.entries(obj).reduce((acc, [k, v], i, ks) => fn(acc, v, k, obj, i, ks), base),
-    cut: cut.Object.reduce,
-    lodash: lodash.reduce,
-  },
-  {
-    name: "Object.access",
-    cut: cut.Object.access,
-    // lodash: lodash.get,
-    tests: [
-      { input: [{ a: { b: [1, 2, 3] } }, ["a", "b", "length"]], output: 3 },
-      { input: [{ a: { b: [1, 2, 3] } }, "a.b.length"], output: 3 },
-      { input: [{ a: { b: [1, 2, 3] } }, ".a.b.length"], output: 3 }, // != lodash
-      { input: [{ a: { b: [1, 2, 3] } }, '["a"]["b"].length'], output: 3 },
-      { input: [{ a: { b: [1, 2, 3] } }, { a: "a.b", b: "a.b.length" }], output: { a: [1, 2, 3], b: 3 } }, // != lodash
-      { input: [[{ a: { b: [1, 2, 3] } }], "0.a.b.length"], output: 3 },
-      { input: [{ a: { "b.c": 1 } }, 'a["b.c"]'], output: 1 },
-      { input: [{ a: { b: 1 } }, "a.b"], output: 1 },
-      { input: [{ a: { b: 1 } }, ["a", "b"]], output: 1 },
-      { input: [{ "a.b": 1 }, "a.b"], output: 1 },
-      { input: [{ "a.b": 1 }, ["a", "b"]], output: undefined },
-      { input: [{ "a.b": 1 }], output: { "a.b": 1 } }, // != lodash
-      { input: [{ "a.b": 1 }, null], output: { "a.b": 1 } }, // != lodash
-      { input: [{ "a.b": 1 }, undefined], output: { "a.b": 1 } }, // != lodash
-      { input: [1, 1], output: undefined },
-      { input: [], output: undefined },
-    ],
-  },
-  {
-    name: "Object.equal",
-    cut: cut.Object.equal,
-    // lodash: lodash.isEqual,
-    tests: [
-      { input: [[null, null], [null, undefined]], output: false }, // prettier-ignore
-      { input: [{ a: 1 }, { a: 1 }], output: true },
-      { input: [{ a: 1 }, { a: 1, b: 2 }], output: false },
-      { input: [mixed, mixedClone], output: true },
-      { input: [(x) => x, (x) => x], output: true }, // != lodash
-      { input: [], output: true },
-    ],
-  },
-  {
-    name: "Object.traverse",
-    cut: cut.Object.traverse,
-    tests: [
-      { input: [1, (v) => v * 2], output: 2 }, //* works also with primitives
-      { input: [[1], (v) => v * 2], output: [2] }, //* equivalent to map when depth = 1
-      { input: [{ a: 1 }, (v) => v * 2], output: { a: 2 } }, //* equivalent to map when depth = 1
-      { input: [{ a: 1, b: { c: 2, d: [3] } }, (v) => v * 2], output: { a: 2, b: { c: 4, d: [6] } } },
-      { input: [{ a: 1, b: { c: 2, d: [3] } }, (v, path) => `${path.join(".")}=${v}`], output: { a: "a=1", b: { c: "b.c=2", d: ["b.d.0=3"] } } },
-    ],
-  },
-  // {
-  //   name: "Object.difference",
-  //   cut1(a, b) {
-  //     const diffs = {}
-  //     Object.traverse(a, (v, path) => {
-  //       const v2 = Object.access(b, path)
-  //       if (v === v2) return
-  //       diffs[path.join(".")] = [v, v2]
-  //     })
-  //     Object.traverse(b, (v2, path) => {
-  //       const v = Object.access(a, path)
-  //       if (v === v2) return
-  //       diffs[path.join(".")] = [v, v2]
-  //     })
-  //     return diffs
-  //   },
-  //   cut2(a, b) {
-  //     const va = {}
-  //     const vb = {}
-  //     Object.traverse(a, (v, path) => (va[path.join(".")] = v))
-  //     Object.traverse(b, (v, path) => (vb[path.join(".")] = v))
-  //     return Object.filter(Object.map({ ...va, ...vb }, (v, k) => (va[k] === vb[k] ? null : [va[k], vb[k]])))
-  //   },
-  //   tests: [
-  //     { input: [{ a: 1, b: 2, c: 3, d: { e: [4, 5] } }, { b: 1, c: 3, d: { e: [5, 5] }, f: 6 }], output: { a: [1, undefined], b: [2, 1], 'd.e.0': [4, 5], f: [undefined, 6] } }, // prettier-ignore
-  //   ],
-  // },
-  // Array
-  {
-    name: "Array.map",
-    cut: cut.Array.map,
-    tests: [
-      { input: [[null, "a", undefined, /a/]], output: [null, "a", undefined, /a/] },
-      { input: [[{ a: 1, b: 2 }, { a: 3, b: 4 }], "a"], output: [1, 3] }, // prettier-ignore
-      { input: [[{ a: 1, b: 2 }, { a: 3, b: 4 }], ["a", "b"]], output: [[1, 2], [3, 4]] }, // prettier-ignore
-      { input: [[{ a: 1, b: 2 }, { a: 3, b: 4 }], { a: "b" }], output: [{ a: 2 }, { a: 4 }] }, // prettier-ignore
-    ],
-  },
-  {
-    name: "Array.reduce",
-    cut: cut.Array.reduce,
-    // vanilla: (arr, ...args) => arr.reduce(...args),
-    tests: [
-      { input: [users, (acc, v, i) => acc.concat(i), []], output: [0, 1, 2, 3] },
-      { input: [users, (acc, v, i) => ((acc[i] = v), acc), []], output: users },
-    ],
-  },
-  {
-    name: "Array.filter",
-    cut: cut.Array.filter,
-    tests: [
-      { input: [[null, "a", undefined, /a/]], output: ["a", /a/] },
-      {
-        input: [users, { name: /Ja/ }],
-        output: [
-          { name: "Jane Doe", age: 22 },
-          { name: "Janette Doe", age: 22 },
-        ],
-      },
-      { input: [users, "name"], output: users },
-      {
-        input: [
-          [{ a: 1 }, { a: 2 }, { a: 3, b: 3 }],
-          [{ a: (x) => x > 2 }, { b: 3 }, { a: 2 }],
-        ],
-        output: [{ a: 2 }, { a: 3, b: 3 }],
-      },
-    ],
-  },
-  {
-    name: "Array.find",
-    cut: cut.Array.find,
-    tests: [
-      { input: [users, { name: /Ja/ }], output: { name: "Jane Doe", age: 22 } },
-      { input: [[{ a: 1 }], { a: 1 }], output: { a: 1 } },
-      { input: [[{ a: 1 }, { a: 2 }], { a: [2, 3] }], output: { a: 2 } },
-    ],
-  },
-  {
-    name: "Array.findIndex",
-    cut: cut.Array.findIndex,
-    tests: [{ input: [[{ a: 1 }], { a: 1 }], output: 0 }],
-  },
-  {
-    name: "Array.group",
-    cut: cut.Array.group,
-    tests: [
-      { input: [users, (v) => "x"], output: { x: users } },
-      { input: [[{ a: 1 }], "a"], output: { 1: [{ a: 1 }] } },
-      { input: [[{ a: 1 }], "b"], output: { undefined: [{ a: 1 }] } },
-      { input: [[{ a: 1, b: 2 }, { a: 1, b: 2 }], ["a", "b"]], output: { 1: { 2: [{ a: 1, b: 2 }, { a: 1, b: 2 }] } } }, // prettier-ignore
-    ],
-  },
-  {
-    vanilla: (arr) => arr.slice().reverse(),
-    name: "Array.reverse",
-    cut: cut.Array.reverse,
-    tests: [{ input: [[1, 2, 3]], output: [3, 2, 1] }],
-  },
-  {
-    name: "Array.sort",
-    cut: cut.Array.sort,
-    tests: [
-      { input: [userAges], output: [22, 22, 29, 71] },
-      { input: [users, "age"], output: userAgesAsc },
-      { input: [users, (v) => v.age], output: userAgesAsc },
-      { input: [users, (a, b) => (a.age === b.age ? 0 : a.age > b.age ? 1 : -1)], output: userAgesAsc },
-      { input: [users, function() { return arguments[0].age === arguments[1].age ? 0 : arguments[0].age > arguments[1].age ? 1 : -1 }], output: userAgesAsc }, // prettier-ignore
-      { input: [[[null, 1], [1, 2], [null, 3]], [0, -1]], output: [[1, 2], [null, 3], [null, 1]]}, // prettier-ignore
-      { input: [[[null, 1], [1, 2], [null, 3]], [v => v[0], -1]], output: [[1, 2], [null, 3], [null, 1]]}, // prettier-ignore
-      { input: [[[null, 1], [1, 2], [null, 3]], [4, 5]], output: [[null, 1], [1, 2], [null, 3]]}, // prettier-ignore
-      {
-        input: (fn) => fn(users, ["-age", "name"]).map((v) => [v.age, v.name]),
-        output: [
-          [71, "Johnny Doe"],
-          [29, "John Doe"],
-          [22, "Jane Doe"],
-          [22, "Janette Doe"],
-        ],
-      },
-      {
-        input: [["10 arbres", "3 arbres", "réservé", "Cliché", "Premier", "communiqué", "café", "Adieu"], "fr", { numeric: true }],
-        output: ["3 arbres", "10 arbres", "Adieu", "café", "Cliché", "communiqué", "Premier", "réservé"],
-      },
-    ],
-  },
-  {
-    name: "Array.unique",
-    cut: cut.Array.unique,
-    tests: [{ input: [userAges], output: [29, 22, 71] }],
-  },
-  {
-    name: "Array.sum",
-    cut: cut.Array.sum,
-    tests: [{ input: [userAges], output: 144 }],
-  },
-  {
-    name: "Array.min",
-    cut: cut.Array.min,
-    tests: [{ input: [userAges], output: 22 }],
-  },
-  {
-    name: "Array.max",
-    cut: cut.Array.max,
-    tests: [{ input: [userAges], output: 71 }],
-  },
-  {
-    name: "Array.mean",
-    cut: cut.Array.mean,
-    tests: [{ input: [userAges], output: 36 }],
-  },
-  {
-    name: "Array.median",
-    cut: cut.Array.median,
-    tests: [
-      { input: [userAges], output: 25.5 },
-      { input: [[1, 2, 3]], output: 2 },
-    ],
-  },
-  // Function
+  ["Object.map", user, (v) => v * 2 || v, { name: "John Doe", age: 58 }],
+  ["Object.filter", user, Number, { age: 29 }],
+  ["Object.find", user, (v) => v > 10, 29],
+  ["Object.findIndex", user, (v) => v === 29, "age"],
+  ["Object.reduce", user, (acc, v, k) => ((acc[v] = k), acc), {}, { "John Doe": "name", 29: "age" }],
+  ["Object.reduce", user, (acc, v, k) => Object.assign(acc, { [v]: k }), {}, { "John Doe": "name", 29: "age" }], //* compare performance
+  ["Object.access", { a: { b: [1, 2, 3] } }, ["a", "b", "length"], 3],
+  ["Object.access", { a: { b: [1, 2, 3] } }, "a.b.length", 3],
+  ["Object.access", { a: { b: [1, 2, 3] } }, ".a.b.length", 3], // != lodash
+  ["Object.access", { a: { b: [1, 2, 3] } }, '["a"]["b"].length', 3],
+  ["Object.access", { a: { b: [1, 2, 3] } }, { a: "a.b", b: "a.b.length" }, { a: [1, 2, 3], b: 3 }], // != lodash
+  ["Object.access", [{ a: { b: [1, 2, 3] } }], "0.a.b.length", 3],
+  ["Object.access", { a: { "b.c": 1 } }, 'a["b.c"]', 1],
+  ["Object.access", { a: { b: 1 } }, "a.b", 1],
+  ["Object.access", { a: { b: 1 } }, ["a", "b"], 1],
+  ["Object.access", { "a.b": 1 }, "a.b", 1],
+  ["Object.access", { "a.b": 1 }, ["a", "b"], undefined],
+  ["Object.access", { "a.b": 1 }, { "a.b": 1 }], // != lodash
+  ["Object.access", { "a.b": 1 }, null, { "a.b": 1 }], // != lodash
+  ["Object.access", { "a.b": 1 }, undefined, { "a.b": 1 }], // != lodash
+  ["Object.access", 1, 1, undefined],
+  ["Object.access", undefined],
+  ["Object.equal", [null, null], [null, undefined], false],
+  ["Object.equal", { a: 1 }, { a: 1 }, true],
+  ["Object.equal", { a: 1 }, { a: 1, b: 2 }, false],
+  ["Object.equal", mixed, mixedClone, true],
+  ["Object.equal", (x) => x, (x) => x, true], // != lodash
+  ["Object.equal", true],
+  ["Object.traverse", 1, (v) => v * 2, 2], //* works also with primitives
+  ["Object.traverse", [1], (v) => v * 2, [2]], //* equivalent to map when depth = 1
+  ["Object.traverse", { a: 1 }, (v) => v * 2, { a: 2 }], //* equivalent to map when depth = 1
+  ["Object.traverse", { a: 1, b: { c: 2, d: [3] } }, (v) => v * 2, { a: 2, b: { c: 4, d: [6] } }],
+  ["Object.traverse", { a: 1, b: { c: 2, d: [3] } }, (v, path) => `${path.join(".")}=${v}`, { a: "a=1", b: { c: "b.c=2", d: ["b.d.0=3"] } }],
+  // Object.difference
+  ["Array.map", [null, "a", undefined, /a/], [null, "a", undefined, /a/]],
+  ["Array.map", [{ a: 1, b: 2 }, { a: 3, b: 4 }], "a", [1, 3]], // prettier-ignore
+  ["Array.map", [{ a: 1, b: 2 }, { a: 3, b: 4 }], ["a", "b"], [[1, 2], [3, 4]]], // prettier-ignore
+  ["Array.map", [{ a: 1, b: 2 }, { a: 3, b: 4 }], { a: "b" }, [{ a: 2 }, { a: 4 }]], // prettier-ignore
+  ["Array.reduce", users, (acc, v, i) => acc.concat(i), [], [0, 1, 2, 3]],
+  ["Array.reduce", users, (acc, v, i) => ((acc[i] = v), acc), [], users],
+  ["Array.filter", [null, "a", undefined, /a/], ["a", /a/]],
+  ["Array.filter", users, { name: /Ja/ }, [{ name: "Jane Doe", age: 22 }, { name: "Janette Doe", age: 22 }]], // prettier-ignore
+  ["Array.filter", users, "name", users],
+  ["Array.filter", [{ a: 1 }, { a: 2 }, { a: 3, b: 3 }], [{ a: (x) => x > 2 }, { b: 3 }, { a: 2 }], [{ a: 2 }, { a: 3, b: 3 }]],
+  ["Array.find", users, { name: /Ja/ }, { name: "Jane Doe", age: 22 }],
+  ["Array.find", [{ a: 1 }], { a: 1 }, { a: 1 }],
+  ["Array.find", [{ a: 1 }, { a: 2 }], { a: [2, 3] }, { a: 2 }],
+  ["Array.findIndex", [{ a: 1 }], { a: 1 }, 0],
+  ["Array.group", users, (v) => "x", { x: users }],
+  ["Array.group", [{ a: 1 }], "a", { 1: [{ a: 1 }] }],
+  ["Array.group", [{ a: 1 }], "b", { undefined: [{ a: 1 }] }],
+  ["Array.group", [{ a: 1, b: 2 }, { a: 1, b: 2 }], ["a", "b"], { 1: { 2: [{ a: 1, b: 2 }, { a: 1, b: 2 }] } }], // prettier-ignore
+  ["Array.reverse", [1, 2, 3], [3, 2, 1]],
+  ["Array.sort", userAges, [22, 22, 29, 71]],
+  ["Array.sort", users, "age", userAgesAsc],
+  ["Array.sort", users, (v) => v.age, userAgesAsc],
+  ["Array.sort", users, (a, b) => (a.age === b.age ? 0 : a.age > b.age ? 1 : -1), userAgesAsc],
+  ["Array.sort", users, function() { return arguments[0].age === arguments[1].age ? 0 : arguments[0].age > arguments[1].age ? 1 : -1 }, userAgesAsc], // prettier-ignore
+  ["Array.sort", [[null, 1], [1, 2], [null, 3]], [0, -1], [[1, 2], [null, 3], [null, 1]]], // prettier-ignore
+  ["Array.sort", [[null, 1], [1, 2], [null, 3]], [v => v[0], -1], [[1, 2], [null, 3], [null, 1]]], // prettier-ignore
+  ["Array.sort", [[null, 1], [1, 2], [null, 3]], [4, 5], [[null, 1], [1, 2], [null, 3]]], // prettier-ignore
+  ["Array.sort", ["10 arbres", "3 arbres", "réservé", "Cliché", "Premier", "communiqué", "café", "Adieu"], "fr", { numeric: true }, ["3 arbres", "10 arbres", "Adieu", "café", "Cliché", "communiqué", "Premier", "réservé"]],
+  ["Array.unique", userAges, [29, 22, 71]],
+  ["Array.sum", userAges, 144],
+  ["Array.min", userAges, 22],
+  ["Array.max", userAges, 71],
+  ["Array.mean", userAges, 36],
+  ["Array.median", userAges, 25.5],
+  ["Array.median", [1, 2, 3], 2],
   {
     name: "Function.decorate",
-    cut: cut.Function.decorate,
-    tests: [
-      { input: (fn) => fn((x) => x)(1), output: 1 },
-      { input: (fn) => fn((x) => x, () => 2)(1), output: 2 }, // prettier-ignore
-      { input: (fn) => fn((x) => x, { around: (fn, x) => fn(x * 2) * 2 })(1), output: 4 },
-      { input: (fn) => fn((x) => x, { before: (x) => x * 2 })(1), output: 2 },
-      { input: (fn) => fn((x) => x, { before: () => null })(1), output: null },
-      { input: (fn) => fn((x) => x, { after: (x) => x * 2 })(1), output: 2 },
-      {
-        input: (fn) => {
-          const decorated = fn((x) => x, {})
-          decorated.around = (fn, x) => 10
-          return decorated()
-        },
-        output: 10,
-      },
-    ],
+    fn: (fn) => fn((x) => x)(1),
+    output: 1,
+  },
+  {
+    name: "Function.decorate",
+    fn: (fn) =>
+      fn(
+        (x) => x,
+        () => 2
+      )(1),
+    output: 2,
+  },
+  {
+    name: "Function.decorate",
+    fn: (fn) => fn((x) => x, { around: (fn, x) => fn(x * 2) * 2 })(1),
+    output: 4,
+  },
+  {
+    name: "Function.decorate",
+    fn: (fn) => fn((x) => x, { before: (x) => x * 2 })(1),
+    output: 2,
+  },
+  {
+    name: "Function.decorate",
+    fn: (fn) => fn((x) => x, { after: (x) => x * 2 })(1),
+    output: 2,
+  },
+  {
+    name: "Function.decorate",
+    fn: (fn) => {
+      const decorated = fn((x) => x, {})
+      decorated.around = (fn, x) => 10
+      return decorated()
+    },
+    output: 10,
   },
   {
     name: "Function.promisify",
-    cut: cut.Function.promisify,
-    tests: async (fn) => {
+    fn: async (fn) => {
       const expect1callback = (v, cb) => (v === 1 ? cb(null, "OK") : cb("KO", null))
       const promisified = fn(expect1callback)
       if ((await promisified(1)) !== "OK") throw new Error("Function.promisify should resolve the callback with the first argument")
@@ -302,224 +134,126 @@ export default [
   },
   {
     name: "Function.partial",
-    cut: cut.Function.partial,
-    tests: [{ input: (fn) => fn((a, b) => [a, b], null, 2)(1), output: [1, 2] }],
+    fn: (fn) => fn((a, b) => [a, b], null, 2)(1),
+    output: [1, 2],
   },
   {
     name: "Function.memoize",
-    cut: cut.Function.memoize,
-    tests: [
-      {
-        input: (fn) => {
-          const memory = fn((x) => x / 2)
-          memory(2)
-          memory(2)
-          return memory.cache["[2]"]
-        },
-        output: 1,
-      },
-    ],
+    fn: (fn) => {
+      const memory = fn((x) => x / 2)
+      memory(2)
+      memory(2)
+      return memory.cache["[2]"]
+    },
+    output: 1,
   },
-  // String
-  {
-    name: "String.lower",
-    cut: cut.String.lower,
-    lodash: lodash.toLower,
-    tests: [{ input: ["A.B"], output: "a.b" }],
-  },
-  {
-    name: "String.upper",
-    cut: cut.String.upper,
-    lodash: lodash.toUpper,
-    tests: [{ input: ["a.b"], output: "A.B" }],
-  },
-  {
-    name: "String.capitalize",
-    cut: cut.String.capitalize,
-    lodash: lodash.capitalize,
-    tests: [{ input: ["A.B"], output: "A.b" }],
-  },
-  {
-    name: "String.words",
-    cut: cut.String.words,
-    lodash: lodash.words,
-    tests: [{ input: [str], output: ["i", "am", "The", "1", "AND", "Only"] }],
-  },
-  {
-    name: "String.format",
-    cut: cut.String.format,
-    tests: [
-      { input: [str], output: "I Am The 1 And Only" },
-      { input: [str, "title"], output: "I Am The 1 And Only" },
-      { input: [str, "dash"], output: "i-am-the-1-and-only" },
-      { input: [str, "underscore"], output: "i_am_the_1_and_only" },
-      { input: [str, "camel"], output: "iAmThe1AndOnly" },
-      { input: [str, "pascal"], output: "IAmThe1AndOnly" },
-      { input: ["{}{}{}", 0, 1, 2], output: "012" },
-      { input: ["{}{}{}", "a", "b"], output: "ab" },
-      { input: ["{}{}{}", ["a", "b"]], output: "ab" },
-      { input: ["{1}{1}{1}{0}{0}", "a", "b"], output: "bbbaa" },
-      { input: ["{2}{2}{2}{1}{1}", ["a", "b", ""]], output: "bb" },
-      { input: ["{}{}{}{1}{1}{1}{0}{0}", "a", "b"], output: "abbbbaa" },
-      { input: ["{user.name} is <strong>{{user.age}}</strong>", { user }], output: "John Doe is <strong>{29}</strong>" },
-      { input: ["{.length} users starting with {0.name} & {1.name}", users], output: "4 users starting with John Doe & Jane Doe" },
-      { input: ["{k2}{k2}{k3}", { k1: "a", k2: "b" }], output: "bb" },
-      { input: ["{66} pears x {3} apples", (x, i) => +x + i], output: "66 pears x 4 apples" },
-    ],
-  },
-  // Number
-  {
-    name: "Number.format",
-    cut: cut.Number.format,
-    tests: [
-      { input: [0.1 * 3 * 1000], output: 300 },
-      { input: [-0.000123456789, 1], output: "-100µ" },
-      { input: [123456789000, 2], output: "120G" },
-      { input: [1, 10], output: "1" },
-      { input: [1010.0101, "en"], output: "1,010.01" },
-      { input: [1010.0101, "fr"], output: "1 010,01" },
-    ],
-  },
-  {
-    name: "Number.duration",
-    cut: cut.Number.duration,
-    tests: [
-      { input: [-36666666], output: "-10 hours" },
-      { input: [1], output: "1 millisecond" },
-      { input: [0], output: "" },
-    ],
-  },
-  // Date
-  {
-    name: "Date.format",
-    cut: cut.Date.format,
-    tests: [
-      { input: [date], output: "2019-01-20T10:09:08+01:00" },
-      { input: [date, "DD/MM/YYYY hhhmmmsssSSSZ"], output: "20/01/2019 10h09m08s000+01:00" },
-      { input: [date, "QQ WW"], output: "Q1 W3" },
-      { input: [date, "day, month, year", "fr"], output: "20 janvier 2019" },
-      { input: [date, "month, day, weekday, hour, minute, second"], output: "Sunday, January 20 at 10:09:08 AM" },
-      { input: [date, "mon, wday, hour"], output: "Jan Sun, 10 AM" },
-      { input: [date, "hour, minute, second"], output: "10:09:08" },
-      { input: [date, "hour"], output: "10:09:08" },
-      { input: [date, "minute"], output: "09:08" },
-      { input: [date, "second"], output: "08" },
-      { input: [new Date("2019-01-01 00:00"), "YYYY-MM-DD hh:mm:ss Z"], output: "2019-01-01 00:00:00 +01:00" },
-      { input: [new Date("Invalid"), "mon, wday, hour, minute"], output: "-" },
-      { input: [new Date("Invalid"), "YYYY/MM/DD"], output: "-" },
-    ],
-  },
-  {
-    name: "Date.getWeek",
-    cut: cut.Date.getWeek,
-    vanilla: (date) => Temporal.PlainDate.from({ year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() }).weekOfYear,
-    // moment: (date) => moment(date).week(), //! output != from vanilla
-    // datefns: datefns.getWeek, //! output != from vanilla
-    tests: [
-      { input: [new Date("2016-11-05")], output: 44 }, // https://en.wikipedia.org/wiki/ISO_week_date#Calculating_the_week_number_from_a_month_and_day_of_the_month
-      { input: [new Date("2000-01-01")], output: 52 }, // Saturday, Leep year
-      { input: [new Date("2000-01-02")], output: 52 },
-      { input: [new Date("2000-01-03")], output: 1 },
-      { input: [new Date("2000-01-04")], output: 1 },
-      { input: [new Date("2000-01-11")], output: 2 },
-      { input: [new Date("2000-01-19")], output: 3 },
-      { input: [new Date("2000-01-27")], output: 4 },
-      { input: [new Date("2000-02-04")], output: 5 },
-      { input: [new Date("2000-02-12")], output: 6 },
-      { input: [new Date("2000-09-17")], output: 37 },
-      { input: [new Date("2000-12-17")], output: 50 },
-      { input: [new Date("2000-12-24")], output: 51 },
-      { input: [new Date("2000-12-31")], output: 52 },
-      { input: [new Date("2001-01-01")], output: 1 }, // Monday
-      { input: [new Date("2002-01-01")], output: 1 }, // Tuesday
-      { input: [new Date("2003-01-01")], output: 1 }, // Wednesday
-      { input: [new Date("2004-01-01")], output: 1 }, // Thursday, Leep year
-      { input: [new Date("2004-12-31")], output: 53 }, // Friday, Leep year
-      { input: [new Date("2005-01-01")], output: 53 }, // Saturday
-      { input: [new Date("2006-01-01")], output: 52 }, // Sunday
-    ],
-  },
-  {
-    name: "Date.getQuarter",
-    cut: cut.Date.getQuarter,
-    tests: [{ input: [new Date("2018-04-01")], output: 2 }],
-  },
-  {
-    name: "Date.getTimezone",
-    cut: cut.Date.getTimezone,
-    tests: [
-      { input: [null, -540], output: "+09:00" },
-      { input: [null, +240], output: "-04:00" },
-    ],
-  },
-  {
-    name: "Date.plus",
-    cut: cut.Date.plus,
-    // datefns: datefns.add,
-    tests: [
-      { input: [new Date("2020-01-01T00:00:00"), { years: 1, months: 1, hours: 1, minutes: 2, seconds: 3 }], output: new Date("2021-02-01T01:02:03") },
-      { input: [new Date("2018-11-30"), { months: 3 }], output: new Date("2019-02-28") },
-      { input: [new Date("2018-12-31"), { months: 1 }], output: new Date("2019-01-31") },
-      { input: [new Date("2020-01-01"), { months: 1 }], output: new Date("2020-02-01") },
-      { input: [new Date("2020-01-31"), { months: 1 }], output: new Date("2020-02-29") },
-      { input: [new Date("2020-01-31"), "month"], output: new Date("2020-02-29") },
-      { input: [new Date("2020-02-29"), { months: 1 }], output: new Date("2020-03-29") },
-      { input: [new Date("2020-03-31"), { months: -1 }], output: new Date("2020-02-29") },
-      { input: [new Date("2016-02-29"), { years: 1.2 }], output: new Date("2017-02-28") },
-      { input: [new Date("2016-02-29"), { years: "1.2" }], output: new Date("2017-02-28") },
-      { input: [new Date("2016-02-29")], output: new Date("2016-02-29") },
-      { input: [new Date("2016-02-29"), { year: 10 }], output: new Date("2016-02-29") }, //* ignored options without plural
-      { input: [new Date("2016-02-29"), { years: null }], output: new Date("2016-02-29") }, //* ignored
-      { input: [new Date("2016-02-29"), { years: 0 }], output: new Date("2016-02-29") }, //* ignored
-      { input: [new Date("2016-02-29"), { ignored: 1, milliseconds: 1, and: 1, quarters: 1 }], output: new Date("2016-02-29") }, //* ignored additional properties
-      { input: [new Date("2020-01-01"), { months: 1.2 }], output: new Date("2020-02-01") }, //* Expected behavior
-      { input: [new Date("2020-01-31"), "1.2 month"], output: new Date("2020-02-29") }, //* Expected behavior //! DEPRECATED syntax
-      { input: [new Date("2020-01-01T00:00:00"), "1 year, 1 month, 1 hour - 2 minute - 3 seconds"], output: new Date("2021-02-01T01:02:03") }, //! DEPRECATED syntax
-    ],
-  },
-  {
-    name: "Date.minus",
-    cut: cut.Date.minus,
-    // datefns: datefns.sub,
-    tests: [
-      { input: [new Date("2020-01-01"), "1 month"], output: new Date("2019-12-01") },
-      { input: [new Date("2020-02-29"), "1 year"], output: new Date("2019-02-28") },
-      { input: [new Date("2018-11-30"), "-3 month"], output: new Date("2019-02-28") }, //* Subtract negative number
-    ],
-  },
-  {
-    name: "Date.start",
-    cut: cut.Date.start,
-    tests: [{ input: [new Date("2018-02-28T04:05:00"), "month"], output: new Date("2018-02-01T00:00:00") }],
-  },
-  {
-    name: "Date.end",
-    cut: cut.Date.end,
-    tests: [{ input: [new Date("2016-02-29T10:11:12"), "year"], output: new Date("2016-12-31T23:59:59") }],
-  },
-  {
-    name: "Date.relative",
-    cut: cut.Date.relative,
-    tests: [
-      { input: [date, date], output: "" },
-      { input: [new Date(+date - 1000), date], output: "1 second ago" }, //* 1 second before
-      { input: [new Date(+date + 2 * 60 * 60 * 1000), date], output: "2 hours from now" }, //* 2 hours after
-    ],
-  },
-  // RegExp
+  ["String.lower", "A.B", "a.b"],
+  ["String.upper", "a.b", "A.B"],
+  ["String.capitalize", "A.B", "A.b"],
+  ["String.words", str, ["i", "am", "The", "1", "AND", "Only"]],
+  ["String.format", str, "I Am The 1 And Only"],
+  ["String.format", str, "title", "I Am The 1 And Only"],
+  ["String.format", str, "dash", "i-am-the-1-and-only"],
+  ["String.format", str, "underscore", "i_am_the_1_and_only"],
+  ["String.format", str, "camel", "iAmThe1AndOnly"],
+  ["String.format", str, "pascal", "IAmThe1AndOnly"],
+  ["String.format", "{}{}{}", 0, 1, 2, "012"],
+  ["String.format", "{}{}{}", "a", "b", "ab"],
+  ["String.format", "{}{}{}", ["a", "b"], "ab"],
+  ["String.format", "{1}{1}{1}{0}{0}", "a", "b", "bbbaa"],
+  ["String.format", "{2}{2}{2}{1}{1}", ["a", "b", ""], "bb"],
+  ["String.format", "{}{}{}{1}{1}{1}{0}{0}", "a", "b", "abbbbaa"],
+  ["String.format", "{user.name} is <strong>{{user.age}}</strong>", { user }, "John Doe is <strong>{29}</strong>"],
+  ["String.format", "{.length} users starting with {0.name} & {1.name}", users, "4 users starting with John Doe & Jane Doe"],
+  ["String.format", "{k2}{k2}{k3}", { k1: "a", k2: "b" }, "bb"],
+  ["String.format", "{66} pears x {3} apples", (x, i) => +x + i, "66 pears x 4 apples"],
+  ["Number.format", 0.1 * 3 * 1000, 300],
+  ["Number.format", -0.000123456789, 1, "-100µ"],
+  ["Number.format", 123456789000, 2, "120G"],
+  ["Number.format", 1, 10, "1"],
+  ["Number.format", 1010.0101, "en", "1,010.01"],
+  ["Number.format", 1010.0101, "fr", "1 010,01"],
+  ["Number.format", 1010.0101, "de", "1.010,01"],
+  ["Number.duration", -36666666, "-10 hours"],
+  ["Number.duration", 1, "1 millisecond"],
+  ["Number.duration", 0, ""],
+  ["Date.format", date, "2019-01-20T10:09:08+01:00"],
+  ["Date.format", date, "DD/MM/YYYY hhhmmmsssSSSZ", "20/01/2019 10h09m08s000+01:00"],
+  ["Date.format", date, "QQ WW", "Q1 W3"],
+  ["Date.format", date, "day, month, year", "fr", "20 janvier 2019"],
+  ["Date.format", date, "month, day, weekday, hour, minute, second", "Sunday, January 20 at 10:09:08 AM"],
+  ["Date.format", date, "mon, wday, hour", "Jan Sun, 10 AM"],
+  ["Date.format", date, "hour, minute, second", "10:09:08"],
+  ["Date.format", date, "hour", "10:09:08"],
+  ["Date.format", date, "minute", "09:08"],
+  ["Date.format", date, "second", "08"],
+  ["Date.format", new Date("2019-01-01 00:00"), "YYYY-MM-DD hh:mm:ss Z", "2019-01-01 00:00:00 +01:00"],
+  ["Date.format", new Date("Invalid"), "mon, wday, hour, minute", "-"],
+  ["Date.format", new Date("Invalid"), "YYYY/MM/DD", "-"],
+  ["Date.getWeek", new Date("2016-11-05"), 44], // https://en.wikipedia.org/wiki/ISO_week_date#Calculating_the_week_number_from_a_month_and_day_of_the_month
+  ["Date.getWeek", new Date("2000-01-01"), 52], // Saturday, Leep year
+  ["Date.getWeek", new Date("2000-01-02"), 52],
+  ["Date.getWeek", new Date("2000-01-03"), 1],
+  ["Date.getWeek", new Date("2000-01-04"), 1],
+  ["Date.getWeek", new Date("2000-01-11"), 2],
+  ["Date.getWeek", new Date("2000-01-19"), 3],
+  ["Date.getWeek", new Date("2000-01-27"), 4],
+  ["Date.getWeek", new Date("2000-02-04"), 5],
+  ["Date.getWeek", new Date("2000-02-12"), 6],
+  ["Date.getWeek", new Date("2000-09-17"), 37],
+  ["Date.getWeek", new Date("2000-12-17"), 50],
+  ["Date.getWeek", new Date("2000-12-24"), 51],
+  ["Date.getWeek", new Date("2000-12-31"), 52],
+  ["Date.getWeek", new Date("2001-01-01"), 1], // Monday
+  ["Date.getWeek", new Date("2002-01-01"), 1], // Tuesday
+  ["Date.getWeek", new Date("2003-01-01"), 1], // Wednesday
+  ["Date.getWeek", new Date("2004-01-01"), 1], // Thursday, Leep year
+  ["Date.getWeek", new Date("2004-12-31"), 53], // Friday, Leep year
+  ["Date.getWeek", new Date("2005-01-01"), 53], // Saturday
+  ["Date.getWeek", new Date("2006-01-01"), 52], // Sunday
+  ["Date.getQuarter", new Date("2018-04-01"), 2],
+  ["Date.getTimezone", null, -540, "+09:00"],
+  ["Date.getTimezone", null, +240, "-04:00"],
+  ["Date.plus", new Date("2020-01-01T00:00:00"), { years: 1, months: 1, hours: 1, minutes: 2, seconds: 3 }, new Date("2021-02-01T01:02:03")],
+  ["Date.plus", new Date("2018-11-30"), { months: 3 }, new Date("2019-02-28")],
+  ["Date.plus", new Date("2018-12-31"), { months: 1 }, new Date("2019-01-31")],
+  ["Date.plus", new Date("2020-01-01"), { months: 1 }, new Date("2020-02-01")],
+  ["Date.plus", new Date("2020-01-31"), { months: 1 }, new Date("2020-02-29")],
+  ["Date.plus", new Date("2020-01-31"), "month", new Date("2020-02-29")],
+  ["Date.plus", new Date("2020-02-29"), { months: 1 }, new Date("2020-03-29")],
+  ["Date.plus", new Date("2020-03-31"), { months: -1 }, new Date("2020-02-29")],
+  ["Date.plus", new Date("2016-02-29"), { years: 1.2 }, new Date("2017-02-28")],
+  ["Date.plus", new Date("2016-02-29"), { years: "1.2" }, new Date("2017-02-28")],
+  ["Date.plus", new Date("2016-02-29"), null, new Date("2016-02-29")],
+  ["Date.plus", new Date("2016-02-29"), new Date("2016-02-29")],
+  ["Date.plus", new Date("2016-02-29"), { year: 10 }, new Date("2016-02-29")], //* ignored options without plural
+  ["Date.plus", new Date("2016-02-29"), { years: null }, new Date("2016-02-29")], //* ignored
+  ["Date.plus", new Date("2016-02-29"), { years: 0 }, new Date("2016-02-29")], //* ignored
+  ["Date.plus", new Date("2016-02-29"), { ignored: 1, milliseconds: 1, and: 1, quarters: 1 }, new Date("2016-02-29")], //* ignored additional properties
+  ["Date.plus", new Date("2020-01-01"), { months: 1.2 }, new Date("2020-02-01")], //* Expected behavior
+  ["Date.plus", new Date("2020-01-31"), "1.2 month", new Date("2020-02-29")], //* Expected behavior //! DEPRECATED syntax
+  ["Date.plus", new Date("2020-01-01T00:00:00"), "1 year, 1 month, 1 hour - 2 minute - 3 seconds", new Date("2021-02-01T01:02:03")], //! DEPRECATED syntax
+  ["Date.minus", new Date("2020-01-01"), "1 month", new Date("2019-12-01")],
+  ["Date.minus", new Date("2020-02-29"), "1 year", new Date("2019-02-28")],
+  ["Date.minus", new Date("2018-11-30"), "-3 month", new Date("2019-02-28")], //* Subtract negative number
+  ["Date.start", new Date("2018-02-28T04:05:00"), "month", new Date("2018-02-01T00:00:00")],
+  ["Date.end", new Date("2016-02-29T10:11:12"), "year", new Date("2016-12-31T23:59:59")],
+  ["Date.relative", date, date, ""],
+  ["Date.relative", new Date(+date - 1000), date, "1 second ago"], //* 1 second before
+  ["Date.relative", new Date(+date + 2 * 60 * 60 * 1000), date, "2 hours from now"], //* 2 hours after
   {
     name: "RegExp.escape",
-    cut: cut.RegExp.escape,
-    tests: [{ input: (fn) => fn(/john@gmail.com/).source, output: "john@gmail\\.com" }],
+    fn: (fn) => fn(/john@gmail.com/).source,
+    output: "john@gmail\\.com",
   },
   {
     name: "RegExp.plus",
-    cut: cut.RegExp.plus,
-    tests: [{ input: (fn) => fn(/QwErTy/, "i").flags, output: "i" }],
+    fn: (fn) => fn(/QwErTy/, "i").flags,
+    output: "i",
   },
   {
     name: "RegExp.minus",
-    cut: cut.RegExp.minus,
-    tests: [{ input: (fn) => fn(/QwErTy/, "i").flags, output: "" }],
+    fn: (fn) => fn(/QwErTy/, "i").flags,
+    output: "",
   },
 ]

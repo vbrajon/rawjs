@@ -1,11 +1,8 @@
-import cut from "cut"
-
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 export default [
   {
     name: "Function.wait",
-    cut: cut.Function.wait,
-    tests: async (fn) => {
+    async fn(fn) {
       const start = Date.now()
       const n = await fn(() => 1, 100)
       if (Date.now() - start < 100) throw new Error("Function.wait should wait 100ms")
@@ -14,8 +11,7 @@ export default [
   },
   {
     name: "Function.every - limit",
-    cut: cut.Function.every,
-    tests: async (fn) => {
+    async fn(fn) {
       let n = 0
       const loop = fn(() => n++, 100, 3) // immediate + runs every 100ms + stops after 3 times
       if (n !== 1) throw new Error(`Function.every should have been called immediately, n = ${n}`)
@@ -29,8 +25,7 @@ export default [
   },
   {
     name: "Function.every - stop",
-    cut: cut.Function.every,
-    tests: async (fn) => {
+    async fn(fn) {
       let n = 0
       const loop = fn(() => n++, 100)
       await sleep(280) // immediate + runs every 100ms + stops after 280ms
@@ -40,8 +35,7 @@ export default [
   },
   {
     name: "Function.debounce",
-    cut: cut.Function.debounce,
-    tests: async (fn) => {
+    async fn(fn) {
       let n = 0
       const inc = fn((x) => (n += x), 100)
       inc(1) // skipped
@@ -54,8 +48,7 @@ export default [
   },
   {
     name: "Function.throttle",
-    cut: cut.Function.throttle,
-    tests: async (fn) => {
+    async fn(fn) {
       let n = 0
       const inc = fn((x) => (n += x), 100)
       inc(1) // immediate
@@ -69,8 +62,7 @@ export default [
   },
   {
     name: "Promise.map",
-    cut: cut.Promise.map,
-    tests: async (fn) => {
+    async fn(fn) {
       let n = 0
       const inc = (x) => new Promise((resolve) => setTimeout(() => resolve((n += x)), 100))
 
