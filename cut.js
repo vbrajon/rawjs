@@ -406,25 +406,23 @@ const cut = {
   },
   refresh(global) {
     const { constructors, shortcuts } = cut
-    function shorcut(constructor, fname, fn) {
+    function clean(constructor, fname) {
       if (constructor.prototype["_" + fname]) {
         constructor.prototype[fname] = constructor.prototype["_" + fname]
         delete constructor.prototype["_" + fname]
       }
       if (constructor[fname] && !constructor[fname].toString().includes("[native code]")) delete constructor[fname]
       if (constructor.prototype[fname] && !constructor.prototype[fname].toString().includes("[native code]")) delete constructor.prototype[fname]
-      if (constructor.prototype[fname]?.toString().includes("[native code]")) {
-        fn = (x, ...args) => constructor.prototype[fname].call(x, ...args)
-        if (["sort", "reverse"].includes(fname)) fn = (x, ...args) => constructor.prototype[fname].call(x.slice(), ...args)
-      }
+    }
+    function shorcut(constructor, fname, fn) {
+      if (constructor === Array && ["reduce", "map", "filter", "find", "findIndex"].includes(fname)) fn = (x, ...args) => constructor.prototype[fname].call(x.slice(), ...args)
+      if (constructor === Array && ["sort", "reverse"].includes(fname)) fn = (x, ...args) => constructor.prototype[fname].call(x.slice(), ...args)
       return decorate(fn, shortcuts[fname])
     }
     function proto(constructor, fname, fn) {
-      if (constructor.prototype[fname]?.toString().includes("[native code]")) {
-        constructor.prototype["_" + fname] = constructor.prototype[fname]
-        fn = (x, ...args) => constructor.prototype["_" + fname].call(x, ...args)
-        if (["sort", "reverse"].includes(fname)) fn = (x, ...args) => constructor.prototype["_" + fname].call(x.slice(), ...args)
-      }
+      if (constructor.prototype[fname]?.toString().includes("[native code]")) constructor.prototype["_" + fname] = constructor.prototype[fname]
+      if (constructor === Array && ["reduce", "map", "filter", "find", "findIndex"].includes(fname)) fn = (x, ...args) => constructor.prototype["_" + fname].call(x, ...args)
+      if (constructor === Array && ["sort", "reverse"].includes(fname)) fn = (x, ...args) => constructor.prototype["_" + fname].call(x.slice(), ...args)
       constructor[fname] = shortcuts.hasOwnProperty(fname) ? decorate(fn, shortcuts[fname]) : fn
       constructor.prototype[fname] = function () {
         return constructor[fname](this, ...arguments)
@@ -433,7 +431,8 @@ const cut = {
     }
     Object.entries(constructors).forEach(([name, constructor]) => {
       Object.entries(this[name]).forEach(([fname, fn]) => {
-        this[name][fname] = (global ? proto : shorcut)(constructor, fname, fn)
+        clean(constructor, fname)
+        this[name][fname] = (global ? proto : shorcut)(constructor, fname, fn?.fn || fn)
       })
     })
     return this

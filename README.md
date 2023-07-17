@@ -1,9 +1,21 @@
 [cut](https://github.com/vbrajon/cut) is a shortcut utility library to speed up **data transformation**, **dates manipulation**, **formatting** and **function composition**.  
 It is a simpler version of [lodash](https://github.com/lodash/lodash) or [moment](https://github.com/moment/moment/).
 
-## Installation:
+## Usage
 
-- in console: await import('https://vbrajon.github.io/cut/cut.js')
-- in browser: `<script src="https://vbrajon.github.io/cut/cut.js"></script>`
-- in node: `npm i git+https://git@github.com/vbrajon/cut.git` then `import 'cut'` or `require('cut')`
-- in cli: `npm i -g git+https://git@github.com/vbrajon/cut.git` then `cute`
+```js
+const { default: cut } = await import("https://raw.githack.com/vbrajon/rawjs/cut/cut.js")
+cut.Array.group(["a", "bc", "d"], "length")
+```
+
+## Development
+
+```bash
+bun run cutest.test.js # OR deno run -A cutest.test.js
+```
+
+## Roadmap
+
+- [ ] Docs in README: https://github.com/vbrajon/rawjs/tree/cut
+- [ ] Docs interactive: https://raw.githack.com/vbrajon/rawjs/cut/index.html
+- [ ] Test Viewer/Editor: https://raw.githack.com/vbrajon/rawjs/cut/cutest.html

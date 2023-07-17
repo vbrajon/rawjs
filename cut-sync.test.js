@@ -182,7 +182,7 @@ export default [
   ["Date.format", date, "QQ WW", "Q1 W3"],
   ["Date.format", date, "day, month, year", "fr", "20 janvier 2019"],
   ["Date.format", date, "month, day, weekday, hour, minute, second", "Sunday, January 20 at 10:09:08 AM"],
-  ["Date.format", date, "mon, wday, hour", "Jan Sun, 10 AM"],
+  ["Date.format", date, "mon, wday, hour", date.toLocaleString('en', { month: 'short', weekday: 'short', hour: '2-digit' })],
   ["Date.format", date, "hour, minute, second", "10:09:08"],
   ["Date.format", date, "hour", "10:09:08"],
   ["Date.format", date, "minute", "09:08"],
