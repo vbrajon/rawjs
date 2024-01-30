@@ -192,8 +192,8 @@ export function duration(num) {
   return Math.round(+num / +v) + " " + k + (Math.abs(Math.round(+num / +v)) > 1 ? "s" : "")
 }
 export function number_format(num, format, options) {
-  if (typeof format === "string") return Intl.NumberFormat(format, options).format(num)
-  if (typeof format === "number") return (+num.toPrecision(format)).toExponential().replace(/([+-\d.]+)e([+-\d]+)/, (m, n, e) => +(n + "e" + (e - Math.floor(e / 3) * 3)) + (["mµnpfazy", "kMGTPEZY"][+(e > 0)].split("")[Math.abs(Math.floor(e / 3)) - 1] || ""))
+  if (format && typeof format === "string") return Intl.NumberFormat(format, options).format(num)
+  if (format && typeof format === "number") return num.toExponential(format - 1).replace(/([+-\d.]+)e([+-\d]+)/, (m, n, e) => +(n + "e" + (e - Math.floor(e / 3) * 3)) + (["mµnpfazy", "kMGTPEZY"][+(e > 0)].split("")[Math.abs(Math.floor(e / 3)) - 1] || ""))
   return +num.toPrecision(15)
 }
 // Date
@@ -406,6 +406,13 @@ const cut = {
   },
   refresh(global) {
     const { constructors, shortcuts } = cut
+    function define(obj, fname, fn) {
+      Object.defineProperty(obj, fname, {
+        writable: true,
+        configurable: true,
+        value: fn,
+      })
+    }
     function clean(constructor, fname) {
       if (constructor.prototype["_" + fname]) {
         constructor.prototype[fname] = constructor.prototype["_" + fname]
@@ -420,13 +427,13 @@ const cut = {
       return decorate(fn, shortcuts[fname])
     }
     function proto(constructor, fname, fn) {
-      if (constructor.prototype[fname]?.toString().includes("[native code]")) constructor.prototype["_" + fname] = constructor.prototype[fname]
+      if (constructor.prototype[fname]?.toString().includes("[native code]")) define(constructor.prototype, "_" + fname, constructor.prototype[fname])
       if (constructor === Array && ["reduce", "map", "filter", "find", "findIndex"].includes(fname)) fn = (x, ...args) => constructor.prototype["_" + fname].call(x, ...args)
       if (constructor === Array && ["sort", "reverse"].includes(fname)) fn = (x, ...args) => constructor.prototype["_" + fname].call(x.slice(), ...args)
-      constructor[fname] = shortcuts.hasOwnProperty(fname) ? decorate(fn, shortcuts[fname]) : fn
-      constructor.prototype[fname] = function () {
+      define(constructor, fname, shortcuts.hasOwnProperty(fname) ? decorate(fn, shortcuts[fname]) : fn)
+      define(constructor.prototype, fname, function () {
         return constructor[fname](this, ...arguments)
-      }
+      })
       return constructor[fname]
     }
     Object.entries(constructors).forEach(([name, constructor]) => {
