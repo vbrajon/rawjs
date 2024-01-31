@@ -30,7 +30,7 @@ async function run(file, options) {
       const skipped = tests.length - results[name].length
       const [clear, red, green, yellow, blue] = [0, 31, 32, 33, 34].map((n) => `\x1b[${n}m`)
       if (errored.length) console.table(errored.map((v) => ({ run: v.run, error: v.error.name, message: v.error.message, input: v.input, actual: v.error.actual, expected: v.error.expected })))
-      console[errored.length ? "error" : "log"](`${file} ${blue}${name}${clear} | ${yellow}${duration > 1000 ? +(duration / 1000).toPrecision(2) + "s" : +duration.toFixed(0) + "ms"}${times > 1 ? ` x${times}` : ""}${parallel ? ` parallel` : ""}${clear}: ${green}${passed.length} passed${clear}, ${red}${errored.length} errored${skipped ? `, ${yellow}${skipped} skipped${clear}` : ''}${clear}`)
+      console[errored.length ? "error" : "log"](`${file} ${blue}${name}${clear} | ${yellow}${duration > 1000 ? +(duration / 1000).toPrecision(2) + "s" : +duration.toFixed(0) + "ms"}${times > 1 ? ` x${times}` : ""}${parallel ? ` parallel` : ""}${clear}: ${green}${passed.length} passed${clear}, ${red}${errored.length} errored${skipped ? `, ${yellow}${skipped} skipped${clear}` : ""}${clear}`)
     }
   }
   return results
@@ -89,16 +89,14 @@ const packages = [
     import: (version) => import(`${esm}@js-temporal/polyfill`),
     fn: (module, name) => {
       const { Temporal } = module
-      return (
-        {
-          "Object.map": (obj, fn) => Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, fn(v, k, obj)])),
-          "Object.filter": (obj, fn) => Object.fromEntries(Object.entries(obj).filter(([k, v]) => fn(v, k, obj))),
-          "Object.find": (obj, fn) => obj[Object.keys(obj).find((k, i, ks) => fn(obj[k], k, obj, i, ks))],
-          "Object.findIndex": (obj, fn) => Object.keys(obj).find((k, i, ks) => fn(obj[k], k, obj, i, ks)),
-          "Array.reduce": (arr, ...args) => arr.reduce(...args),
-          "Date.getWeek": (date) => Temporal.PlainDate.from({ year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() }).weekOfYear,
-        }[name]
-      )
+      return {
+        "Object.map": (obj, fn) => Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, fn(v, k, obj)])),
+        "Object.filter": (obj, fn) => Object.fromEntries(Object.entries(obj).filter(([k, v]) => fn(v, k, obj))),
+        "Object.find": (obj, fn) => obj[Object.keys(obj).find((k, i, ks) => fn(obj[k], k, obj, i, ks))],
+        "Object.findIndex": (obj, fn) => Object.keys(obj).find((k, i, ks) => fn(obj[k], k, obj, i, ks)),
+        "Array.reduce": (arr, ...args) => arr.reduce(...args),
+        "Date.getWeek": (date) => Temporal.PlainDate.from({ year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() }).weekOfYear,
+      }[name]
     },
   },
   {
@@ -133,9 +131,9 @@ const packages = [
 ]
 const results = [
   // NOTE: Safari crashes when running more test functions, more times
-  await run("cut-sync.test.js", { times: 100, packages }),
-  // await run("cut-async.test.js", { parallel: true, packages: packages.slice(0, 1) }),
-  // await run("cut-core.test.js", { times: 100 }),
+  await run("cut-async.test.js", { parallel: true, packages: packages.slice(0, 1) }),
+  await run("cut-core.test.js", { parallel: true }),
+  await run("cut-bench.test.js", { times: 100, packages: packages.slice(0, 1) }),
 ]
   .map(Object.values)
   .flat(2)

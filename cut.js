@@ -269,26 +269,21 @@ export function modify(date, options, sign) {
   )
   const d = new Date(date)
   const units = UNITS.filter((unit) => ["second", "minute", "hour", "day", "month", "year"].includes(unit[0]))
-  let fn
-  if (sign === "+") fn = (unit, n) => d["set" + unit[3]](d["get" + unit[3]]() + n)
-  if (sign === "-") fn = (unit, n) => d["set" + unit[3]](d["get" + unit[3]]() - n)
-  if (sign === "<")
-    fn = (unit) =>
+  const fn = {
+    "+": (unit, n) => d["set" + unit[3]](d["get" + unit[3]]() + n),
+    "-": (unit, n) => d["set" + unit[3]](d["get" + unit[3]]() - n),
+    "<"(unit) {
+      const index = units.findIndex((u) => u === unit)
+      return units.slice(0, index).map((unit) => d["set" + unit[3]](unit[3] === "Date" ? 1 : 0))
+    },
+    ">"(unit) {
+      const index = units.findIndex((u) => u === unit)
       units
-        .slice(
-          0,
-          units.findIndex((u) => u === unit)
-        )
-        .map((unit) => d["set" + unit[3]](unit[3] === "Date" ? 1 : 0))
-  if (sign === ">")
-    fn = (unit) =>
-      units
-        .slice(
-          0,
-          units.findIndex((u) => u === unit)
-        )
+        .slice(0, index)
         .reverse()
         .map((unit) => d["set" + unit[3]]({ Month: 11, Date: getLastDate(d), Hours: 23, Minutes: 59, Seconds: 59 }[unit[3]]))
+    },
+  }[sign]
   units.forEach((unit) => options[unit[0] + "s"] && fn(unit, options[unit[0] + "s"]))
   d.setMilliseconds(0)
   if (["-", "+"].includes(sign) && date.getDate() !== d.getDate() && ["year", "month"].some((k) => options[k + "s"]) && !["day", "hour", "minute", "second"].some((k) => options[k + "s"])) d.setDate(0)
@@ -403,46 +398,75 @@ const cut = {
         return v
       },
     },
+    sum: {
+      around(fn, arr, ...args) {
+        if (args[0]) return fn(cut.Array.map(arr, args[0]))
+        return fn(arr)
+      },
+    },
   },
-  refresh(global) {
-    const { constructors, shortcuts } = cut
-    function define(obj, fname, fn) {
+  refresh(mode = "shortcut") {
+    const { constructors, shortcuts } = this
+    const modes = {
+      prototype: extend(prototype),
+      property: extend(property),
+      shortcut: shorcut,
+    }
+    if (!modes[mode]) throw new Error(`Invalid mode ${mode}, use ${Object.keys(modes).join(" or ")}`)
+    Object.entries(constructors).forEach(([name, constructor]) => {
+      Object.entries(this[name]).forEach(([fname, fn]) => {
+        clean(constructor, fname)
+        this[name][fname] = modes[mode](constructor, fname, fn?.fn || fn)
+      })
+    })
+    return this
+    function clean(constructor, fname) {
+      if (constructor.prototype["_" + fname]) {
+        constructor.prototype[fname] = constructor.prototype["_" + fname]
+        delete constructor.prototype["_" + fname]
+      }
+      if (constructor[fname] === Math[fname]) delete constructor[fname]
+      if (constructor[fname] && !constructor[fname].toString().includes("[native code]")) delete constructor[fname]
+      if (constructor.prototype[fname] && !constructor.prototype[fname].toString().includes("[native code]")) delete constructor.prototype[fname]
+    }
+    function shorcut(constructor, fname, fn) {
+      if (constructor === Array && ["reduce", "map", "filter", "find", "findIndex"].includes(fname)) fn = (x, ...args) => constructor.prototype[fname].call(x, ...args)
+      if (constructor === Array && ["sort", "reverse"].includes(fname)) fn = (x, ...args) => constructor.prototype[fname].call(x.slice(), ...args)
+      return decorate(fn, shortcuts[fname])
+    }
+    function prototype(obj, fname, fn) {
+      if (obj[fname] === fn) return
+      obj[fname] = fn
+    }
+    function property(obj, fname, fn) {
+      if (obj[fname] === fn) return
       Object.defineProperty(obj, fname, {
         writable: true,
         configurable: true,
         value: fn,
       })
     }
-    function clean(constructor, fname) {
-      if (constructor.prototype["_" + fname]) {
-        constructor.prototype[fname] = constructor.prototype["_" + fname]
-        delete constructor.prototype["_" + fname]
+    function extend(proto) {
+      return function (constructor, fname, fn) {
+        if (constructor.prototype[fname]?.toString().includes("[native code]")) proto(constructor.prototype, "_" + fname, constructor.prototype[fname])
+        if (constructor === Array && ["reduce", "map", "filter", "find", "findIndex"].includes(fname)) fn = (x, ...args) => constructor.prototype["_" + fname].call(x, ...args)
+        if (constructor === Array && ["sort", "reverse"].includes(fname)) fn = (x, ...args) => constructor.prototype["_" + fname].call(x.slice(), ...args)
+        if (shortcuts.hasOwnProperty(fname)) fn = decorate(fn, shortcuts[fname])
+        try {
+          proto(constructor, fname, fn)
+        } catch (e) {
+          console.error(`${constructor.name}.${fname} not extended: ${e.message}`)
+        }
+        try {
+          proto(constructor.prototype, fname, function () {
+            return fn(this, ...arguments)
+          })
+        } catch (e) {
+          console.error(`${constructor.name}.prototype.${fname} not extended: ${e.message}`)
+        }
+        return fn
       }
-      if (constructor[fname] && !constructor[fname].toString().includes("[native code]")) delete constructor[fname]
-      if (constructor.prototype[fname] && !constructor.prototype[fname].toString().includes("[native code]")) delete constructor.prototype[fname]
     }
-    function shorcut(constructor, fname, fn) {
-      if (constructor === Array && ["reduce", "map", "filter", "find", "findIndex"].includes(fname)) fn = (x, ...args) => constructor.prototype[fname].call(x.slice(), ...args)
-      if (constructor === Array && ["sort", "reverse"].includes(fname)) fn = (x, ...args) => constructor.prototype[fname].call(x.slice(), ...args)
-      return decorate(fn, shortcuts[fname])
-    }
-    function proto(constructor, fname, fn) {
-      if (constructor.prototype[fname]?.toString().includes("[native code]")) define(constructor.prototype, "_" + fname, constructor.prototype[fname])
-      if (constructor === Array && ["reduce", "map", "filter", "find", "findIndex"].includes(fname)) fn = (x, ...args) => constructor.prototype["_" + fname].call(x, ...args)
-      if (constructor === Array && ["sort", "reverse"].includes(fname)) fn = (x, ...args) => constructor.prototype["_" + fname].call(x.slice(), ...args)
-      define(constructor, fname, shortcuts.hasOwnProperty(fname) ? decorate(fn, shortcuts[fname]) : fn)
-      define(constructor.prototype, fname, function () {
-        return constructor[fname](this, ...arguments)
-      })
-      return constructor[fname]
-    }
-    Object.entries(constructors).forEach(([name, constructor]) => {
-      Object.entries(this[name]).forEach(([fname, fn]) => {
-        clean(constructor, fname)
-        this[name][fname] = (global ? proto : shorcut)(constructor, fname, fn?.fn || fn)
-      })
-    })
-    return this
   },
   Object: {
     keys: Object.keys,
@@ -459,8 +483,8 @@ const cut = {
     traverse,
   },
   Array: {
-    reduce: null,
     map: null,
+    reduce: null,
     filter: null,
     find: null,
     findIndex: null,
@@ -523,5 +547,6 @@ const cut = {
   },
 }
 cut.shortcuts.find = cut.shortcuts.findIndex = cut.shortcuts.filter
+cut.shortcuts.min = cut.shortcuts.max = cut.shortcuts.mean = cut.shortcuts.median = cut.shortcuts.sum
 cut.refresh()
 export default cut
