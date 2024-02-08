@@ -328,9 +328,8 @@ function cut(...args) {
     return new Proxy(x, {
       get(target, prop, receiver) {
         if (x.hasOwnProperty(prop)) return x[prop]
-        return function (...args) {
-          return cut[cname][prop](x, ...args)
-        }
+        const f = cut[cname][prop]
+        if (f) return (...args) => f(x, ...args)
       },
     })
   }
