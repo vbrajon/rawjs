@@ -1,29 +1,21 @@
-[cut](https://github.com/vbrajon/cut) is a shortcut utility library to speed up **data transformation**, **dates manipulation**, **formatting** and **function composition**.  
-It is a simpler version of [lodash](https://github.com/lodash/lodash) or [moment](https://github.com/moment/moment/).
+<p align="center">
+  <a href="https://raw.githack.com/vbrajon/rawjs/cut/index.html" target="_blank">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vbrajon/rawjs/cut/logo-dark.svg">
+      <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/vbrajon/rawjs/cut/logo-light.svg">
+      <img alt="Cut JS" src="https://raw.githubusercontent.com/vbrajon/rawjs/cut/logo-light.svg" width="350" height="70" style="max-width: 100%;">
+    </picture>
+  </a>
+</p>
 
-## Functions
+<p align="center">
+  A shortcut utility JS library for rapidly interacting with objects, dates, functions.
+</p>
 
-| Object      | Array     | Function  | String     | Number   | Date        | RegExp | Promise |
-| ----------- | --------- | --------- | ---------- | -------- | ----------- | ------ | ------- |
-| keys        | map       | decorate  | lower      | duration | relative    | escape | map     |
-| values      | reduce    | promisify | upper      | format   | getWeek     | plus   |         |
-| entries     | filter    | partial   | capitalize | abs      | getQuarter  | minus  |         |
-| fromEntries | find      | memoize   | words      | acos     | getLastDate |        |         |
-| map         | findIndex | every     | format     | asin     | getTimezone |        |         |
-| reduce      | sort      | wait      |            | atan     | format      |        |         |
-| filter      | reverse   | debounce  |            | acosh    | modify      |        |         |
-| find        | group     | throttle  |            | asinh    | plus        |        |         |
-| findIndex   | unique    |           |            | atanh    | minus       |        |         |
-| access      | min       |           |            | atan2    | start       |        |         |
-| equal       | max       |           |            | cbrt     | end         |        |         |
-| traverse    | sum       |           |            | ceil     |             |        |         |
-|             | mean      |           |            | clz32    |             |        |         |
-|             | median    |           |            | cos      |             |        |         |
-|             |           |           |            | …        |             |        |         |
+---
 
-## Usage
+## Example
 
-Exemple in node:
 ```js
 import { map, sum, group } from "cut"
 const users = [
@@ -31,39 +23,52 @@ const users = [
   { name: "Jane", age: 30, city: "London" },
   { name: "Jack", age: 20, city: "New York" },
 ]
-const names = map(users, "name")
-const ageSum = sum(users, "age")
-const byCity = group(users, "city")
-const populationByCity = map(byCity, "length")
+const names = map(users, "name") // ["John", "Jane", "Jack"]
+const ageSum = sum(users, "age") // 75
+const byCity = group(users, "city") // { Paris: [John], London: [Jane], New York: [Jack] }
+const populationByCity = map(byCity, "length") // { Paris: 1, London: 1, New York: 1 }
 ```
 
-Exemple in browser, extending objects prototypes:
+and extend with your own functions or shortcuts:
+
 ```js
-const { default: cut } = await import("https://raw.githack.com/vbrajon/rawjs/cut/cut.js")
-// extend prototypes
-cut.refresh("property")
-// then
-const users = [
-  { name: "John", age: 25, city: "Paris" },
-  { name: "Jane", age: 30, city: "London" },
-  { name: "Jack", age: 20, city: "New York" },
+// Function
+cut(Array, "transpose", (arr) => arr[0].map((_, i) => arr.map((row) => row[i])))
+cut("alias", "transpose", "swap")
+cut("shortcut", "transpose", {
+  before(arr) {
+    if (arr.some((row) => row.length !== arr[0].length)) throw new Error("Not a matrix")
+    return arr
+  },
+})
+// Test
+const matrix = [
+  [1, 2, 3],
+  [4, 5, 6],
 ]
-const names = users.map("name")
-const ageSum = users.sum("age")
-const byCity = users.group("city")
-const populationByCity = byCity.map("length")
+cut(matrix.concat([7, 8, 9])).transpose() // Error: Not a matrix
+cut(matrix).swap() // [[1, 4], [2, 5], [3, 6]]
 ```
 
-```js
-import cut from "cut"
-// list functions
-const header = Object.keys(cut.constructors)
-const table = Array(15)
-  .fill()
-  .map((_, i) => header.map((k) => (Object.keys(cut[k]).length > i && i === 14 ? "…" : Object.keys(cut[k])[i] || "")))
-console.table(table.map((row) => header.reduce((acc, k, i) => ({ ...acc, [k]: row[i] }), {})))
-console.log([header, header.map((k) => "-".repeat(15)), ...table].map((row) => "| " + row.map((v) => v.padEnd(15, " ")).join(" | ") + " |").join("\n"))
-```
+## Functions
+
+| Object        | Array       | Function  | String     | Number   | Date        | RegExp |
+| ------------- | ----------- | --------- | ---------- | -------- | ----------- | ------ |
+| _keys_        | _map_       | decorate  | lower      | duration | relative    | escape |
+| _values_      | _reduce_    | promisify | upper      | format   | getWeek     | plus   |
+| _entries_     | _filter_    | partial   | capitalize | abs      | getQuarter  | minus  |
+| _fromEntries_ | _find_      | memoize   | words      | acos     | getLastDate |        |
+| map           | _findIndex_ | every     | format     | asin     | getTimezone |        |
+| reduce        | _sort_      | wait      |            | atan     | format      |        |
+| filter        | _reverse_   | debounce  |            | acosh    | modify      |        |
+| find          | group       | throttle  |            | asinh    | plus        |        |
+| findIndex     | unique      |           |            | atanh    | minus       |        |
+| access        | min         |           |            | atan2    | start       |        |
+| equal         | max         |           |            | cbrt     | end         |        |
+| traverse      | sum         |           |            | ceil     |             |        |
+|               | mean        |           |            | clz32    |             |        |
+|               | median      |           |            | cos      |             |        |
+|               |             |           |            | …        |             |        |
 
 ## Development
 
@@ -73,6 +78,6 @@ bun --watch cutest.js
 
 ## Roadmap
 
-- [ ] Docs in README: https://github.com/vbrajon/rawjs/tree/cut
 - [ ] Docs interactive: https://raw.githack.com/vbrajon/rawjs/cut/index.html
 - [ ] Test Viewer/Editor: https://raw.githack.com/vbrajon/rawjs/cut/cutest.html
+- [ ] Typescript

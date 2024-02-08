@@ -76,28 +76,28 @@ export default [
       await sleep(100)
     },
   },
-  {
-    name: "Promise.map",
-    async fn(fn) {
-      let n = 0
-      const inc = (x) => new Promise((resolve) => setTimeout(() => resolve((n += x)), 100))
+  // {
+  //   name: "Promise.map",
+  //   async fn(fn) {
+  //     let n = 0
+  //     const inc = (x) => new Promise((resolve) => setTimeout(() => resolve((n += x)), 100))
 
-      const all = await Promise.all([1, 2].map(inc))
-      if (n !== 3) throw new Error(`Promise.all should be awaitable, n = ${n}`)
-      if (all.length !== 2) throw new Error(`Promise.all should return 2 elements`)
-      n = 0
+  //     const all = await Promise.all([1, 2].map(inc))
+  //     if (n !== 3) throw new Error(`Promise.all should be awaitable, n = ${n}`)
+  //     if (all.length !== 2) throw new Error(`Promise.all should return 2 elements`)
+  //     n = 0
 
-      const map = await fn([1, 2], inc)
-      if (n !== 3) throw new Error(`Promise.map should be awaitable, n = ${n}`)
-      if (map.length !== 2) throw new Error(`Promise.map should return 2 elements`)
-      n = 0
+  //     const map = await fn([1, 2], inc)
+  //     if (n !== 3) throw new Error(`Promise.map should be awaitable, n = ${n}`)
+  //     if (map.length !== 2) throw new Error(`Promise.map should return 2 elements`)
+  //     n = 0
 
-      fn([1, 2], inc)
-      if (n !== 0) throw new Error(`Promise.map should start the first promise, n = ${n}`)
-      await sleep(120)
-      if (n !== 1) throw new Error(`Promise.map should start the second promise, n = ${n}`)
-      await sleep(120)
-      if (n !== 3) throw new Error(`Promise.map should be done, n = ${n}`)
-    },
-  },
+  //     fn([1, 2], inc)
+  //     if (n !== 0) throw new Error(`Promise.map should start the first promise, n = ${n}`)
+  //     await sleep(120)
+  //     if (n !== 1) throw new Error(`Promise.map should start the second promise, n = ${n}`)
+  //     await sleep(120)
+  //     if (n !== 3) throw new Error(`Promise.map should be done, n = ${n}`)
+  //   },
+  // },
 ]

@@ -43,6 +43,7 @@ export default [
   ["Object.equal", { a: 1 }, { a: 1, b: 2 }, false],
   ["Object.equal", mixed, mixedClone, true],
   ["Object.equal", (x) => x, (x) => x, true], // != lodash
+  ["Object.equal", null, null, true],
   ["Object.equal", true],
   ["Object.traverse", 1, (v) => v * 2, 2], //* works also with primitives
   ["Object.traverse", [1], (v) => v * 2, [2]], //* equivalent to map when depth = 1
@@ -137,6 +138,16 @@ export default [
     fn: (fn) => fn((a, b) => [a, b], null, 2)(1),
     output: [1, 2],
   },
+  // {
+  //   name: "Function.partial",
+  //   fn: (fn) => {
+  //     function yolo() {
+  //       console.log("You only live once !")
+  //     }
+  //     return fn(yolo).name
+  //   },
+  //   output: "partial_yolo",
+  // },
   {
     name: "Function.memoize",
     fn: (fn) => {
@@ -216,8 +227,8 @@ export default [
   ["Date.getWeek", new Date("2005-01-01"), 53], // Saturday
   ["Date.getWeek", new Date("2006-01-01"), 52], // Sunday
   ["Date.getQuarter", new Date("2018-04-01"), 2],
-  ["Date.getTimezone", null, -540, "+09:00"],
-  ["Date.getTimezone", null, +240, "-04:00"],
+  ["Date.getTimezone", new Date(), -540, "+09:00"],
+  ["Date.getTimezone", new Date(), +240, "-04:00"],
   ["Date.plus", new Date("2020-01-01T00:00:00"), { years: 1, months: 1, hours: 1, minutes: 2, seconds: 3 }, new Date("2021-02-01T01:02:03")],
   ["Date.plus", new Date("2018-11-30"), { months: 3 }, new Date("2019-02-28")],
   ["Date.plus", new Date("2018-12-31"), { months: 1 }, new Date("2019-01-31")],
