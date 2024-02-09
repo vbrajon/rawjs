@@ -1,26 +1,4 @@
 // Object
-const dotpath = function_memoize((str) => str.split(/(?:\.|\[["']?([^\]"']*)["']?\])/).filter((x) => x))
-function object_access(obj, path) {
-  if (obj == null || path == null) return obj
-  if (Object.prototype.hasOwnProperty.call(obj, path)) return obj[path]
-  if (typeof path === "string") return object_access(obj, dotpath(path))
-  if (path instanceof Array) return path.reduce((a, p) => (a && a[p] != null ? a[p] : undefined), obj)
-  if (path instanceof Function) return path(obj)
-  if (path instanceof Object) return object_map(path, (p) => object_access(obj, p))
-}
-function object_equal(a, b) {
-  if (a === b) return true
-  const ta = Object.prototype.toString.call(a)
-  if (ta !== Object.prototype.toString.call(b)) return false
-  if (!["[object Object]", "[object Array]"].includes(ta)) return a.toString() === b.toString()
-  if (Object.keys(a).length !== Object.keys(b).length) return false
-  return Object.keys(a).every((k) => object_equal(a[k], b[k]))
-}
-function object_traverse(obj, fn, path = []) {
-  if (obj instanceof Array) return obj.map((v, k) => object_traverse(v, fn, path.concat(k)))
-  if (obj instanceof Object) return object_map(obj, (v, k) => object_traverse(v, fn, path.concat(k)))
-  return fn(obj, path)
-}
 function object_map(obj, fn) {
   return Object.keys(obj).reduce((acc, k, i) => {
     acc[k] = fn(obj[k], k, i, obj)
@@ -41,6 +19,32 @@ function object_find(obj, fn) {
 }
 function object_findIndex(obj, fn) {
   return Object.keys(obj).find((k, i) => fn(obj[k], k, i, obj))
+}
+function object_is(a, constructor) {
+  if (!constructor) return a === constructor || isNaN(a) === isNaN(constructor)
+  return a.constructor === constructor
+}
+function object_equal(a, b) {
+  if (a === b) return true
+  if (a == null || b == null) return false
+  if (a.constructor !== b.constructor) return false
+  if (![Object, Array].includes(a.constructor)) return a.toString() === b.toString()
+  if (Object.keys(a).length !== Object.keys(b).length) return false
+  return Object.keys(a).every((k) => object_equal(a[k], b[k]))
+}
+const dotpath = function_memoize((str) => str.split(/(?:\.|\[["']?([^\]"']*)["']?\])/).filter((x) => x))
+function object_access(obj, path) {
+  if (obj == null || path == null) return obj
+  if (Object.prototype.hasOwnProperty.call(obj, path)) return obj[path]
+  if (typeof path === "string") return object_access(obj, dotpath(path))
+  if (path instanceof Array) return path.reduce((a, p) => (a && a[p] != null ? a[p] : undefined), obj)
+  if (path instanceof Function) return path(obj)
+  if (path instanceof Object) return object_map(path, (p) => object_access(obj, p))
+}
+function object_traverse(obj, fn, path = []) {
+  if (obj instanceof Array) return obj.map((v, k) => object_traverse(v, fn, path.concat(k)))
+  if (obj instanceof Object) return object_map(obj, (v, k) => object_traverse(v, fn, path.concat(k)))
+  return fn(obj, path)
 }
 // Array
 function array_group(arr, keys) {
@@ -397,8 +401,9 @@ cut(Object, "reduce", object_reduce)
 cut(Object, "filter", object_filter)
 cut(Object, "find", object_find)
 cut(Object, "findIndex", object_findIndex)
-cut(Object, "access", object_access)
+cut(Object, "is", object_is)
 cut(Object, "equal", object_equal)
+cut(Object, "access", object_access)
 cut(Object, "traverse", object_traverse)
 cut(Array, "map", "native")
 cut(Array, "reduce", "native")

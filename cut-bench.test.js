@@ -22,6 +22,37 @@ export default [
   ["Object.findIndex", user, (v) => v === 29, "age"],
   ["Object.reduce", user, (acc, v, k) => ((acc[v] = k), acc), {}, { "John Doe": "name", 29: "age" }],
   ["Object.reduce", user, (acc, v, k) => Object.assign(acc, { [v]: k }), {}, { "John Doe": "name", 29: "age" }], //* compare performance
+  //? Lodash _.is
+  ["Object.is", [1], Array, true],
+  ["Object.is", new ArrayBuffer(1), ArrayBuffer, true],
+  ["Object.is", true, Boolean, true],
+  ["Object.is", new Buffer(1), Buffer, true],
+  ["Object.is", new Date(), Date, true],
+  ["Object.is", new Error(), Error, true],
+  ["Object.is", () => 1, Function, true],
+  ["Object.is", new Map(), Map, true],
+  ["Object.is", NaN, NaN, true],
+  ["Object.is", null, null, true],
+  ["Object.is", 1, Number, true],
+  ["Object.is", {}, Object, true],
+  ["Object.is", /1/, RegExp, true],
+  ["Object.is", new Set(), Set, true],
+  ["Object.is", "str", String, true],
+  ["Object.is", Symbol(1), Symbol, true],
+  ["Object.is", undefined, undefined, true],
+  ["Object.is", new WeakMap(), WeakMap, true],
+  ["Object.is", new WeakSet(), WeakSet, true],
+  //? Lodash _.is ignored: Arguments / ArrayLike / ArrayLikeObject / Element / Empty / Equal / EqualWith / Finite / Integer / Length / Match / MatchWith / Native / Nil / ObjectLike / PlainObject / SafeInteger / TypedArray
+  ["Object.is", void 0, undefined, true],
+  ["Object.is", NaN, Number, true], //! NaN is also a Number
+  //? Lodash _.isEqual
+  ["Object.equal", [null, null], [null, undefined], false],
+  ["Object.equal", { a: 1 }, { a: 1 }, true],
+  ["Object.equal", { a: 1 }, { a: 1, b: 2 }, false],
+  ["Object.equal", mixed, mixedClone, true],
+  ["Object.equal", (x) => x, (x) => x, true], // != lodash
+  ["Object.equal", null, null, true],
+  ["Object.equal", true],
   ["Object.access", { a: { b: [1, 2, 3] } }, ["a", "b", "length"], 3],
   ["Object.access", { a: { b: [1, 2, 3] } }, "a.b.length", 3],
   ["Object.access", { a: { b: [1, 2, 3] } }, ".a.b.length", 3], // != lodash
@@ -38,13 +69,6 @@ export default [
   ["Object.access", { "a.b": 1 }, undefined, { "a.b": 1 }], // != lodash
   ["Object.access", 1, 1, undefined],
   ["Object.access", undefined],
-  ["Object.equal", [null, null], [null, undefined], false],
-  ["Object.equal", { a: 1 }, { a: 1 }, true],
-  ["Object.equal", { a: 1 }, { a: 1, b: 2 }, false],
-  ["Object.equal", mixed, mixedClone, true],
-  ["Object.equal", (x) => x, (x) => x, true], // != lodash
-  ["Object.equal", null, null, true],
-  ["Object.equal", true],
   ["Object.traverse", 1, (v) => v * 2, 2], //* works also with primitives
   ["Object.traverse", [1], (v) => v * 2, [2]], //* equivalent to map when depth = 1
   ["Object.traverse", { a: 1 }, (v) => v * 2, { a: 2 }], //* equivalent to map when depth = 1
