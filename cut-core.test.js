@@ -1,4 +1,5 @@
-import tests from "./cut-bench.test.js"
+import testsAsync from "./cut-async.test.js"
+import testsSync from "./cut-sync.test.js"
 import cut from "./cut.js"
 export const packages = [
   {
@@ -16,7 +17,8 @@ export const packages = [
     },
   },
 ]
-export default tests
+export default testsAsync
+  .concat(testsSync)
   .concat([
     {
       name: "core.noMutation",
@@ -25,11 +27,12 @@ export default tests
         const a = [3, 1, 2]
         a.reverse()
         if (a[0] !== 3) throw new Error("Array.reverse mutates the array")
-        const shortcut = cut.shortcuts.reverse
+        const reverse = cut.shortcuts.reverse
         cut("shortcut", "reverse", null)
+        if (cut.shortcuts.reverse) throw new Error("cut.shortcuts.reverse still exists")
         a.reverse()
         if (a[0] !== 2) throw new Error("Array.reverse does not mutate the array")
-        cut("shortcut", "reverse", shortcut)
+        cut("shortcut", "reverse", reverse)
       },
     },
     {

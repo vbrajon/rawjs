@@ -1,20 +1,4 @@
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
-
-// TODO: allow standard assertion syntax
-// NOTE: an additionnal fn argument is passed to the test function
-// NOTE: a shortcut syntax is available for simple tests
-// test("fname", 1, 2, 3)
-// test("fname - description", (fn) => {
-//   assert.equal(fn(1, 2), 3)
-//   assert.equal(fn(1, 3), 4)
-// })
-
-// TODO: make a function to extract test from standard .test.js files
-// NOTE: extract the function name from the filename, inject in the test
-// exemple in https://github.com/lodash/lodash/blob/main/test/add.spec.js
-// automate the import add from '../src/add';
-// inject (add) in the test function signature
-
 export default [
   {
     name: "Function.wait",

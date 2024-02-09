@@ -29,8 +29,12 @@ users.map("name")
 users.sum("age")
 users
   .group("city")
-  .map("length")
-`
+  .map("[0].name")
+  .entries()
+  .sum(v => 1)
+  .duration()
+  .format("snake")
+  .is(String)`
   textarea.value = code
   refresh()
   async function refresh() {

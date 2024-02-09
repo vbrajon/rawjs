@@ -271,7 +271,7 @@ export default [
   ["Date.plus", new Date("2016-02-29"), { ignored: 1, milliseconds: 1, and: 1, quarters: 1 }, new Date("2016-02-29")], //* ignored additional properties
   ["Date.plus", new Date("2020-01-01"), { months: 1.2 }, new Date("2020-02-01")], //* Expected behavior
   ["Date.plus", new Date("2020-01-31"), "1.2 month", new Date("2020-02-29")], //* Expected behavior //! DEPRECATED syntax
-  ["Date.plus", new Date("2020-01-01T00:00:00"), "1 year, 1 month, 1 hour - 2 minute - 3 seconds", new Date("2021-02-01T01:02:03")], //! DEPRECATED syntax
+  ["Date.plus", new Date("2020-01-01T00:00:00"), "+1 year +1 month +1 hour +2 minute -3 seconds", new Date("2021-02-01T01:01:57")], //! DEPRECATED syntax
   ["Date.minus", new Date("2020-01-01"), "1 month", new Date("2019-12-01")],
   ["Date.minus", new Date("2020-02-29"), "1 year", new Date("2019-02-28")],
   ["Date.minus", new Date("2018-11-30"), "-3 month", new Date("2019-02-28")], //* Subtract negative number
