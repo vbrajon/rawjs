@@ -43,8 +43,15 @@ export default [
   ["Object.is", new WeakMap(), WeakMap, true],
   ["Object.is", new WeakSet(), WeakSet, true],
   //? Lodash _.is ignored: Arguments / ArrayLike / ArrayLikeObject / Element / Empty / Equal / EqualWith / Finite / Integer / Length / Match / MatchWith / Native / Nil / ObjectLike / PlainObject / SafeInteger / TypedArray
+  ["Object.is", null, 'Null'],
+  ["Object.is", void 0, 'Undefined'],
+  ["Object.is", undefined, 'Undefined'],
+  ["Object.is", NaN, 'NaN'],
+  ["Object.is", () => 1, 'Function'],
+  // { name: "Object.is", fuzz: true, errors: [] },
   ["Object.is", void 0, undefined, true],
   ["Object.is", NaN, Number, true], //! NaN is also a Number
+  ["Object.is", 1, NaN, false],
   //? Lodash _.isEqual
   ["Object.equal", [null, null], [null, undefined], false],
   ["Object.equal", { a: 1 }, { a: 1 }, true],

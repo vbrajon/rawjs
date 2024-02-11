@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  A shortcut utility JS library for rapidly interacting with objects, dates, functions.
+  A shortcut utility JS library for rapidly interacting with objects, dates, and functions.
 </p>
 
 ---
@@ -32,22 +32,28 @@ const populationByCity = map(byCity, "length") // { Paris: 1, London: 1, New Yor
 and extend with your own functions or shortcuts:
 
 ```js
-// Function
+// Extending Function as follow
 cut(Array, "transpose", (arr) => arr[0].map((_, i) => arr.map((row) => row[i])))
-cut("alias", "transpose", "swap")
+// Add a shortcut with:
 cut("shortcut", "transpose", {
-  before(arr) {
-    if (arr.some((row) => row.length !== arr[0].length)) throw new Error("Not a matrix")
-    return arr
+  before(args) {
+    if (args[0].some((row) => row.length !== args[0][0].length)) throw new Error("Not a matrix")
+    return args
   },
 })
-// Test
+// Add an alias with:
+cut(Array, "swap", cut.Array.transpose)
+// Then use it with:
 const matrix = [
   [1, 2, 3],
   [4, 5, 6],
 ]
-cut(matrix.concat([7, 8, 9])).transpose() // Error: Not a matrix
-cut(matrix).swap() // [[1, 4], [2, 5], [3, 6]]
+cut.swap(matrix)
+// or
+cut(matrix).swap()
+// or
+cut("mode", "prototype")
+matrix.swap()
 ```
 
 ## Functions
@@ -79,5 +85,9 @@ bun --watch cutest.js
 ## Roadmap
 
 - [ ] Docs interactive: https://raw.githack.com/vbrajon/rawjs/cut/index.html
-- [ ] Test Viewer/Editor: https://raw.githack.com/vbrajon/rawjs/cut/cutest.html
+- [ ] Test interactive: https://raw.githack.com/vbrajon/rawjs/cut/cutest.html
 - [ ] Typescript
+- [ ] Blog Post
+- [ ] Hacker News / Product Hunt
+- [ ] Every Array Fn
+- [ ] Async/Iterator/Generator

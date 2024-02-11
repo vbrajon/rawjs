@@ -29,7 +29,12 @@ async function run(file, options) {
       const errored = results[name].filter(({ status }) => status === "ko")
       const skipped = tests.length - results[name].length
       const [clear, red, green, yellow, blue] = [0, 31, 32, 33, 34].map((n) => `\x1b[${n}m`)
-      if (errored.length) console.table(errored.map((v) => ({ run: v.run, error: v.error.name, message: v.error.message, input: v.input, actual: v.error.actual, expected: v.error.expected })))
+      if (errored.length) {
+        const assertErrors = errored.filter((v) => v.error.name === "AssertError").map((v) => ({ run: v.run, actual: v.error.actual, expected: v.error.expected }))
+        const throwErrors = errored.filter((v) => v.error.name !== "AssertError").map((v) => v.error)
+        if (assertErrors.length) console.table(assertErrors)
+        if (throwErrors.length) throwErrors.map(e => console.error(e))
+      }
       console[errored.length ? "error" : "log"](`${file} ${blue}${name}${clear} | ${yellow}${duration > 1000 ? +(duration / 1000).toPrecision(2) + "s" : +duration.toFixed(0) + "ms"}${times > 1 ? ` x${times}` : ""}${parallel ? ` parallel` : ""}${clear}: ${green}${passed.length} passed${clear}, ${red}${errored.length} errored${skipped ? `, ${yellow}${skipped} skipped${clear}` : ""}${clear}`)
     }
   }
@@ -45,10 +50,11 @@ async function run(file, options) {
           output: test.at(-1),
         }
       const { name, input, output } = test
-      c[name] = (c[name] || 0) + 1
-      const f = pkg.fn(pkg.module, name)
-      if (!f && !test.force) continue
-      const run = `${name} #${c[name]} #${pkg.name}`
+      const [key, description] = name.split(" - ")
+      c[key] = (c[key] || 0) + 1
+      const f = pkg.fn(pkg.module, key)
+      if (!f) continue
+      const run = `${key} #${c[key]} #${pkg.name}`
       const fn = test.fn ? () => test.fn(f) : () => f(...input)
       const fn_test = async () => assertEquals(await fn(), output)
       const fn_bench = async () => { try { await fn() } catch (e) {} } // prettier-ignore
@@ -94,7 +100,6 @@ const packages = [
         "Object.filter": (obj, fn) => Object.fromEntries(Object.entries(obj).filter(([k, v]) => fn(v, k, obj))),
         "Object.find": (obj, fn) => obj[Object.keys(obj).find((k, i, ks) => fn(obj[k], k, obj, i, ks))],
         "Object.findIndex": (obj, fn) => Object.keys(obj).find((k, i, ks) => fn(obj[k], k, obj, i, ks)),
-        "Array.reduce": (arr, ...args) => arr.reduce(...args),
         "Date.getWeek": (date) => Temporal.PlainDate.from({ year: date.getFullYear(), month: date.getMonth() + 1, day: date.getDate() }).weekOfYear,
       }[name]
     },
@@ -107,33 +112,32 @@ const packages = [
       .slice(-1),
     import: (version) => import(`${unpkg}lodash-es@${version}`),
     fn: (module, name) => {
-      const mapping = {
-        // "Object.map": "map",
-        // "Object.filter": "filter",
-        "Object.find": "find",
-        "Object.findIndex": "findKey",
-        "Object.reduce": "reduce",
-        // "Object.access": "get",
-        // "Object.equal": "isEqual",
-        "String.lower": "toLower",
-        "String.upper": "toUpper",
-        "String.capitalize": "capitalize",
-        "String.words": "words",
-        // "Function.decorate": "flow",
-        // "Function.promisify": "bind",
-        // "Function.partial": "partial",
-        // "Function.memoize": "memoize",
-        // "RegExp.escape": "escapeRegExp",
-      }
-      return module[mapping[name]]
+      if (name === "Object.map") return (...args) => (args[0].constructor === Object ? module.mapValues(...args) : module.map(...args))
+      if (name === "Object.filter") return (...args) => (args[0].constructor === Object ? module.pickBy(...args) : module.filter(...args))
+      if (name === "Object.find") return module.find
+      if (name === "Object.findIndex") return module.findKey
+      if (name === "Object.reduce") return module.reduce
+      // if (name === "Object.access") return module.get
+      // if (name === "Object.equal") return module.isEqual
+      if (name === "String.lower") return module.toLower
+      if (name === "String.upper") return module.toUpper
+      if (name === "String.capitalize") return module.capitalize
+      if (name === "String.words") return module.words
+      // if (name === "Function.decorate") return module.flow
+      // if (name === "Function.promisify") return module.bind
+      // if (name === "Function.partial") return module.partial
+      // if (name === "Function.memoize") return module.memoize
+      // if (name === "RegExp.escape") return module.escapeRegExp
     },
   },
 ]
+// await new Promise((resolve) => setTimeout(resolve, 1000))
 const results = [
   // NOTE: Safari crashes when running more test functions, more times
-  await run("cut-async.test.js", { parallel: true, packages: packages.slice(0, 1) }),
+  // await run("cut-async.test.js", { parallel: true, packages: packages.slice(0, 1) }),
+  // await run("cut-sync.test.js", { parallel: true, packages }),
+  // await run("cut-sync.test.js", { parallel: true, times: 100, packages }),
   await run("cut-core.test.js", { parallel: true }),
-  await run("cut-bench.test.js", { times: 100, packages: packages.slice(0, 1) }),
 ]
   .map(Object.values)
   .flat(2)

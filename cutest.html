@@ -18,7 +18,7 @@
   cut("mode", "prototype")
   window.cut = cut
   const textarea = document.querySelector("textarea")
-  const max = (textarea.clientWidth - 40) / 8.5
+  const max = (textarea.clientWidth - 40) / 9
   textarea.addEventListener("input", refresh)
   const code = `const users = [
   { name: "John", age: 25, city: "Paris" },
@@ -37,38 +37,52 @@ users
   .is(String)`
   textarea.value = code
   refresh()
-  async function refresh() {
-    let error
+  async function run(code) {
     try {
-      eval(textarea.value)
-    } catch (e) {
-      error = e.message
+      const lines = code.split("\n")
+      const wordLineIndex = lines
+        .slice()
+        .reverse()
+        .findIndex((l) => /^\s*[a-z]/.test(l))
+      const index = wordLineIndex === -1 ? 0 : lines.length - wordLineIndex - 1
+      lines[index] = "return " + lines[index]
+      code = lines.join("\n")
+      return { data: await eval(`(async () => {${code}})()`) }
+    } catch (error) {
+      return { error }
     }
-    if (error) document.querySelector(".editor").style = "border: 1px solid red;"
-    else document.querySelector(".editor").style = "border: 1px solid transparent;"
-    function comment(line, i) {
-      if (!line) return
-      // if (!/\.(map|reduce|filter|find|findIndex|sum|min|max|avg)/.test(line)) return line
-      try {
-        const result = eval(lines.slice(0, i + 1).join("\n"))
-        if (result === undefined) return line
-        const str = result instanceof Function ? result.toString() : JSON.stringify(result)
-        const com = line + " // " + str
-        const brk = com.indexOf("\n") === -1 ? max : Math.min(max, com.indexOf("\n"))
-        // console.log(com, brk)
-        if (com.length > brk) return com.slice(0, brk) + "…"
-        return com
-      } catch (e) {
-        if (e.message === error) {
-          error = null
-          return line + " //! " + e.message
-        }
-        return line
-      }
+  }
+  async function comment(line, i, all) {
+    const lines = all.slice(0, i + 1)
+    if (!line) return line
+    const { data, error } = await run(lines.join("\n"))
+    if (error) {
+      if (!all.message) all.message = (await run(all.join("\n"))).error?.message ?? "none"
+      if (all.skip || all.message !== error.message) return line
+      all.skip = true
+      return line + " //!\\\\ " + error.message
     }
-    const lines = textarea.value.split("\n")
-    const comments = lines.map((line, i) => comment(line, i))
-    const code = comments.join("\n") + "\n"
+    const str = data instanceof Function ? data.toString() : JSON.stringify(data)
+    const com = line + " // " + str
+    const brk = com.indexOf("\n") === -1 ? max : Math.min(max, com.indexOf("\n"))
+    // console.log(com, brk)
+    if (com.length > brk) return com.slice(0, brk) + "…"
+    return com
+  }
+  async function comments(code) {
+    const lines = code.split("\n")
+    const linesWithComments = await Promise.all(lines.map(comment))
+    return linesWithComments.join("\n") + "\n"
+  }
+  async function refresh() {
+    const code = await comments(textarea.value)
     document.querySelector("pre").outerHTML = await codeToHtml(code, { lang: "js", theme: "github-dark" })
+    document.querySelector(".editor").style = "border: 1px solid transparent;"
+    if (!code.includes(`//!\\`)) return
+    document.querySelector(".editor").style = "border: 1px solid red;"
+    $$('[style="color:#6A737D"]').at(-1).style = "color:red"
+  }
+  function $$(selector, root = document) {
+    return [...root.querySelectorAll(selector)]
   }
 </script>

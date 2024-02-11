@@ -19,7 +19,7 @@ export default [
       // if (n !== 2) throw new Error(`Function.every should yield next result and be called 2 times, n = ${n}`)
       // await loop
       // if (n !== 3) throw new Error(`Function.every should have been called 3 times, n = ${n}`)
-      // await loop
+      // await loop //! should not hang
       // if (n !== 3) throw new Error(`Function.every should have been called 3 times, n = ${n}`)
     },
   },
@@ -57,7 +57,6 @@ export default [
       if (n !== 1) throw new Error(`Function.throttle should call immediatly the fn, n = ${n}`)
       await sleep(100)
       if (n !== 4) throw new Error(`Function.throttle should have called the next fn after 100ms, n = ${n}`)
-      await sleep(100)
     },
   },
   // {

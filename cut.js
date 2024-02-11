@@ -20,7 +20,12 @@ function object_find(obj, fn) {
 function object_findIndex(obj, fn) {
   return Object.keys(obj).find((k, i) => fn(obj[k], k, i, obj))
 }
+function object_type(a) {
+  if (!a) return Number.isNaN(a) ? "NaN" : Object.prototype.toString.call(a).slice(8, -1)
+  return a.constructor.name
+}
 function object_is(a, constructor) {
+  if (arguments.length === 1) return object_type(a)
   if (!constructor) return a === constructor || isNaN(a) === isNaN(constructor)
   return a.constructor === constructor
 }
