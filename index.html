@@ -1,0 +1,147 @@
+<meta charset="utf-8" />
+<link rel="icon" href="data:," />
+<body class="m-10 flex bg-[#0d1116] text-white">
+  <div class="z-10 flex w-40 flex-col overflow-auto">
+    <a class="-mr-px border border-transparent px-2 py-1" href="#">README</a>
+  </div>
+  <div class="editor relative flex-1 overflow-hidden border-[20px] border-[#161b22] bg-[#161b22] font-mono text-sm">
+    <textarea class="absolute h-full w-full resize-none border-none bg-transparent text-transparent caret-[orange] outline-0" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"></textarea>
+    <pre></pre>
+  </div>
+</body>
+<script type="module">
+  import { codeToHtml } from "https://esm.sh/shiki@1.0.0"
+  import cut from "./cut.js"
+  import tests from "./cut-sync.test.js"
+  cut("mode", "prototype")
+  window.cut = cut
+  window.tests = tests
+  window.$ = (selector, root = document) => root.querySelector(selector)
+  window.$$ = (selector, root = document) => [...root.querySelectorAll(selector)]
+  window.refresh = refresh
+  const textarea = $(".editor textarea")
+  const max = (textarea.clientWidth - 40) / 9
+  textarea.addEventListener("input", refresh)
+  addEventListener("hashchange", reload)
+  $(".z-10").innerHTML += Object.keys(cut.constructors)
+    .flatMap((cname) =>
+      Object.keys(cut[cname]).map((fname) => {
+        if (fname[0] === "_") return ""
+        if (cname === "Number" && Math[fname]) return ""
+        return `<a class="-mr-px border border-transparent px-2 py-1" href="#${cname}.${fname}">${cname}.${fname}</a>`
+      })
+    )
+    .filter(Boolean)
+    .join("\n")
+  reload()
+  async function run(code) {
+    try {
+      if (!code.includes("await")) return { data: await eval(`${code}`) }
+      const lines = code.split("\n")
+      const wordLineIndex = lines
+        .slice()
+        .reverse()
+        .findIndex((l) => /^\s*[a-z]/.test(l))
+      const index = wordLineIndex === -1 ? 0 : lines.length - wordLineIndex - 1
+      lines[index] = "return " + lines[index]
+      code = lines.join("\n")
+      return { data: await eval(`(async () => {${code}})()`) }
+    } catch (error) {
+      return { error }
+    }
+  }
+  async function comment(line, i, all) {
+    const lines = all.slice(0, i + 1)
+    if (!line) return line
+    const { data, error } = await run(lines.join("\n"))
+    if (error) {
+      if (!all.message) all.message = (await run(all.join("\n"))).error?.message ?? "none"
+      if (all.skip || all.message !== error.message) return line
+      all.skip = true
+      return line + " //!\\\\ " + error.message
+    }
+    if (!data) return line
+    const str = data instanceof Function ? data.toString() : JSON.stringify(data)
+    const com = line + " // " + str
+    const brk = com.indexOf("\n") === -1 ? max : Math.min(max, com.indexOf("\n"))
+    // console.log(com, brk)
+    if (com.length > brk) return com.slice(0, brk) + "…"
+    return com
+  }
+  async function comments(code) {
+    const lines = code.split("\n")
+    const linesWithComments = await Promise.all(lines.map(comment))
+    return linesWithComments.join("\n") + "\n"
+  }
+  async function refresh(text) {
+    if (typeof text === "string") textarea.value = text
+    const code = await comments(textarea.value)
+    const html = await codeToHtml(code, { lang: "js", theme: "github-dark" })
+    $(".editor pre").outerHTML = html.replace(/style="[^"]*"/, `style="width:100%;height:100%;white-space:pre-wrap;background:#161b22;"`).replace(/tabindex="0"/, "")
+    $(".editor").style = "outline: 1px solid rgb(255 255 255 / 5%);outline-offset: -1px;"
+    if (!code.includes(`//!\\\\`)) return
+    $(".editor").style = "z-index: 10;outline: 1px solid red;outline-offset: -1px;"
+    $$('[style="color:#6A737D"]').at(-1).style = "color:red"
+  }
+  function reload() {
+    const links = $$("a[href]")
+    const link = links.find((el) => el.getAttribute("href") === location.hash) || links[0]
+    links.forEach((el) => (el.style = ""))
+    link.style = "border-color: rgb(255 255 255 / 5%);border-right: 0;background: #161b22"
+    const [cname, fname] = location.hash.slice(1).split(".")
+    const fn = cut?.[cname]?.[fname]
+    const f = fn?.fn ?? fn
+    if (f) return refresh(f.toString())
+    return refresh(`const users = [
+  { name: "John", age: 25, city: "Paris" },
+  { name: "Jane", age: 30, city: "London" },
+  { name: "Jack", age: 20, city: "New York" },
+]
+users.map("name")
+users.sum("age")
+users
+  .group("city")
+  .map("[0].name")
+  .entries()
+  .sum(v => 1)
+  .duration()
+  .format("snake")
+  .is(String)
+`)
+  }
+</script>
+<!-- prettier-ignore -->
+<style>
+@import url(https://cdn.jsdelivr.net/npm/@unocss/reset/tailwind.min.css);
+/* layer: default */
+.absolute{position:absolute;}
+.relative{position:relative;}
+.z-10{z-index:10;}
+.m-10{margin:2.5rem;}
+.-mr-px{margin-right:-1px;}
+.h-full{height:100%;}
+.w-40{width:10rem;}
+.w-full{width:100%;}
+.flex{display:flex;}
+.flex-1{flex:1 1 0%;}
+.flex-col{flex-direction:column;}
+.resize-none{resize:none;}
+.overflow-auto{overflow:auto;}
+.overflow-hidden{overflow:hidden;}
+.border{border-width:1px;}
+.border-\[20px\]{border-width:20px;}
+.border-\[\#161b22\]{--un-border-opacity:1;border-color:rgb(22 27 34 / var(--un-border-opacity));}
+.border-transparent{border-color:transparent;}
+.border-none{border-style:none;}
+.bg-\[\#0d1116\]{--un-bg-opacity:1;background-color:rgb(13 17 22 / var(--un-bg-opacity));}
+.bg-\[\#161b22\]{--un-bg-opacity:1;background-color:rgb(22 27 34 / var(--un-bg-opacity));}
+.bg-transparent{background-color:transparent;}
+.px-2{padding-left:0.5rem;padding-right:0.5rem;}
+.py-1{padding-top:0.25rem;padding-bottom:0.25rem;}
+.text-sm{font-size:0.875rem;line-height:1.25rem;}
+.text-transparent{color:transparent;}
+.text-white{--un-text-opacity:1;color:rgb(255 255 255 / var(--un-text-opacity));}
+.font-mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;}
+.caret-\[orange\]{caret-color:orange;}
+.outline-0{outline-width:0px;}
+</style>

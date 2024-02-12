@@ -26,7 +26,7 @@ export default [
   ["Object.is", [1], Array, true],
   ["Object.is", new ArrayBuffer(1), ArrayBuffer, true],
   ["Object.is", true, Boolean, true],
-  ["Object.is", new Buffer(1), Buffer, true],
+  // ["Object.is", new Buffer(1), Buffer, true],
   ["Object.is", new Date(), Date, true],
   ["Object.is", new Error(), Error, true],
   ["Object.is", () => 1, Function, true],
