@@ -52,36 +52,30 @@
   }
   async function comment(line, i, all) {
     const lines = all.slice(0, i + 1)
-    if (!line) return line
+    if (!line) return { line }
     const { data, error } = await run(lines.join("\n"))
-    if (error) {
-      if (!all.message) all.message = (await run(all.join("\n"))).error?.message ?? "none"
-      if (all.skip || all.message !== error.message) return line
-      all.skip = true
-      return line + " //!\\\\ " + error.message
-    }
-    if (!data) return line
+    if (!data || line.includes('//')) return { line, data, error }
     const str = data instanceof Function ? data.toString() : JSON.stringify(data)
-    const com = line + " // " + str
+    const com = line + " //= " + str
     const brk = com.indexOf("\n") === -1 ? max : Math.min(max, com.indexOf("\n"))
     // console.log(com, brk)
-    if (com.length > brk) return com.slice(0, brk) + "…"
-    return com
-  }
-  async function comments(code) {
-    const lines = code.split("\n")
-    const linesWithComments = await Promise.all(lines.map(comment))
-    return linesWithComments.join("\n") + "\n"
+    if (com.length > brk) return { line, data, error, com: com.slice(0, brk) + "…" }
+    return { line, data, error, com }
   }
   async function refresh(text) {
     if (typeof text === "string") textarea.value = text
-    const code = await comments(textarea.value)
+    const info = await Promise.all(textarea.value.split("\n").map(comment))
+    const lastInfo = info.findLast((v) => v.hasOwnProperty("error"))
+    $(".editor").style = "outline: 1px solid rgb(255 255 255 / 5%);outline-offset: -1px;"
+    if (lastInfo.error) {
+      $(".editor").style = "z-index: 10;outline: 1px solid red;outline-offset: -1px;"
+      const errorInfo = info.find((v) => v.error?.message === lastInfo.error.message)
+      errorInfo.com = errorInfo.line + " //! " + errorInfo.error.message
+    }
+    const code = (await info.map((v) => v.com || v.line).join("\n")) + "\n"
     const html = await codeToHtml(code, { lang: "js", theme: "github-dark" })
     $(".editor pre").outerHTML = html.replace(/style="[^"]*"/, `style="width:100%;height:100%;white-space:pre-wrap;background:#161b22;"`).replace(/tabindex="0"/, "")
-    $(".editor").style = "outline: 1px solid rgb(255 255 255 / 5%);outline-offset: -1px;"
-    if (!code.includes(`//!\\\\`)) return
-    $(".editor").style = "z-index: 10;outline: 1px solid red;outline-offset: -1px;"
-    $$('[style="color:#6A737D"]').at(-1).style = "color:red"
+    $$(`.editor pre [style="color:#6A737D"]`).forEach((el) => (el.style = `color:${{ "!": "red", "=": "orange" }[el.textContent.trim()[2]] || "#6A737D"}`))
   }
   function reload() {
     const links = $$("a[href]")
