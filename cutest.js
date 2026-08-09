@@ -8,7 +8,10 @@ const users = [
 const user = users[0]
 const str = "i_am:The\n1\tAND , Only."
 const date = new Date("2019-01-20T10:09:08")
-const offset = ((offset = new Date().getTimezoneOffset()) => `${offset > 0 ? "-" : "+"}${("0" + ~~Math.abs(offset / 60)).slice(-2)}:${("0" + Math.abs(offset % 60)).slice(-2)}`)()
+const offset = (d = new Date()) => {
+  const o = d.getTimezoneOffset()
+  return `${o > 0 ? "-" : "+"}${("0" + ~~Math.abs(o / 60)).slice(-2)}:${("0" + Math.abs(o % 60)).slice(-2)}`
+}
 const mixed = [false, true, (x) => x, -1, 0, Infinity, [], { a: [{ b: 1 }] }, /a/gi, null, new Date("2020"), "a", undefined]
 const mixedClone = [false, true, (x) => x, -1, 0, Infinity, [], { a: [{ b: 1 }] }, /a/gi, null, new Date("2020"), "a", undefined]
 const testsSync = [
@@ -338,10 +341,10 @@ const testsSync = [
   ["String.duration", "-1h", -3600000],
   ["String.duration", "1.5H", 5400000], //* case-insensitive
   ["String.duration", "in 1h 2m 3s 4ms", 3723004],
-  ["Date.format", date, "2019-01-20T10:09:08" + offset],
-  ["Date.format", date, undefined, "2019-01-20T10:09:08" + offset],
-  ["Date.format", date, "", "2019-01-20T10:09:08" + offset],
-  ["Date.format", date, "YYYY/MM/DD hhhmmmsssSSSZ", "2019/01/20 10h09m08s000" + offset],
+  ["Date.format", date, "2019-01-20T10:09:08" + offset(date)],
+  ["Date.format", date, undefined, "2019-01-20T10:09:08" + offset(date)],
+  ["Date.format", date, "", "2019-01-20T10:09:08" + offset(date)],
+  ["Date.format", date, "YYYY/MM/DD hhhmmmsssSSSZ", "2019/01/20 10h09m08s000" + offset(date)],
   ["Date.format", date, "QQ WW", "Q1 W3"],
   // NOTE: syntax alternative could be { date: "medium", time: "medium", locale: "zh" }.
   ["Date.format", date, "full", "Sunday, January 20, 2019"],
@@ -358,7 +361,7 @@ const testsSync = [
   ["Date.format", date, "hour", "10 AM"],
   ["Date.format", date, "minute", "9"],
   ["Date.format", date, "second", "8"],
-  // ["Date.format", new Date("100000-01-01"), "YYYY-MM-DD hh:mm:ss Z", `100000-01-01 00:00 ${offset}`],
+  // ["Date.format", new Date("100000-01-01"), "YYYY-MM-DD hh:mm:ss Z", `100000-01-01 00:00 ${offset(new Date("100000-01-01"))}`],
   // ["Date.format", new Date("0000-01-01"), "YYYY-MM-DD hh:mm:ss Z", "0000-01-01 04:28:12 +04:28"], // historical calendar adjustments
   // ["Date.format", new Date("-100000-01-01"), "YYYY-MM-DD hh:mm:ss Z", `-100000-01-01 04:28:12 +04:28`],
   // ["Date.format", new Date("100000-01-01"), "YYYY-MM-DD", `100000-01-01`],
@@ -419,9 +422,9 @@ const testsSync = [
   ["Date.getQuarter", new Date("2018-04-01T00:00"), 2],
   ["Date.getQuarter", new Date("2018-09-01T00:00"), 3],
   ["Date.getQuarter", new Date("2018-12-01T00:00"), 4],
-  ["Date.getTimezone", date, offset],
+  ["Date.getTimezone", date, offset(date)],
   ["Date.getTimezone", date, -540, "+09:00"],
-  ["Date.setTimezone", date, offset, date],
+  ["Date.setTimezone", date, offset(date), date],
   ["Date.setTimezone", new Date("2000-01-01T00:00"), "+05:00", new Date("2000-01-01T00:00:00+05:00")],
   ["Date.setTimezone", new Date("2000-01-02T00:00"), "-05:00", new Date("2000-01-02T00:00:00-05:00")],
   ["Date.setTimezone", new Date("2000-01-01T00:00"), 300, new Date("2000-01-01T00:00:00-05:00")],
